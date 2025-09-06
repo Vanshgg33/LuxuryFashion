@@ -1,0 +1,1 @@
+export const baseApiUrl = 'http://localhost:8081'; // Replace with your actual base API URL
