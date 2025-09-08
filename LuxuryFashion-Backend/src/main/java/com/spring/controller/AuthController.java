@@ -40,6 +40,7 @@ public class AuthController {
 
         User user = userRepository.findByEmail(email);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+            System.out.println("Wrong password");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("error", "Invalid credentials"));
         }

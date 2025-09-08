@@ -20,6 +20,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 public class Config {
@@ -39,28 +44,49 @@ public class Config {
 
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.
-                csrf(AbstractHttpConfigurer::disable) .cors(cors -> {})
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                // Disable CSRF for APIs
+                .csrf(csrf -> csrf.disable())
 
+                // Enable CORS with configuration source
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/","/login","/save","/users/register","/css/**","/style.css","/http://localhost:8083/login/oauth2/code/google","auth/validate").permitAll()
+                        .requestMatchers("/", "/login", "/save", "/users/register", "/css/**", "/style.css",
+                                "/auth/validate", "/http://localhost:8083/login/oauth2/code/google")
+                        .permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                        .requestMatchers("/admin-api/**").authenticated() // admin-only
+                        .anyRequest().authenticated()
                 )
-                        .oauth2Login(oauth2 -> oauth2
-                                .successHandler(oAth2SuccessHandler)
-                        )
-                .anonymous(anonymous -> anonymous.authorities("ROLE_ANONYMOUS"))
+
+                // OAuth2 login success handler
+                .oauth2Login(oauth2 -> oauth2.successHandler(oAth2SuccessHandler))
+
+
+                .anonymous(anon -> anon.authorities("ROLE_ANONYMOUS"))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-
-
-        return httpSecurity.build();
-
+        return http.build();
     }
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true); // important for cookies
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
 
     @Bean
     public AuthenticationProvider authenticationProvider() {

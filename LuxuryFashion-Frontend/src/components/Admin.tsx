@@ -1,17 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit, Trash2, Users, ShoppingBag, TrendingUp, DollarSign, 
-  Upload, Image, Save, X, Star, Eye, Package, Settings, 
-  BarChart3, PieChart, Calendar, Filter, Search, Download,
-  AlertCircle, CheckCircle, Camera, Layers
+   Image, Save, X, Star, Eye, Package, Settings, 
+  BarChart3, PieChart,  Filter, Search, Download,
+  AlertCircle, CheckCircle, Camera
 } from 'lucide-react';
+import { addProductApi } from '../api/AdminApi';
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  originalPrice?: number;
+export interface Product {
+  prod_id?: number;
+  id?: string;
+  prod_name: string;
+  prod_description: string;
+  prod_price: number;
+  prod_quantity: number;
+  prod_image: string;
+  prod_category: string;
+  prod_tag: string;
+  prod_gender: string;
+  prod_status: string;
+  prod_pic?: File;
+  // UI fields for compatibility
+  name?: string;
+  price?: number;
+  image?: string;
   badge?: string;
   rating?: number;
   reviewCount?: number;
@@ -20,6 +32,7 @@ interface Product {
   stock?: number;
   description?: string;
   featured?: boolean;
+  originalPrice?: number;
 }
 
 interface User {
@@ -40,37 +53,68 @@ interface GalleryImage {
   active: boolean;
 }
 
+// Mock API function since we can't use external APIs in this environment
+const addProduct = async (product: Product) => {
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      console.log("Product saved:", product);
+      resolve(product);
+    }, 500);
+  });
+};
+
 const FashionAdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [products, setProducts] = useState<Product[]>([
     {
       id: '1',
+      prod_id: 1,
+      prod_name: 'Cashmere Oversized Coat',
       name: 'Cashmere Oversized Coat',
+      prod_price: 1299,
       price: 1299,
+      prod_image: 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
       image: 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
       badge: 'New',
       rating: 4.9,
       reviewCount: 124,
       brand: 'LUNA',
+      prod_category: 'Outerwear',
       category: 'Outerwear',
+      prod_quantity: 15,
       stock: 15,
+      prod_description: 'Luxurious cashmere blend coat with oversized silhouette',
       description: 'Luxurious cashmere blend coat with oversized silhouette',
-      featured: true
+      featured: true,
+      prod_tag: 'luxury',
+      prod_gender: 'unisex',
+      prod_status: 'ACTIVE'
     },
     {
       id: '2',
+      prod_id: 2,
+      prod_name: 'Silk Midi Dress',
       name: 'Silk Midi Dress',
+      prod_price: 899,
       price: 899,
       originalPrice: 1199,
+      prod_image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
       image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
       badge: 'Sale',
       rating: 4.8,
       reviewCount: 89,
       brand: 'AURORA',
+      prod_category: 'Dresses',
       category: 'Dresses',
+      prod_quantity: 8,
       stock: 8,
+      prod_description: 'Elegant silk midi dress with contemporary cut',
       description: 'Elegant silk midi dress with contemporary cut',
-      featured: false
+      featured: false,
+      prod_tag: 'elegant',
+      prod_gender: 'women',
+      prod_status: 'ACTIVE'
     }
   ]);
 
@@ -118,14 +162,16 @@ const FashionAdminDashboard: React.FC = () => {
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
 
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
-    name: '',
-    price: 0,
-    image: '',
-    brand: '',
-    category: '',
-    description: '',
-    stock: 0,
-    featured: false
+    prod_name: '',
+    prod_description: '',
+    prod_price: 0,
+    prod_quantity: 0,
+    prod_image: '',
+    prod_category: '',
+    prod_tag: '',
+    prod_gender: '',
+    prod_status: 'ACTIVE',
+    prod_pic: undefined
   });
 
   const [newImage, setNewImage] = useState<Partial<GalleryImage>>({
@@ -147,39 +193,70 @@ const FashionAdminDashboard: React.FC = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.price || !newProduct.image) {
-      showNotification('error', 'Please fill in all required fields');
+  const handleAddProduct = async () => {
+
+    console.log("New product data:", newProduct);
+    
+    // Basic validation
+    if (!newProduct.prod_name || !newProduct.prod_price || !newProduct.prod_image) {
+      showNotification("error", "Please fill in all required fields (name, price, image)");
       return;
     }
 
-    const product: Product = {
+    const productData: Product = {
+      prod_id: Date.now(),
       id: Date.now().toString(),
-      name: newProduct.name!,
-      price: newProduct.price!,
-      image: newProduct.image!,
-      brand: newProduct.brand || '',
-      category: newProduct.category || '',
-      description: newProduct.description || '',
-      stock: newProduct.stock || 0,
-      featured: newProduct.featured || false,
+      prod_name: newProduct.prod_name!,
+      name: newProduct.prod_name!, // Sync both fields
+      prod_description: newProduct.prod_description || "",
+      description: newProduct.prod_description || "", // Sync both fields
+      prod_price: newProduct.prod_price!,
+      price: newProduct.prod_price!, // Sync both fields
+      prod_quantity: newProduct.prod_quantity || 0,
+      stock: newProduct.prod_quantity || 0, // Sync both fields
+      prod_image: newProduct.prod_image!,
+      image: newProduct.prod_image!, // Sync both fields
+      prod_category: newProduct.prod_category || "",
+      category: newProduct.prod_category || "", // Sync both fields
+      prod_tag: newProduct.prod_tag || "",
+      prod_gender: newProduct.prod_gender || "",
+      prod_status: newProduct.prod_status || "ACTIVE",
+      prod_pic: newProduct.prod_pic || undefined,
+      // Add default UI fields
       rating: 4.5,
-      reviewCount: 0
+      reviewCount: 0,
+      brand: "New Brand",
+      featured: false
     };
 
-    setProducts([...products, product]);
-    setNewProduct({
-      name: '',
-      price: 0,
-      image: '',
-      brand: '',
-      category: '',
-      description: '',
-      stock: 0,
-      featured: false
-    });
-    setShowAddProduct(false);
-    showNotification('success', 'Product added successfully!');
+    try {
+      console.log("Submitting product:", productData);
+      
+      await addProduct(productData);
+
+      // Update local UI state
+      setProducts(prev => [...prev, productData]);
+
+      // Reset form
+      setNewProduct({
+        prod_name: "",
+        prod_description: "",
+        prod_price: 0,
+        prod_quantity: 0,
+        prod_image: "",
+        prod_category: "",
+        prod_tag: "",
+        prod_gender: "",
+        prod_status: "ACTIVE",
+        prod_pic: undefined,
+      });
+
+      setShowAddProduct(false);
+      showNotification("success", "Product added successfully!");
+    } catch (error) {
+      console.error("Error adding product:", error);
+      showNotification("error", "Failed to save product");
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -254,8 +331,18 @@ const FashionAdminDashboard: React.FC = () => {
                 <p className="text-2xl font-serif font-medium text-gray-900 mt-1">{stat.value}</p>
                 <p className="text-green-600 text-sm mt-1">{stat.change} from last month</p>
               </div>
-              <div className={`p-3 rounded-full bg-${stat.color}-100`}>
-                <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
+              <div className={`p-3 rounded-full ${
+                stat.color === 'blue' ? 'bg-blue-100' :
+                stat.color === 'green' ? 'bg-green-100' :
+                stat.color === 'purple' ? 'bg-purple-100' :
+                'bg-orange-100'
+              }`}>
+                <stat.icon className={`w-6 h-6 ${
+                  stat.color === 'blue' ? 'text-blue-600' :
+                  stat.color === 'green' ? 'text-green-600' :
+                  stat.color === 'purple' ? 'text-purple-600' :
+                  'text-orange-600'
+                }`} />
               </div>
             </div>
           </div>
@@ -297,14 +384,14 @@ const FashionAdminDashboard: React.FC = () => {
           <div className="space-y-4">
             {products.slice(0, 3).map((product) => (
               <div key={product.id} className="flex items-center space-x-4 p-4 bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
-                <img src={product.image} alt={product.name} className="w-12 h-12 object-cover" />
+                <img src={product.image || product.prod_image} alt={product.name || product.prod_name} className="w-12 h-12 object-cover" />
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900">{product.name}</p>
-                  <p className="text-gray-600 text-sm">${product.price}</p>
+                  <p className="font-medium text-gray-900">{product.name || product.prod_name}</p>
+                  <p className="text-gray-600 text-sm">${product.price || product.prod_price}</p>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <span className="text-sm text-gray-600">{product.rating}</span>
+                  <span className="text-sm text-gray-600">{product.rating || 4.5}</span>
                 </div>
               </div>
             ))}
@@ -366,36 +453,40 @@ const FashionAdminDashboard: React.FC = () => {
                 <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200">
                   <td className="p-4">
                     <div className="flex items-center space-x-4">
-                      <img src={product.image} alt={product.name} className="w-12 h-12 object-cover" />
+                      <img src={product.image || product.prod_image} alt={product.name || product.prod_name} className="w-12 h-12 object-cover" />
                       <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-gray-600 text-sm">{product.brand}</p>
+                        <p className="font-medium text-gray-900">{product.name || product.prod_name}</p>
+                        <p className="text-gray-600 text-sm">{product.brand || 'Brand'}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-gray-600">{product.category}</td>
+                  <td className="p-4 text-gray-600">{product.category || product.prod_category}</td>
                   <td className="p-4">
-                    <span className="font-medium text-gray-900">${product.price}</span>
+                    <span className="font-medium text-gray-900">${product.price || product.prod_price}</span>
                     {product.originalPrice && (
                       <span className="text-gray-400 line-through ml-2">${product.originalPrice}</span>
                     )}
                   </td>
                   <td className="p-4">
-                    <span className={`text-sm ${product.stock! > 10 ? 'text-green-600' : product.stock! > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {product.stock} units
+                    <span className={`text-sm ${
+                      (product.stock || product.prod_quantity || 0) > 10 ? 'text-green-600' : 
+                      (product.stock || product.prod_quantity || 0) > 0 ? 'text-yellow-600' : 
+                      'text-red-600'
+                    }`}>
+                      {product.stock || product.prod_quantity || 0} units
                     </span>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center space-x-1">
                       <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      <span className="text-sm text-gray-600">{product.rating} ({product.reviewCount})</span>
+                      <span className="text-sm text-gray-600">{product.rating || 4.5} ({product.reviewCount || 0})</span>
                     </div>
                   </td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      product.featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      product.featured || product.prod_status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {product.featured ? 'Featured' : 'Regular'}
+                      {product.featured ? 'Featured' : product.prod_status || 'Regular'}
                     </span>
                   </td>
                   <td className="p-4">
@@ -407,7 +498,7 @@ const FashionAdminDashboard: React.FC = () => {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteProduct(product.id)}
+                        onClick={() => handleDeleteProduct(product.id!)}
                         className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -573,42 +664,98 @@ const FashionAdminDashboard: React.FC = () => {
     onClose: () => void 
   }) => {
     const [formData, setFormData] = useState<Partial<Product>>(
-      product || {
+      product ? {
+        prod_name: product.prod_name,
+        name: product.name || product.prod_name,
+        prod_price: product.prod_price,
+        price: product.price || product.prod_price,
+        prod_image: product.prod_image,
+        image: product.image || product.prod_image,
+        brand: product.brand || '',
+        prod_category: product.prod_category,
+        category: product.category || product.prod_category,
+        prod_description: product.prod_description,
+        description: product.description || product.prod_description,
+        prod_quantity: product.prod_quantity,
+        stock: product.stock || product.prod_quantity,
+        featured: product.featured || false,
+        originalPrice: product.originalPrice,
+        badge: product.badge,
+        prod_tag: product.prod_tag,
+        prod_gender: product.prod_gender,
+        prod_status: product.prod_status
+      } : {
+        prod_name: '',
         name: '',
+        prod_price: 0,
         price: 0,
+        prod_image: '',
         image: '',
         brand: '',
+        prod_category: '',
         category: '',
+        prod_description: '',
         description: '',
+        prod_quantity: 0,
         stock: 0,
-        featured: false
+        featured: false,
+        prod_tag: '',
+        prod_gender: '',
+        prod_status: 'ACTIVE'
       }
     );
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!formData.name || !formData.price || !formData.image) {
-        showNotification('error', 'Please fill in all required fields');
+      
+      // Validation
+      if (!formData.prod_name || !formData.prod_price || !formData.prod_image) {
+        showNotification('error', 'Please fill in all required fields (name, price, image)');
         return;
       }
 
       const productData: Product = {
         id: product?.id || Date.now().toString(),
-        name: formData.name!,
-        price: formData.price!,
-        image: formData.image!,
-        brand: formData.brand || '',
-        category: formData.category || '',
-        description: formData.description || '',
-        stock: formData.stock || 0,
+        prod_id: product?.prod_id || Date.now(),
+        prod_name: formData.prod_name!,
+        name: formData.prod_name!, // Sync both fields
+        prod_price: formData.prod_price!,
+        price: formData.prod_price!, // Sync both fields
+        prod_image: formData.prod_image!,
+        image: formData.prod_image!, // Sync both fields
+        brand: formData.brand || 'New Brand',
+        prod_category: formData.prod_category || '',
+        category: formData.prod_category || '', // Sync both fields
+        prod_description: formData.prod_description || '',
+        description: formData.prod_description || '', // Sync both fields
+        prod_quantity: formData.prod_quantity || 0,
+        stock: formData.prod_quantity || 0, // Sync both fields
         featured: formData.featured || false,
         rating: product?.rating || 4.5,
         reviewCount: product?.reviewCount || 0,
         originalPrice: formData.originalPrice,
-        badge: formData.badge
+        badge: formData.badge,
+        prod_tag: formData.prod_tag || '',
+        prod_gender: formData.prod_gender || '',
+        prod_status: formData.prod_status || 'ACTIVE'
       };
 
-      onSave(productData);
+      try {
+        if (product) {
+          // Update existing product
+          onSave(productData);
+        } else {
+          // Add new product
+          console.log("submit");
+         addProductApi(productData);
+          
+          setProducts(prev => [...prev, productData]);
+          setShowAddProduct(false);
+          showNotification('success', 'Product added successfully!');
+        }
+      } catch (error) {
+        showNotification('error', 'Failed to save product');
+      }
     };
 
     return (
@@ -629,10 +776,11 @@ const FashionAdminDashboard: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-900 mb-2">Product Name *</label>
                 <input
                   type="text"
-                  value={formData.name || ''}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  value={formData.prod_name || ''}
+                  onChange={(e) => setFormData({...formData, prod_name: e.target.value, name: e.target.value})}
                   className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors duration-300"
                   placeholder="Enter product name"
+                  required
                 />
               </div>
 
@@ -650,8 +798,8 @@ const FashionAdminDashboard: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">Category</label>
                 <select
-                  value={formData.category || ''}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  value={formData.prod_category || ''}
+                  onChange={(e) => setFormData({...formData, prod_category: e.target.value, category: e.target.value})}
                   className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors duration-300"
                 >
                   <option value="">Select category</option>
@@ -669,12 +817,13 @@ const FashionAdminDashboard: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-900 mb-2">Price *</label>
                 <input
                   type="number"
-                  value={formData.price || ''}
-                  onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value)})}
+                  value={formData.prod_price || ''}
+                  onChange={(e) => setFormData({...formData, prod_price: parseFloat(e.target.value), price: parseFloat(e.target.value)})}
                   className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors duration-300"
                   placeholder="0.00"
                   min="0"
                   step="0.01"
+                  required
                 />
               </div>
 
@@ -695,11 +844,36 @@ const FashionAdminDashboard: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-900 mb-2">Stock Quantity</label>
                 <input
                   type="number"
-                  value={formData.stock || ''}
-                  onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value)})}
+                  value={formData.prod_quantity || ''}
+                  onChange={(e) => setFormData({...formData, prod_quantity: parseInt(e.target.value), stock: parseInt(e.target.value)})}
                   className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors duration-300"
                   placeholder="0"
                   min="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Gender</label>
+                <select
+                  value={formData.prod_gender || ''}
+                  onChange={(e) => setFormData({...formData, prod_gender: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors duration-300"
+                >
+                  <option value="">Select gender</option>
+                  <option value="men">Men</option>
+                  <option value="women">Women</option>
+                  <option value="unisex">Unisex</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Tag</label>
+                <input
+                  type="text"
+                  value={formData.prod_tag || ''}
+                  onChange={(e) => setFormData({...formData, prod_tag: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors duration-300"
+                  placeholder="e.g., luxury, casual, formal"
                 />
               </div>
             </div>
@@ -708,14 +882,15 @@ const FashionAdminDashboard: React.FC = () => {
               <label className="block text-sm font-medium text-gray-900 mb-2">Product Image URL *</label>
               <input
                 type="url"
-                value={formData.image || ''}
-                onChange={(e) => setFormData({...formData, image: e.target.value})}
+                value={formData.prod_image || ''}
+                onChange={(e) => setFormData({...formData, prod_image: e.target.value, image: e.target.value})}
                 className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors duration-300"
                 placeholder="https://example.com/image.jpg"
+                required
               />
-              {formData.image && (
+              {formData.prod_image && (
                 <div className="mt-4">
-                  <img src={formData.image} alt="Preview" className="w-32 h-32 object-cover border border-gray-200" />
+                  <img src={formData.prod_image} alt="Preview" className="w-32 h-32 object-cover border border-gray-200" />
                 </div>
               )}
             </div>
@@ -723,8 +898,8 @@ const FashionAdminDashboard: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">Description</label>
               <textarea
-                value={formData.description || ''}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                value={formData.prod_description || ''}
+                onChange={(e) => setFormData({...formData, prod_description: e.target.value, description: e.target.value})}
                 className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors duration-300"
                 rows={3}
                 placeholder="Product description..."
@@ -747,18 +922,30 @@ const FashionAdminDashboard: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center space-x-3 pt-8">
-                <input
-                  type="checkbox"
-                  id="featured"
-                  checked={formData.featured || false}
-                  onChange={(e) => setFormData({...formData, featured: e.target.checked})}
-                  className="w-4 h-4 text-black focus:ring-black border-gray-300"
-                />
-                <label htmlFor="featured" className="text-sm font-medium text-gray-900">
-                  Feature this product
-                </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Status</label>
+                <select
+                  value={formData.prod_status || 'ACTIVE'}
+                  onChange={(e) => setFormData({...formData, prod_status: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors duration-300"
+                >
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
               </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                id="featured"
+                checked={formData.featured || false}
+                onChange={(e) => setFormData({...formData, featured: e.target.checked})}
+                className="w-4 h-4 text-black focus:ring-black border-gray-300"
+              />
+              <label htmlFor="featured" className="text-sm font-medium text-gray-900">
+                Feature this product
+              </label>
             </div>
 
             <div className="flex items-center space-x-4 pt-6">
@@ -1085,11 +1272,7 @@ const FashionAdminDashboard: React.FC = () => {
       {/* Modals */}
       {showAddProduct && (
         <ProductModal
-          onSave={(product) => {
-            setProducts([...products, product]);
-            setShowAddProduct(false);
-            showNotification('success', 'Product added successfully!');
-          }}
+          onSave={() => {}} // This won't be called since we handle it in the modal
           onClose={() => setShowAddProduct(false)}
         />
       )}

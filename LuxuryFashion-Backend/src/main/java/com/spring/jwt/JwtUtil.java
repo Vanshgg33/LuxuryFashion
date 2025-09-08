@@ -11,11 +11,8 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
+    @Value("${jwt.secret:}")
     private String secretKey;
-
-    @Value("${jwt.expiration}") // e.g. 900000 = 15 mins
-    private long expirationTime;
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes());
@@ -23,6 +20,8 @@ public class JwtUtil {
 
     // Generate JWT for username
     public String generateToken(String username) {
+        //    @Value("${jwt.expiration:}") // e.g. 900000 = 15 mins
+        long expirationTime = 86400000;
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date())
@@ -51,7 +50,7 @@ public class JwtUtil {
         }
     }
 
-    // Parse all claims safely
+
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .setSigningKey(getSigningKey())

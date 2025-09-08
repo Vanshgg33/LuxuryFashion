@@ -14,7 +14,7 @@ import java.io.File;
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private int prod_id;
+    private Long  prod_id;
     private String prod_name;
     private String prod_description;
     private int prod_price;
@@ -24,7 +24,7 @@ public class Product {
     private String prod_tag;
     private String prod_gender;
     private String prod_status;
-    private File prod_pic;
+    private String prod_pic;
 
 
 
