@@ -66,13 +66,13 @@ public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
                 .httpOnly(true)
                 .secure(true)           // HTTPS only
                 .path("/")
-                .sameSite("None")       // required if frontend is on different domain/port
+                .sameSite("None")
                 .maxAge(24 * 60 * 60)   // 1 day
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         // Redirect to frontend
-        response.sendRedirect(frontendUrl + "/dashboard");
+        response.sendRedirect(frontendUrl + "/shop");
     }
 }

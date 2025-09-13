@@ -1,25 +1,36 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import ProtectedPage from './components/Helper';
-import Login from './components/Login';
-import './index.css';
-import Shop from './components/Shop';
-import Admin from './components/Admin';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import MainLayout from "./MainLayout";
+import ProtectedPage from "./components/Helper.tsx";
+import Shop from "./components/Shop.tsx";
+import Login from "./components/Login.tsx";
+import AdminLayout from "./components/Admin/AdminLayout.tsx";
+import Dashboard from "./components/Admin/Dashboard.tsx";
+import Products from "./components/Admin/Products.tsx";
+import Gallery from "./components/Admin/Gallery.tsx";
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<ProtectedPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path ="/shop" element={<Shop />} />
-        <Route path ="/Admin" element={<Admin/>}/>
-      </Routes>
-    </BrowserRouter>
-  );
+    return (
+        <BrowserRouter>
+            <Routes>
+                {/* Routes with Header + Footer */}
+                <Route element={<MainLayout />}>
+                    <Route path="/" element={<ProtectedPage />} />
+                    <Route path="/shop" element={<Shop />} />
+                </Route>
+
+                {/* Routes WITHOUT Header + Footer */}
+                <Route path="/login" element={<Login />} />
+
+                {/* Admin section with its own layout */}
+                <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="products" element={<Products />} />
+                    <Route path="gallery" element={<Gallery />} />
+                </Route>
+            </Routes>
+        </BrowserRouter>
+    );
 }
-
-
-
 
 export default App;

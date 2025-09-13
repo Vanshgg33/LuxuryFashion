@@ -2,7 +2,7 @@ package com.spring.controller;
 
 import com.spring.jwt.JwtUtil;
 import com.spring.model.User;
-import com.spring.model.UserRegistrationDto;
+import com.spring.dto.UserRegistrationDto;
 import com.spring.notification.EmailTemplate;
 import com.spring.notification.NotificationManager;
 import com.spring.repo.UserRepository;
@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Date;
 
@@ -51,12 +50,7 @@ public class Controller1 {
     }
 
 
-    @GetMapping("/")
-    public ModelAndView viewUser(@CookieValue("jwtToken")String token) {
-        ModelAndView modelAndView = new ModelAndView();
-        String name = jwtUtil.extractUsername(token);
-        modelAndView.addObject("name",name);
-       modelAndView.setViewName("home");
-      return modelAndView;
-    }
+
+
+
 }
