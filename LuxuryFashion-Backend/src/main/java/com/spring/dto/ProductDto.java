@@ -16,14 +16,12 @@ public class ProductDto {
 
     // Keep selling_price for original price mapping
     private double selling_price;
-
+    private List<String> imagenames;
     private String prod_category;
     private String prod_tag;
     private String prod_gender;
-    private String prod_status;
-    private String brand; // Add missing brand field
-
-    // File uploads (use prod_photo to match your backend logic)
+    private String prodStatus;
+    private String prod_brand;
     private List<MultipartFile> prod_photo;
 
     private String badge;

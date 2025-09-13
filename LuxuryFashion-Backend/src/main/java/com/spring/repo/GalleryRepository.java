@@ -1,13 +1,13 @@
 package com.spring.repo;
 
-import com.spring.model.Product;
+import com.spring.model.Gallery;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface GalleryRepository extends JpaRepository<Gallery, Long> {
 
-    List<Product> findByProdStatus(String status);
+    List<Gallery> findByActiveTrue();
 }

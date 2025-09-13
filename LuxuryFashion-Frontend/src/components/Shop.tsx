@@ -1,42 +1,85 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Star, ShoppingBag, Heart, Truck, Award, Shield, ArrowRight, TrendingUp, Users, Globe } from 'lucide-react';
-
-interface Product {
-    id: string;
-    name: string;
-    price: number;
-    image: string;
-    originalPrice?: number;
-    badge?: string;
-    rating?: number;
-    reviewCount?: number;
-    brand?: string;
-    category?: string;
-}
+import { ChevronLeft, ChevronRight, Star, ShoppingBag, Heart, Truck, Award, Shield, ArrowRight, TrendingUp, Users, Globe, X, Plus, Minus, Eye } from 'lucide-react';
+import { fetchGalleryImages, fetchProductsshop } from '../api/ProductApi';
+import type { BackendProduct, Gallerydata, Product } from '../api/base';
 
 interface FashionHomepageProps {
-    products?: Product[];
+    apiEndpoint?: string;
 }
 
 const FashionHomepage: React.FC<FashionHomepageProps> = ({
-                                                             products = []
-                                                         }) => {
+
+}) => {
     const [isLoading, setIsLoading] = useState(true);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isAutoplay, setIsAutoplay] = useState(true);
     const [scrollY, setScrollY] = useState(0);
     const [wishlist, setWishlist] = useState<string[]>([]);
     const [subscriberCount, setSubscriberCount] = useState(0);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [selectedSize, setSelectedSize] = useState<string>('');
+    const [selectedColor, setSelectedColor] = useState<string>('');
+    const [quantity, setQuantity] = useState<number>(1);
+    const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
     const heroRef = useRef<HTMLDivElement>(null);
+      const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
-    // Premium fashion hero images
-    const heroImages = [
-        'https://images.unsplash.com/photo-1483985988355-763728e1935b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-        'https://images.unsplash.com/photo-1469334031218-e382a71b716b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-        'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80'
-    ];
+     
+    
+   const fallbackHeroImages: string[] = [
+  "https://images.unsplash.com/photo-1483985988355-763728e1935b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
+  "https://images.unsplash.com/photo-1469334031218-e382a71b716b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
+  "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
+  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"
+];
 
+
+useEffect(() => {
+  const loadGalleryImages = async () => {
+    try {
+      const apiImages = await fetchGalleryImages(); // returns Gallerydata[]
+      const urls = apiImages
+        ?.map((img) => img.imageUrl)
+        .filter((url): url is string => !!url && url.trim() !== "") ?? [];
+
+      if (urls.length === 0) {
+        // No backend images
+        setGalleryImages(fallbackHeroImages);
+      } else if (urls.length < fallbackHeroImages.length) {
+        // Merge backend + fallback
+        const merged = [...urls, ...fallbackHeroImages.slice(urls.length)];
+        setGalleryImages(merged);
+      } else {
+        // Only backend
+        setGalleryImages(urls);
+      }
+    } catch (error) {
+      console.error("Error loading gallery images, using fallback:", error);
+      setGalleryImages(fallbackHeroImages);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  loadGalleryImages();
+}, []);
+
+
+
+ const fetchProducts = async () => {
+  try {
+    setIsLoadingProducts(true);
+    const products = await fetchProductsshop(); // Already returns Product[]
+    setProducts(products);
+   
+  } catch (error) {
+    console.error('Error fetching products:', error);
+  } finally {
+    setIsLoadingProducts(false);
+  }
+};
     useEffect(() => {
         const loadingTimer = setTimeout(() => setIsLoading(false), 2000);
 
@@ -53,6 +96,9 @@ const FashionHomepage: React.FC<FashionHomepageProps> = ({
         const handleScroll = () => setScrollY(window.scrollY);
         window.addEventListener('scroll', handleScroll);
 
+        // Fetch products on component mount
+        fetchProducts();
+
         return () => {
             clearTimeout(loadingTimer);
             clearInterval(counterInterval);
@@ -60,100 +106,55 @@ const FashionHomepage: React.FC<FashionHomepageProps> = ({
         };
     }, []);
 
-    useEffect(() => {
-        if (!isAutoplay) return;
-        const interval = setInterval(() => {
-            setCurrentSlide(prev => (prev + 1) % heroImages.length);
-        }, 6000);
-        return () => clearInterval(interval);
-    }, [isAutoplay, heroImages.length]);
+useEffect(() => {
+  if (!isAutoplay || galleryImages.length === 0) return;
+  const interval = setInterval(() => {
+    setCurrentSlide((prev) => (prev + 1) % galleryImages.length);
+  }, 6000);
+  return () => clearInterval(interval);
+}, [isAutoplay, galleryImages.length]);
 
-    const defaultProducts: Product[] = [
-        {
-            id: '1',
-            name: 'Cashmere Oversized Coat',
-            price: 1299,
-            image: 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-            badge: 'New',
-            rating: 4.9,
-            reviewCount: 124,
-            brand: 'LUNA',
-            category: 'Outerwear'
-        },
-        {
-            id: '2',
-            name: 'Silk Midi Dress',
-            price: 899,
-            originalPrice: 1199,
-            image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-            badge: 'Sale',
-            rating: 4.8,
-            reviewCount: 89,
-            brand: 'AURORA',
-            category: 'Dresses'
-        },
-        {
-            id: '3',
-            name: 'Leather Ankle Boots',
-            price: 649,
-            image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-            rating: 4.7,
-            reviewCount: 156,
-            brand: 'TERRA',
-            category: 'Footwear'
-        },
-        {
-            id: '4',
-            name: 'Minimalist Gold Necklace',
-            price: 299,
-            image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-            badge: 'Trending',
-            rating: 4.9,
-            reviewCount: 203,
-            brand: 'LUMINA',
-            category: 'Jewelry'
-        },
-        {
-            id: '5',
-            name: 'Tailored Blazer',
-            price: 799,
-            image: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-            rating: 4.8,
-            reviewCount: 67,
-            brand: 'ELITE',
-            category: 'Blazers'
-        },
-        {
-            id: '6',
-            name: 'Designer Handbag',
-            price: 1199,
-            image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-            badge: 'Limited',
-            rating: 4.9,
-            reviewCount: 98,
-            brand: 'NOVA',
-            category: 'Bags'
-        }
-    ];
+const nextSlide = () => {
+  if (galleryImages.length > 0) {
+    setCurrentSlide((prev) => (prev + 1) % galleryImages.length);
+    setIsAutoplay(false);
+  }
+};
 
-    const displayProducts = products.length > 0 ? products : defaultProducts;
+const prevSlide = () => {
+  if (galleryImages.length > 0) {
+    setCurrentSlide(
+      (prev) => (prev - 1 + galleryImages.length) % galleryImages.length
+    );
+    setIsAutoplay(false);
+  }
+};
 
-    const nextSlide = () => {
-        setCurrentSlide(prev => (prev + 1) % heroImages.length);
-        setIsAutoplay(false);
+const toggleWishlist = (productId: string) => {
+  setWishlist((prev) =>
+    prev.includes(productId)
+      ? prev.filter((id) => id !== productId)
+      : [...prev, productId]
+  );
+};
+
+
+    const openProductPreview = (product: Product) => {
+        setSelectedProduct(product);
+        setSelectedSize(product.sizes?.[0] || '');
+        setSelectedColor(product.colors?.[0] || '');
+        setQuantity(product.quantity || 1);
+        setCurrentImageIndex(0);
+        document.body.style.overflow = 'hidden';
     };
 
-    const prevSlide = () => {
-        setCurrentSlide(prev => (prev - 1 + heroImages.length) % heroImages.length);
-        setIsAutoplay(false);
+    const closeProductPreview = () => {
+        setSelectedProduct(null);
+        document.body.style.overflow = 'unset';
     };
 
-    const toggleWishlist = (productId: string) => {
-        setWishlist(prev =>
-            prev.includes(productId)
-                ? prev.filter(id => id !== productId)
-                : [...prev, productId]
-        );
+    const handleQuantityChange = (delta: number) => {
+        setQuantity(prev => Math.max(1, prev + delta));
     };
 
     const renderStars = (rating: number) => {
@@ -181,6 +182,8 @@ const FashionHomepage: React.FC<FashionHomepageProps> = ({
                 return 'bg-black text-white';
         }
     };
+
+    const displayProducts = products.length > 0 ? products : [];
 
     return (
         <div className="min-h-screen bg-white font-sans overflow-x-hidden">
@@ -246,75 +249,268 @@ const FashionHomepage: React.FC<FashionHomepageProps> = ({
                 </div>
             )}
 
-            <main className="pt-16">
-                {/* Hero Section */}
-                <section ref={heroRef} className="relative h-screen flex items-center overflow-hidden">
-                    <div className="absolute inset-0">
-                        {heroImages.map((image, index) => (
-                            <div
-                                key={index}
-                                className={`absolute inset-0 transition-all duration-1000 ${
-                                    index === currentSlide ? 'opacity-100' : 'opacity-0'
-                                }`}
-                            >
-                                <img
-                                    src={image}
-                                    alt={`Fashion ${index + 1}`}
-                                    className="w-full h-full object-cover"
-                                />
-                                <div className="absolute inset-0 bg-black/20"></div>
+            {/* Product Preview Modal */}
+            {selectedProduct && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white max-w-4xl w-full max-h-screen overflow-y-auto">
+                        <div className="grid grid-cols-1 lg:grid-cols-2">
+                            {/* Product Images */}
+                            <div className="relative">
+                                <button
+                                    onClick={closeProductPreview}
+                                    className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                                
+                                <div className="aspect-square overflow-hidden">
+                                    <img
+                                        src={selectedProduct.images?.[currentImageIndex] || selectedProduct.image}
+                                        alt={selectedProduct.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                
+                                {selectedProduct.images && selectedProduct.images.length > 1 && (
+                                    <div className="flex space-x-2 p-4 overflow-x-auto">
+                                        {selectedProduct.images.map((image, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => setCurrentImageIndex(index)}
+                                                className={`flex-shrink-0 w-16 h-16 overflow-hidden border-2 ${
+                                                    currentImageIndex === index ? 'border-black' : 'border-gray-200'
+                                                }`}
+                                            >
+                                                <img
+                                                    src={image}
+                                                    alt={`${selectedProduct.name} ${index + 1}`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        ))}
-                    </div>
-
-                    <div className="container mx-auto px-6 relative z-20">
-                        <div className="max-w-2xl">
-                            <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-white leading-tight mb-8 animate-fade-in-up text-shadow-luxury">
-                                Timeless
-                                <span className="block text-amber-300">
-                  Elegance
-                </span>
-                            </h1>
-                            <p className="text-xl md:text-2xl text-white/90 leading-relaxed font-light mb-12 animate-fade-in-up max-w-lg">
-                                Discover curated fashion pieces that define contemporary luxury and sophisticated style
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-6 animate-fade-in-up">
-                                <button className="bg-white text-black px-8 py-4 font-medium text-sm tracking-wide hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 uppercase">
-                                    Shop Collection
-                                </button>
-                                <button className="border-2 border-white text-white px-8 py-4 font-medium text-sm tracking-wide hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-105 uppercase">
-                                    View Lookbook
-                                </button>
+                            
+                            {/* Product Details */}
+                            <div className="p-8">
+                                <div className="mb-6">
+                                    {selectedProduct.brand && (
+                                        <p className="text-gray-500 text-sm font-medium tracking-wide uppercase mb-2">
+                                            {selectedProduct.brand}
+                                        </p>
+                                    )}
+                                    <h2 className="text-3xl font-serif font-medium text-black mb-4">
+                                        {selectedProduct.name}
+                                    </h2>
+                                    
+                                    <div className="flex items-center space-x-4 mb-4">
+                                        <div className="flex items-center space-x-3">
+                                            <span className="text-2xl font-serif font-medium text-black">
+                                                ${selectedProduct.price}
+                                            </span>
+                                            {selectedProduct.originalPrice && (
+                                                <span className="text-gray-400 line-through text-lg">
+                                                    ${selectedProduct.originalPrice}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {selectedProduct.badge && (
+                                            <span className={`px-3 py-1 text-xs font-medium tracking-wide ${getBadgeStyles(selectedProduct.badge)} uppercase`}>
+                                                {selectedProduct.badge}
+                                            </span>
+                                        )}
+                                    </div>
+                                    
+                                    {selectedProduct.rating && (
+                                        <div className="flex items-center space-x-2 mb-6">
+                                            <div className="flex space-x-1">
+                                                {renderStars(selectedProduct.rating)}
+                                            </div>
+                                            <span className="text-gray-600 text-sm">
+                                                ({selectedProduct.reviewCount} reviews)
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {selectedProduct.description && (
+                                    <p className="text-gray-600 leading-relaxed mb-8">
+                                        {selectedProduct.description}
+                                    </p>
+                                )}
+                                
+                                {/* Size Selection */}
+                                {selectedProduct.sizes && selectedProduct.sizes.length > 0 && (
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium text-black mb-3">
+                                            Size
+                                        </label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedProduct.sizes.map((size) => (
+                                                <button
+                                                    key={size}
+                                                    onClick={() => setSelectedSize(size)}
+                                                    className={`px-4 py-2 border text-sm font-medium transition-colors ${
+                                                        selectedSize === size
+                                                            ? 'border-black bg-black text-white'
+                                                            : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                                                    }`}
+                                                >
+                                                    {size}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Color Selection */}
+                                {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium text-black mb-3">
+                                            Color
+                                        </label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedProduct.colors.map((color) => (
+                                                <button
+                                                    key={color}
+                                                    onClick={() => setSelectedColor(color)}
+                                                    className={`px-4 py-2 border text-sm font-medium transition-colors ${
+                                                        selectedColor === color
+                                                            ? 'border-black bg-black text-white'
+                                                            : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                                                    }`}
+                                                >
+                                                    {color}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Quantity */}
+                                <div className="mb-8">
+                                    <label className="block text-sm font-medium text-black mb-3">
+                                        Quantity
+                                    </label>
+                                    <div className="flex items-center space-x-4">
+                                        <button
+                                            onClick={() => handleQuantityChange(-1)}
+                                            className="p-2 border border-gray-300 hover:border-gray-400 transition-colors"
+                                        >
+                                            <Minus className="w-4 h-4" />
+                                        </button>
+                                        <span className="text-lg font-medium min-w-8 text-center">
+                                            {quantity}
+                                        </span>
+                                        <button
+                                            onClick={() => handleQuantityChange(1)}
+                                            className="p-2 border border-gray-300 hover:border-gray-400 transition-colors"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {/* Add to Cart Button */}
+                                <div className="space-y-4">
+                                    <button className="w-full bg-black text-white py-4 font-medium text-sm tracking-wide hover:bg-gray-800 transition-colors duration-300 uppercase">
+                                        Add to Cart - ${(selectedProduct.price * quantity).toLocaleString()}
+                                    </button>
+                                    <button
+                                        onClick={() => toggleWishlist(selectedProduct.id)}
+                                        className={`w-full border-2 py-4 font-medium text-sm tracking-wide transition-colors duration-300 uppercase flex items-center justify-center space-x-2 ${
+                                            wishlist.includes(selectedProduct.id)
+                                                ? 'border-red-500 text-red-500'
+                                                : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                                        }`}
+                                    >
+                                        <Heart className={`w-4 h-4 ${wishlist.includes(selectedProduct.id) ? 'fill-current' : ''}`} />
+                                        <span>{wishlist.includes(selectedProduct.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
 
-                    {/* Carousel Controls */}
-                    <button
-                        onClick={prevSlide}
-                        className="absolute left-6 top-1/2 -translate-y-1/2 p-3 glass-effect rounded-full text-white hover:bg-white/20 transition-all duration-300 z-20"
-                    >
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <button
-                        onClick={nextSlide}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 p-3 glass-effect rounded-full text-white hover:bg-white/20 transition-all duration-300 z-20"
-                    >
-                        <ChevronRight className="w-6 h-6" />
-                    </button>
+     <main className="pt-16">
+  {/* Hero Section */}
+  <section
+    ref={heroRef}
+    className="relative h-screen flex items-center overflow-hidden"
+  >
+<div className="absolute inset-0">
+  {galleryImages.map((image, index) => (
+    <div
+      key={index}
+      className={`absolute inset-0 transition-all duration-1000 ${
+        index === currentSlide ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <img
+        src={image}
+        alt={`Fashion ${index + 1}`}
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-black/20"></div>
+    </div>
+  ))}
+</div>
 
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
-                        {heroImages.map((_, index) => (
-                            <button
-                                key={index}
-                                onClick={() => setCurrentSlide(index)}
-                                className={`w-12 h-1 transition-all duration-300 ${
-                                    index === currentSlide ? 'bg-white' : 'bg-white/30 hover:bg-white/50'
-                                }`}
-                            />
-                        ))}
-                    </div>
-                </section>
+
+    <div className="container mx-auto px-6 relative z-20">
+      <div className="max-w-2xl">
+        <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-white leading-tight mb-8 animate-fade-in-up text-shadow-luxury">
+          Timeless
+          <span className="block text-amber-300">Elegance</span>
+        </h1>
+        <p className="text-xl md:text-2xl text-white/90 leading-relaxed font-light mb-12 animate-fade-in-up max-w-lg">
+          Discover curated fashion pieces that define contemporary luxury and
+          sophisticated style
+        </p>
+        <div className="flex flex-col sm:flex-row gap-6 animate-fade-in-up">
+          <button className="bg-white text-black px-8 py-4 font-medium text-sm tracking-wide hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 uppercase">
+            Shop Collection
+          </button>
+          <button className="border-2 border-white text-white px-8 py-4 font-medium text-sm tracking-wide hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-105 uppercase">
+            View Lookbook
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {/* Carousel Controls */}
+    <button
+      onClick={prevSlide}
+      className="absolute left-6 top-1/2 -translate-y-1/2 p-3 glass-effect rounded-full text-white hover:bg-white/20 transition-all duration-300 z-20"
+    >
+      <ChevronLeft className="w-6 h-6" />
+    </button>
+    <button
+      onClick={nextSlide}
+      className="absolute right-6 top-1/2 -translate-y-1/2 p-3 glass-effect rounded-full text-white hover:bg-white/20 transition-all duration-300 z-20"
+    >
+      <ChevronRight className="w-6 h-6" />
+    </button>
+
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+      {galleryImages.map((_, index) => (
+        <button
+          key={index}
+          onClick={() => setCurrentSlide(index)}
+          className={`w-12 h-1 transition-all duration-300 ${
+            index === currentSlide
+              ? "bg-white"
+              : "bg-white/30 hover:bg-white/50"
+          }`}
+        />
+      ))}
+    </div>
+  </section>
+
+
 
                 {/* Categories Section */}
                 <section className="py-24 bg-gray-50">
@@ -395,6 +591,9 @@ const FashionHomepage: React.FC<FashionHomepageProps> = ({
                             <p className="text-xl text-gray-600 font-light max-w-2xl mx-auto">
                                 Handpicked selections from our latest collections
                             </p>
+                            {isLoadingProducts && (
+                                <p className="text-gray-500 mt-4">Loading products...</p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -425,11 +624,20 @@ const FashionHomepage: React.FC<FashionHomepageProps> = ({
                                             <Heart className={`w-4 h-4 ${wishlist.includes(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
                                         </button>
 
-                                        {/* Quick Shop Overlay */}
+                                        {/* Quick Actions Overlay */}
                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-                                            <button className="bg-white text-black px-8 py-3 font-medium text-sm tracking-wide hover:bg-gray-100 transition-colors duration-300 uppercase transform scale-95 group-hover:scale-100">
-                                                Quick Shop
-                                            </button>
+                                            <div className="flex space-x-3">
+                                                <button 
+                                                    onClick={() => openProductPreview(product)}
+                                                    className="bg-white text-black px-6 py-3 font-medium text-sm tracking-wide hover:bg-gray-100 transition-colors duration-300 uppercase transform scale-95 group-hover:scale-100 flex items-center space-x-2"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                    <span>Quick View</span>
+                                                </button>
+                                                <button className="border-2 border-white text-white px-6 py-3 font-medium text-sm tracking-wide hover:bg-white hover:text-black transition-all duration-300 uppercase transform scale-95 group-hover:scale-100">
+                                                    Add to Cart
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -471,6 +679,19 @@ const FashionHomepage: React.FC<FashionHomepageProps> = ({
                                                 <span className="text-gray-500 text-xs uppercase tracking-wide">
                           {product.category}
                         </span>
+                                            )}
+                                        </div>
+
+                                        {/* Stock Status */}
+                                        <div className="mt-3">
+                                            {product.inStock ? (
+                                                <span className="text-emerald-600 text-xs font-medium uppercase tracking-wide">
+                                                    In Stock
+                                                </span>
+                                            ) : (
+                                                <span className="text-red-600 text-xs font-medium uppercase tracking-wide">
+                                                    Out of Stock
+                                                </span>
                                             )}
                                         </div>
                                     </div>

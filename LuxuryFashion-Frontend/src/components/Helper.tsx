@@ -11,7 +11,7 @@ const ProtectedPage: React.FC = () => {
     const checkAuth = async () => {
       try {
         const result = await validateToken()
-          navigate('/shop', { replace: true })
+          navigate('/admin', { replace: true })
         console.log("Validation response:", result)
         setLoading(false)
       } catch (err) {

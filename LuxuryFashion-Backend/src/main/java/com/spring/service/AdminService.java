@@ -1,7 +1,9 @@
 package com.spring.service;
 
 import com.spring.dto.ProductDto;
+import com.spring.model.Gallery;
 import com.spring.model.Product;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -41,5 +43,14 @@ public interface AdminService {
      * @return product object
      */
     Product getProductById(Long productId);
+
+
+    ResponseEntity<?> addGalleryImages(Gallery gallery);
+
+    ResponseEntity<?> fetchGalleryImages();
+
+    ResponseEntity<?> updateGalleryStatus(List<Gallery> galleries);
+
+    void deleteGalleryImage(Long id);
 }
 

@@ -22,7 +22,10 @@ public class Product {
     private String prod_category;
     private String prod_tag;
     private String prod_gender;
-    private String prod_status;
+    private String prodStatus;
+    private String prod_brand;
+    @ElementCollection
+    private List<String> imagenames;
     @ElementCollection
     private List<String> prod_images;
     private Double rating;
@@ -31,6 +34,5 @@ public class Product {
     private String Badge;
 
 
-    public void setBrand(String brand) {
-    }
+
 }
