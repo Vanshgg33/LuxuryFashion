@@ -877,7 +877,7 @@ const toggleWishlist = (productId: string) => {
                                     <TrendingUp className="w-4 h-4" />
                                     <span>Style Updates</span>
                                 </div>
-                            </div>
+                            </div>  
                         </div>
                     </div>
                 </section>

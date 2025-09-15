@@ -112,27 +112,28 @@ const Products: React.FC = () => {
   };
 
   // Fetch products from database on component mount
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const fetchedProducts = await fetchProductsApi();
-        const processedProducts = processProducts(fetchedProducts);
-        setProducts(processedProducts);
-        console.log('Fetched and processed products:', processedProducts);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch products';
-        setError(errorMessage);
-        showNotification('error', errorMessage);
-        console.error('Error fetching products:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+useEffect(() => {
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedProducts = await fetchProductsApi();
+      const processedProducts = processProducts(fetchedProducts);
+      setProducts(processedProducts);
+      console.log('Fetched and processed products:', processedProducts);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch products';
+      setError(errorMessage);
+      showNotification('error', errorMessage);
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadProducts();
-  }, [showNotification]);
+  loadProducts();
+}, []); 
+
 
   // Filter and sort products when dependencies change
   const safeLower = (val?: string | null) => (val ?? "").toLowerCase();
@@ -606,18 +607,23 @@ const handleDeleteProduct = async (id: number) => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tag
-                </label>
-                <input
-                  type="text"
-                  value={formData.prod_tag || ''}
-                  onChange={(e) => handleInputChange('prod_tag', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., trending, popular"
-                />
-              </div>
+             <div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Tag
+  </label>
+  <select
+    value={formData.prod_tag || ''}
+    onChange={(e) => handleInputChange('prod_tag', e.target.value)}
+    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+  >
+    <option value="">-- Select Tag --</option>
+    <option value="new-arrivals">New</option>
+    <option value="popular">Popular</option>
+    <option value="sale">Sale</option>
+    <option value="all">All</option>
+  </select>
+</div>
+
 
               <div className="flex items-center">
                 <input

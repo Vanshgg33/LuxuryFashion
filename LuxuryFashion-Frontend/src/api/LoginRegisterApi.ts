@@ -33,33 +33,6 @@ export const loginUser = async (data: LoginRequest) => {
   }
 };
 
-// --- SIGNUP API ---
-export const signupUser = async (data: SignupRequest) => {
-  try {
-    const response = await axios.post(
-      `${baseApiUrl}/users/register`,
-      data,
-      { withCredentials: true }
-    );
-    return response.data; // expected: { message: "User registered successfully" }
-  } catch (error: any) {
-    if (error.response) {
-      throw new Error(error.response.data.error || "Signup failed");
-    }
-    throw error;
-  }
-};
-
-// --- GOOGLE SOCIAL LOGIN ---
-export const socialLogin = async () => {
-  try {
-    // Redirect user to backend OAuth2 login endpoint
-    window.location.href = `${baseApiUrl}/oauth2/authorization/google`;
-  } catch (error) {
-    console.error("OAuth login failed:", error);
-    throw error;
-  }
-};
 
 // --- TOKEN VALIDATION ---
 export const validateToken = async () => {

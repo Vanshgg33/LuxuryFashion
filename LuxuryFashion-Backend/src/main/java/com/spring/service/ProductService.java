@@ -4,8 +4,6 @@ import com.spring.model.Gallery;
 import com.spring.model.Product;
 import com.spring.repo.GalleryRepository;
 import com.spring.repo.ProductRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,11 +12,7 @@ import org.springframework.stereotype.Service;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 
@@ -70,13 +64,50 @@ public class ProductService {
         return products;
     }
 
-//    public List<Product> fetchProductsByCategory(String category) {
-//        try {
-//            return productRepository.findByProd_categoryAndProd_status(category, "active");
-//        } catch (Exception e) {
-//            throw new RuntimeException("Error fetching products by category: " + e.getMessage(), e);
-//        }
-//    }
+    public List<Product> fetchProductsBySelection(String keyword, String status) {
+
+        List<Product> products = new ArrayList<>();
+        if(Objects.equals(keyword, "men") || Objects.equals(keyword, "women")) {
+     products = productRepository.findByGenderAndStatus(keyword, status);
+        }
+        else if (keyword.equals("accessories")) {
+            products = productRepository.findByCategoryAndStatus("accessories", status);
+        }
+        else if (keyword.equals("sale") || keyword.equals("new-arrivals") || keyword.equals("new arrivals")) {
+
+            String tag = keyword.replace("-", " ");
+            products = productRepository.findByTagAndStatus(tag, status);
+        }
+
+        for (Product product : products) {
+            if (product.getProd_images() != null && !product.getProd_images().isEmpty()) {
+                List<String> base64Images = new ArrayList<>();
+
+                for (String imageName : product.getImagenames()) {
+                    try {
+                        Path imagePath = Paths.get(productPicturePath, imageName);
+
+                        if (Files.exists(imagePath)) {
+                            byte[] imageBytes = Files.readAllBytes(imagePath);
+                            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+
+                            // Detect content type (default fallback to jpeg)
+                            String contentType = Files.probeContentType(imagePath);
+                            if (contentType == null) contentType = "image/jpeg";
+
+                            base64Images.add("data:" + contentType + ";base64," + base64Image);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error encoding image " + imageName + ": " + e.getMessage());
+                    }
+                }
+
+                product.setProd_images(base64Images);
+            }
+        }
+
+        return products;
+    }
 
 //    public List<Product> fetchFeaturedProducts(int limit) {
 //        try {

@@ -2,7 +2,7 @@
 
 
 
-import { baseApiUrl, type BackendProduct, type Gallerydata, type Product, type Productdto } from "./base";
+import { baseApiUrl, type Gallerydata, type Productdto } from "./base";
 
 export async function addProductApi(formData: FormData): Promise<any> {
   try {
@@ -170,3 +170,8 @@ export const deleteGalleryImage = async (id: number): Promise<void> => {
     throw error;
   }
 };
+
+
+
+
+
