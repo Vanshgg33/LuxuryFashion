@@ -54,12 +54,13 @@ public class Config {
 
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login", "/save", "/users/register", "/css/**", "/style.css",
+                        .requestMatchers("/", "/products/**", "/save", "/users/register", "/css/**", "/style.css",
                                 "/auth/validate", "/http://localhost:8083/login/oauth2/code/google")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        .requestMatchers("/admin-api/**").permitAll() // admin-only
-                        .anyRequest().authenticated()
+                        .requestMatchers("/admin-api/**").authenticated() // admin-only
+                        .requestMatchers("/luxuryfashion/**","/luxuryfashion/fetch-gallery").permitAll()
+                        .anyRequest().permitAll()
                 )
 
                 // OAuth2 login success handler

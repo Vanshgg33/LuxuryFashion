@@ -4,8 +4,6 @@ import com.spring.model.Gallery;
 import com.spring.model.Product;
 import com.spring.repo.GalleryRepository;
 import com.spring.repo.ProductRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,11 +12,7 @@ import org.springframework.stereotype.Service;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 
@@ -69,31 +63,6 @@ public class ProductService {
 
         return products;
     }
-
-//    public List<Product> fetchProductsByCategory(String category) {
-//        try {
-//            return productRepository.findByProd_categoryAndProd_status(category, "active");
-//        } catch (Exception e) {
-//            throw new RuntimeException("Error fetching products by category: " + e.getMessage(), e);
-//        }
-//    }
-
-//    public List<Product> fetchFeaturedProducts(int limit) {
-//        try {
-//            Pageable pageable = PageRequest.of(0, limit);
-//            return productRepository.findByProd_statusOrderByRatingDesc("active", pageable);
-//        } catch (Exception e) {
-//            throw new RuntimeException("Error fetching featured products: " + e.getMessage(), e);
-//        }
-//    }
-
-//    public Optional<Product> fetchProductById(int productId) {
-//        try {
-//            return productRepository.findByProd_idAndProd_status(productId, "active");
-//        } catch (Exception e) {
-//            throw new RuntimeException("Error fetching product by ID: " + e.getMessage(), e);
-//        }
-//    }
 
 
     public ResponseEntity<?> getGallery(){

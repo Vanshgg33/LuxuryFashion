@@ -42,8 +42,10 @@ const Gallery: React.FC = () => {
         showNotification('error', 'Failed to fetch gallery images');
       }
     };
+
     loadGalleryImages();
-  }, [showNotification]);
+  }, []); // ✅ empty array ensures it runs only once (on mount)
+
 
   const handleAddImage = async () => {
     if (!newImage.imageUrl || !newImage.title) {

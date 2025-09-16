@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 
 @RestController
+@RequestMapping("/luxuryfashion")
 public class ProductController {
 
 
@@ -41,6 +42,13 @@ public class ProductController {
                 .body("Error fetching gallery images: " + e.getMessage());
     }
     }
+
+    @GetMapping("/products")
+    public List<Product> getProductsByCategory(){
+        return productService.fetchAllProducts();
+    }
+
+
 
 
 

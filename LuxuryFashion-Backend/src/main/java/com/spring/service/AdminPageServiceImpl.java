@@ -140,7 +140,6 @@ public class AdminPageServiceImpl implements AdminService {
             toupdate.setProd_brand(dto.getProd_brand());
             toupdate.setBadge(dto.getBadge());
             toupdate.setRating(dto.getRating());
-            toupdate.setImagenames(dto.getImagenames());
             String currentTime = String.valueOf(System.currentTimeMillis());
             toupdate.setCreatedAt(currentTime);
             toupdate.setUpdatedAt(currentTime);
@@ -150,11 +149,27 @@ public class AdminPageServiceImpl implements AdminService {
             throw new RuntimeException("Product not found, not able to update it ");
         }
     }
-
     public void deleteProduct(Long productId) {
-        if (!productRepository.existsById(productId)) {
+        Optional<Product> productOpt = productRepository.findById(productId);
+        if (!productOpt.isPresent()) {
             throw new RuntimeException("Product with ID " + productId + " not found");
         }
+
+        Product product = productOpt.get();
+
+
+        if (product.getProd_images() != null) {
+            for (String fileName : product.getProd_images()) {
+                try {
+                    Path filePath = Paths.get(profilePicturePath, fileName);
+                    Files.deleteIfExists(filePath);
+                } catch (Exception e) {
+                    System.err.println("Failed to delete image: " + fileName + " - " + e.getMessage());
+                }
+            }
+        }
+
+        // Delete product from database
         productRepository.deleteById(productId);
     }
 
@@ -164,7 +179,10 @@ public class AdminPageServiceImpl implements AdminService {
     }
 
     @Override
-    public ResponseEntity<?> addGalleryImages(Gallery gallery) {
+    public ResponseEntity<?> addGalleryImages(Gallery gallery) {   if (gallery.getGallery_id() != null && gallery.getGallery_id() == 0) {
+        gallery.setGallery_id(null); 
+    }
+
       galleryRepository.save(gallery);
         return ResponseEntity.ok(gallery);
     }

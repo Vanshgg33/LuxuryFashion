@@ -3,9 +3,9 @@ import { baseApiUrl, type BackendProduct, type Gallerydata , type Product} from 
 
 export async function fetchProductsshop(): Promise<Product[]> {
   try {
-    const response = await fetch(`${baseApiUrl}/fetch-products-shop`, {
+    const response = await fetch(`${baseApiUrl}/luxuryfashion/fetch-products-shop`, {
       method: "GET",
-      credentials: "include",
+     
     });
 
     if (!response.ok) {
@@ -49,12 +49,12 @@ console.log(transformedProducts);
 
 export async function fetchGalleryImages(): Promise<Gallerydata[]> {
   try {
-    const response = await fetch(`${baseApiUrl}/fetch-gallery`, {
+    const response = await fetch(`${baseApiUrl}/luxuryfashion/fetch-gallery`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include", // keep if using JWT/session cookies
+     
     });
 
     if (!response.ok) {
@@ -67,3 +67,25 @@ export async function fetchGalleryImages(): Promise<Gallerydata[]> {
     throw error;
   }
 }
+
+export async function fetchProductsall(): Promise<BackendProduct[]> {
+  try {
+    const url = `${baseApiUrl}/luxuryfashion/products`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    throw error;
+  }
+}
+
+
