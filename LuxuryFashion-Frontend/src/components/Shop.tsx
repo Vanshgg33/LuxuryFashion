@@ -69,18 +69,21 @@ useEffect(() => {
 
 
 
- const fetchProducts = async () => {
+const fetchProducts = async () => {
   try {
     setIsLoadingProducts(true);
-    const products = await fetchProductsshop(); // Already returns Product[]
-    setProducts(products);
+    const products = await fetchProductsshop(); 
+
    
+    setProducts(products.slice(0, 3));
+
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error("Error fetching products:", error);
   } finally {
     setIsLoadingProducts(false);
   }
 };
+
     useEffect(() => {
         const loadingTimer = setTimeout(() => setIsLoading(false), 2000);
 
@@ -707,42 +710,43 @@ const toggleWishlist = (productId: string) => {
 
                         <div className="text-center mt-16">
                             <button className="bg-black text-white px-12 py-4 font-medium text-sm tracking-wide hover:bg-gray-800 transition-colors duration-300 uppercase">
-                                View All Products
+                               To Browse Products Search
                             </button>
                         </div>
                     </div>
                 </section>
 
                 {/* Editorial Banner */}
-                <section className="py-0 bg-gray-900 relative overflow-hidden">
-                    <div className="grid grid-cols-1 lg:grid-cols-2">
-                        <div className="relative h-96 lg:h-[600px]">
-                            <img
-                                src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
-                                alt="Editorial Fashion"
-                                className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/30"></div>
-                        </div>
-                        <div className="flex items-center justify-center p-12 lg:p-20 bg-gray-900">
-                            <div className="text-center lg:text-left max-w-lg">
-                                <h2 className="text-4xl md:text-5xl font-serif font-medium text-white mb-8 leading-tight">
-                                    Spring/Summer
-                                    <span className="block text-amber-300">Collection 2025</span>
-                                </h2>
-                                <p className="text-xl text-gray-300 font-light leading-relaxed mb-10">
-                                    Embrace the season with our latest collection featuring sustainable luxury and contemporary elegance
-                                </p>
-                                <button className="group border-2 border-white text-white px-8 py-4 font-medium text-sm tracking-wide hover:bg-white hover:text-black transition-all duration-300 uppercase">
-                  <span className="flex items-center space-x-3">
-                    <span>Discover Collection</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-                  </span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+     <section className="py-0 bg-gray-900 relative overflow-hidden">
+  <div className="grid grid-cols-1 lg:grid-cols-2">
+    <div className="relative h-96 lg:h-[600px]">
+      <img
+        src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
+        alt="Indian Fashion"
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-black/30"></div>
+    </div>
+    <div className="flex items-center justify-center p-12 lg:p-20 bg-gray-900">
+      <div className="text-center lg:text-left max-w-lg">
+        <h2 className="text-4xl md:text-5xl font-serif font-medium text-white mb-8 leading-tight">
+          Timeless Style
+          <span className="block text-amber-300">All Seasons 2025</span>
+        </h2>
+        <p className="text-xl text-gray-300 font-light leading-relaxed mb-10">
+          Celebrate every season with our all-year collection inspired by India’s rich heritage, modern design, and sustainable luxury.
+        </p>
+        <button className="group border-2 border-white text-white px-8 py-4 font-medium text-sm tracking-wide hover:bg-white hover:text-black transition-all duration-300 uppercase">
+          <span className="flex items-center space-x-3">
+            <span>Explore Collection</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
 
                 {/* Brand Values */}
                 <section className="py-24 bg-white">
