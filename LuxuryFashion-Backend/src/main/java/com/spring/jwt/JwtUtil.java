@@ -22,7 +22,7 @@ public class JwtUtil {
 
     // Generate JWT for username
     public String generateToken(String username) {
-        //    @Value("${jwt.expiration:}") // e.g. 900000 = 15 mins
+
 
         return Jwts.builder()
                 .setSubject(username)

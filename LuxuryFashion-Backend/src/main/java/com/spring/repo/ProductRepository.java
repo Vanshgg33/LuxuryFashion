@@ -22,6 +22,22 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
 
 @Query("SELECT p FROM Product p WHERE LOWER(p.prod_tag) = LOWER(:tag) AND p.prodStatus = :status")
-    List<Product> findByTagAndStatus(@Param("tag") String tag, @Param("status") String status);
+ List<Product> findByTagAndStatus(@Param("tag") String tag, @Param("status") String status);
+
+    @Query("""
+    SELECT p FROM Product p
+    WHERE p.prodStatus = 'ACTIVE'
+      AND (
+           LOWER(p.prod_name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        OR LOWER(p.prod_description) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        OR LOWER(p.prod_category) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        OR LOWER(p.prod_tag) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        OR LOWER(p.prod_brand) LIKE LOWER(CONCAT('%', :keyword, '%'))
+      )
+""")
+    List<Product> searchActiveProducts(@Param("keyword") String keyword);
+
+
+
 }
 

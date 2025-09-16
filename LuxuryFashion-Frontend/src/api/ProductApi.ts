@@ -68,21 +68,13 @@ export async function fetchGalleryImages(): Promise<Gallerydata[]> {
   }
 }
 
-export async function fetchProductsBySelection(
-  keyword?: string,
-  status: string = "ACTIVE"
-): Promise<BackendProduct[]> {
+export async function fetchProductsall(): Promise<BackendProduct[]> {
   try {
-    const queryParams = new URLSearchParams();
-    if (keyword && keyword.trim() !== "") queryParams.append("keyword", keyword);
-    if (status) queryParams.append("status", status);
-
-    const url = `${baseApiUrl}/luxuryfashion/products${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+    const url = `${baseApiUrl}/luxuryfashion/products`;
 
     const response = await fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
-   
     });
 
     if (!response.ok) {
@@ -95,4 +87,5 @@ export async function fetchProductsBySelection(
     throw error;
   }
 }
+
 

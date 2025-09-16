@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Star, ShoppingBag, Heart, Truck, Award, Shield, ArrowRight, TrendingUp, Users, Globe, X, Plus, Minus, Eye } from 'lucide-react';
 import { fetchGalleryImages, fetchProductsshop } from '../api/ProductApi';
 import type { BackendProduct, Gallerydata, Product } from '../api/base';
+import { Link } from 'react-router-dom';
 
 interface FashionHomepageProps {
     apiEndpoint?: string;
@@ -525,58 +526,63 @@ const toggleWishlist = (productId: string) => {
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                            {[
-                                {
-                                    name: 'Women',
-                                    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-                                    count: '240+ Items'
-                                },
-                                {
-                                    name: 'Men',
-                                    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-                                    count: '180+ Items'
-                                },
-                                {
-                                    name: 'Accessories',
-                                    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-                                    count: '120+ Items'
-                                },
-                                {
-                                    name: 'Footwear',
-                                    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-                                    count: '90+ Items'
-                                }
-                            ].map((category, index) => (
-                                <div
-                                    key={category.name}
-                                    className="group relative overflow-hidden bg-white rounded-none shadow-sm hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2"
-                                >
-                                    <div className="relative overflow-hidden h-80">
-                                        <img
-                                            src={category.image}
-                                            alt={category.name}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                        />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+  {[
+    {
+      name: 'Women',
+      slug: 'women',
+      image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      count: '240+ Items'
+    },
+    {
+      name: 'Men',
+      slug: 'men',
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      count: '180+ Items'
+    },
+    {
+      name: 'Accessories',
+      slug: 'accessories',
+      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      count: '120+ Items'
+    },
+    {
+      name: 'Footwear',
+      slug: 'footwear',
+      image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      count: '90+ Items'
+    }
+  ].map((category, index) => (
+    <Link
+      to={`/category/${category.slug}`}
+      key={category.name}
+      className="group relative overflow-hidden bg-white rounded-none shadow-sm hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 block"
+    >
+      <div className="relative overflow-hidden h-80">
+        <img
+          src={category.image}
+          alt={category.name}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
 
-                                        <div className="absolute inset-0 flex items-end justify-center p-8">
-                                            <div className="text-center transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                                                <h3 className="text-2xl font-serif font-medium text-white mb-2 text-shadow-luxury">
-                                                    {category.name}
-                                                </h3>
-                                                <p className="text-white/80 font-light">
-                                                    {category.count}
-                                                </p>
-                                                <button className="mt-4 bg-white text-black px-6 py-2 text-sm font-medium tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0 uppercase">
-                                                    Explore
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+        <div className="absolute inset-0 flex items-end justify-center p-8">
+          <div className="text-center transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+            <h3 className="text-2xl font-serif font-medium text-white mb-2 text-shadow-luxury">
+              {category.name}
+            </h3>
+            <p className="text-white/80 font-light">
+              {category.count}
+            </p>
+            <button className="mt-4 bg-white text-black px-6 py-2 text-sm font-medium tracking-wide opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0 uppercase">
+              Explore
+            </button>
+          </div>
+        </div>
+      </div>
+    </Link>
+  ))}
+</div>
                     </div>
                 </section>
 

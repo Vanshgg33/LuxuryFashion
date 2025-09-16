@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { Heart, Eye, Star, ShoppingBag, X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { BackendProduct, Product } from "../api/base";
-import { fetchProductsBySelection } from "../api/ProductApi";
+import { fetchProductsall } from "../api/ProductApi";
+import Fuse from "fuse.js";
+
 
 
 const ProductDisplayPage: React.FC = () => {
@@ -15,7 +17,9 @@ const ProductDisplayPage: React.FC = () => {
   
   const location = useLocation();
   const params = useParams();
-  
+  const [allProducts, setAllProducts] = useState<BackendProduct[]>([]);
+
+
   const categoryFromPath = params.category;
   const queryParams = new URLSearchParams(location.search);
   const categoryFromQuery = queryParams.get("category");
@@ -24,48 +28,14 @@ const ProductDisplayPage: React.FC = () => {
   const category = categoryFromPath || categoryFromQuery || undefined;
 
 useEffect(() => {
-  const fetchProducts = async () => {
+  const fetchAllProducts = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      let data: BackendProduct[] = [];
-
-      if (category) {
-        let apiCategory = category.toLowerCase();
-
-        switch (apiCategory) {
-          case "sale":
-            // ✅ fetch by tag
-            data = await fetchProductsBySelection(apiCategory);
-            break;
-
-          case "women":
-          case "men":
-            // ✅ fetch by gender
-            data = await fetchProductsBySelection(apiCategory);
-            break;
-
-          case "accessories":
-            // ✅ fetch by category
-            data = await fetchProductsBySelection(apiCategory);
-            break;
-
-          default:
-            setError(
-              `Category "${apiCategory}" is not supported yet. Use men, women, accessories, sale, or new-arrivals.`
-            );
-            data = [];
-        }
-      } else if (search) {
-        setError("Search functionality is not implemented yet.");
-        data = [];
-      } else {
-        setError("No category specified.");
-        data = [];
-      }
-
-      setProducts(data);
+      const data = await fetchProductsall(); 
+      setAllProducts(data);
+      setProducts(data); 
     } catch (error) {
       console.error("Error fetching products:", error);
       setError(
@@ -73,24 +43,80 @@ useEffect(() => {
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
+      setAllProducts([]);
       setProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  fetchProducts();
-}, [category, search]);
+  fetchAllProducts();
+}, []);
 
 
-const toggleWishlist = (productId: string | number) => {
-  const id = Number(productId); // force into number
-  setWishlist(prev =>
-    prev.includes(id)
-      ? prev.filter(wishId => wishId !== id) // remove if already in
-      : [...prev, id] // add if not
-  );
-};
+
+useEffect(() => {
+  if (!allProducts.length) {
+    setProducts([]);
+    return;
+  }
+
+  const searchLower = search?.toLowerCase().trim() || "";
+  const categoryLower = category?.toLowerCase().trim() || "";
+
+  // Split search into words for multi-word search
+  const searchWords = searchLower ? searchLower.split(/\s+/) : [];
+
+  // --- Setup Fuse.js for multi-word search ---
+  const fuse = new Fuse(allProducts, {
+    keys: ["prod_name", "prod_brand", "prod_category", "prod_gender", "prod_tag"],
+    threshold: 0.4, // fuzzy level
+    distance: 100,
+    ignoreLocation: true,
+  });
+
+  let filtered: BackendProduct[] = allProducts;
+
+  // --- Apply main search ---
+  if (searchWords.length > 0) {
+    // Each word must match
+    searchWords.forEach((word) => {
+      const fuseResults = fuse.search(word);
+      const matchedItems = new Set(fuseResults.map((r) => r.item));
+      filtered = filtered.filter((p) => matchedItems.has(p));
+    });
+  }
+
+  // --- Apply category refinement ---
+  if (categoryLower) {
+    filtered = filtered.filter((p) => {
+      const cat = p.prod_category?.toLowerCase();
+      const gender = p.prod_gender?.toLowerCase();
+
+      if (["men", "mens", "male"].includes(categoryLower)) {
+        return gender === "male" || gender === "men";
+      } else if (["women", "womens", "female"].includes(categoryLower)) {
+        return gender === "female" || gender === "women";
+      } else {
+        // fallback: fuzzy match category keyword
+        const fuseCat = new Fuse([p], {
+          keys: ["prod_name", "prod_category", "prod_gender", "prod_tag"],
+          threshold: 0.4,
+          distance: 100,
+          ignoreLocation: true,
+        });
+        return fuseCat.search(categoryLower).length > 0;
+      }
+    });
+  }
+
+  setProducts(filtered);
+}, [category, search, allProducts]);
+
+
+
+
+
 
 
   const openProductPreview = (product: BackendProduct) => {
@@ -209,6 +235,10 @@ const toggleWishlist = (productId: string | number) => {
         </div>
       </div>
     );
+  }
+
+  function toggleWishlist(prod_id: number): void {
+    throw new Error("Function not implemented.");
   }
 
   return (

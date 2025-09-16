@@ -2,26 +2,34 @@ import React, { useState } from "react";
 import { Search, User, Menu, X, ShoppingBag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-
 interface HeaderProps {
   cartCount?: number;
   isLoggedIn?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({
-  cartCount = 0,
-}) => {
+const Header: React.FC<HeaderProps> = ({ cartCount = 0 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
   const handleCategoryClick = (category: string) => {
-    // Convert to URL-friendly format and navigate to category/[clicked-item]
-    const categoryPath = category.toLowerCase().replace(/\s+/g, '-');
+    const categoryPath = category.toLowerCase().replace(/\s+/g, "-");
     navigate(`/category/${categoryPath}`);
     setMobileMenuOpen(false);
   };
 
-  const menuItems = ["Women", "Men", "Accessories",  "Sale"];
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim() !== "") {
+      const queryPath = searchQuery.toLowerCase().replace(/\s+/g, "-");
+      navigate(`/category/${queryPath}`);
+      setSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
+
+  const menuItems = ["Women", "Men", "Accessories", "Sale"];
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-xl z-40 border-b border-gray-100 transition-all duration-300">
@@ -51,12 +59,37 @@ const Header: React.FC<HeaderProps> = ({
 
           {/* Icons */}
           <div className="flex items-center space-x-3 sm:space-x-4">
-            <button
-              aria-label="Search"
-              className="p-2 text-gray-700 hover:text-black transition-colors duration-300"
-            >
-              <Search className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+            {/* Search */}
+            <div className="relative">
+              <button
+                aria-label="Search"
+                onClick={() => setSearchOpen((prev) => !prev)}
+                className="p-2 text-gray-700 hover:text-black transition-colors duration-300"
+              >
+                <Search className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+              {searchOpen && (
+                <form
+                  onSubmit={handleSearch}
+                  className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex items-center space-x-2"
+                >
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search..."
+                    className="w-48 sm:w-64 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800"
+                  >
+                    Go
+                  </button>
+                </form>
+              )}
+            </div>
+
             <button
               aria-label="User"
               className="p-2 text-gray-700 hover:text-black transition-colors duration-300 hidden md:block"

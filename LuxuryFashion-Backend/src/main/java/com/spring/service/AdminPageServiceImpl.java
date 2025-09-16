@@ -179,7 +179,10 @@ public class AdminPageServiceImpl implements AdminService {
     }
 
     @Override
-    public ResponseEntity<?> addGalleryImages(Gallery gallery) {
+    public ResponseEntity<?> addGalleryImages(Gallery gallery) {   if (gallery.getGallery_id() != null && gallery.getGallery_id() == 0) {
+        gallery.setGallery_id(null); 
+    }
+
       galleryRepository.save(gallery);
         return ResponseEntity.ok(gallery);
     }

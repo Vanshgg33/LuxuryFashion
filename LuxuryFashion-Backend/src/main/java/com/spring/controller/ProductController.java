@@ -44,11 +44,8 @@ public class ProductController {
     }
 
     @GetMapping("/products")
-    public List<Product> getProductsByCategory(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "ACTIVE") String status) {
-
-        return productService.fetchProductsBySelection(keyword, status);
+    public List<Product> getProductsByCategory(){
+        return productService.fetchAllProducts();
     }
 
 
