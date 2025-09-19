@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { Heart, Eye, Star, ShoppingBag, X, ChevronLeft, ChevronRight } from "lucide-react";
-import type { BackendProduct, Product } from "../api/base";
+import type { BackendProduct } from "../api/base";
 import { fetchProductsall } from "../api/ProductApi";
 import Fuse from "fuse.js";
 
@@ -13,7 +13,7 @@ const ProductDisplayPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<BackendProduct | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [wishlist, ] = useState<number[]>([]);
   
   const location = useLocation();
   const params = useParams();
@@ -90,7 +90,7 @@ useEffect(() => {
   // --- Apply category refinement ---
   if (categoryLower) {
     filtered = filtered.filter((p) => {
-      const cat = p.prod_category?.toLowerCase();
+
       const gender = p.prod_gender?.toLowerCase();
 
       if (["men", "mens", "male"].includes(categoryLower)) {
@@ -237,7 +237,7 @@ useEffect(() => {
     );
   }
 
-  function toggleWishlist(prod_id: number): void {
+  function toggleWishlist(_prod_id: number): void {
     throw new Error("Function not implemented.");
   }
 

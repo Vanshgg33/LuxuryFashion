@@ -16,15 +16,20 @@ export interface SignupRequest {
   lastName: string;
 }
 
+
+
 // --- LOGIN API ---
 export const loginUser = async (data: LoginRequest) => {
   try {
-    const response = await axios.post(
-      `${baseApiUrl}/auth/login`,
-      data,
-      { withCredentials: true } // ensures JWT cookie is stored
-    );
-    return response.data; // { message: "Login successful" }
+   
+    const response = await axios.post(`${baseApiUrl}/auth/login`, data);
+
+    // Store token in memory
+    if (response.data.token) {
+      sessionStorage.setItem("authToken", response.data.token);
+    }
+
+    return response.data; // { message: "Login successful", token: "..." }
   } catch (error: any) {
     if (error.response) {
       throw new Error(error.response.data.error || "Login failed");
@@ -33,15 +38,21 @@ export const loginUser = async (data: LoginRequest) => {
   }
 };
 
-
-// --- TOKEN VALIDATION ---
 export const validateToken = async () => {
+  const token = sessionStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in sessionStorage");
+
   try {
     const response = await axios.post(
       `${baseApiUrl}/auth/validate`,
-      {},
-      { withCredentials: true } // sends stored JWT cookie automatically
+      {}, // empty body
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
+
     return response.data; // { message: "Token valid for user: ..." }
   } catch (error: any) {
     if (error.response) {

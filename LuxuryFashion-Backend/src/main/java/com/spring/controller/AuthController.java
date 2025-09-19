@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -51,25 +53,31 @@ public class AuthController {
 
         // Secure cookie
         ResponseCookie cookie = ResponseCookie.from("authToken", token)
-                .httpOnly(true)         // not accessible by JS
-                .secure(true)           // only over HTTPS
+                .httpOnly(true)
+                .secure(true)
                 .path("/")
-                .sameSite("Strict")     // prevent CSRF
+                .sameSite("None")
                 .maxAge(24 * 60 * 60)   // 1 day
                 .build();
 
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Login successful");
+        response.put("token", token);
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(Collections.singletonMap("message", "Login successful"));
+                .body(response);
     }
 
     // --- TOKEN VALIDATION ---
     @PostMapping("/validate")
-    public ResponseEntity<?> validateToken(@CookieValue(name = "authToken", required = false) String token) {
-        if (token == null) {
+    public ResponseEntity<?> validateToken(@RequestHeader(name = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Collections.singletonMap("error", "Unauthorized: Missing JWT cookie"));
+                    .body(Collections.singletonMap("error", "Unauthorized: Missing or invalid Authorization header"));
         }
+
+        String token = authHeader.substring(7); // Remove "Bearer " prefix
 
         try {
             if (!jwtUtil.validateToken(token)) {
@@ -85,4 +93,5 @@ public class AuthController {
                     .body(Collections.singletonMap("error", "Invalid token"));
         }
     }
+
 }

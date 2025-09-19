@@ -1,4 +1,4 @@
-export const baseApiUrl = 'http://localhost:8081'; // Replace with your actual base API URL
+export const baseApiUrl = import.meta.env.VITE_API_URL;
 
 export interface Product {
     id: string;

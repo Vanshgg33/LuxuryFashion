@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
-  Plus, Edit, Trash2, X, Star, Search, Filter, Eye, Package,
-  TrendingUp, AlertCircle, CheckCircle, XCircle, Upload, Image as ImageIcon,
+  Plus, Edit, Trash2, X, Star, Search,  Package,
+  AlertCircle, Image as ImageIcon,
   Loader2
 } from 'lucide-react';
 import { addProductApi, deleteProductApi, fetchProductsApi, updateProductApi } from '../../api/AdminApi';
-import type {  Product, Productdto } from '../../api/base';
+import type { Productdto } from '../../api/base';
 
 interface ProductsContextType {
   showNotification: (type: 'success' | 'error' | 'warning', message: string) => void;
@@ -401,26 +401,7 @@ const handleDeleteProduct = async (id: number) => {
     setErrors(newErrors);
   };
 
-    const removeImage = (index: number) => {
-      const imageToRemove = imagePreviews[index];
-      
-      // Check if this is an existing image (not a new upload preview)
-      const isExistingImage = product?.prod_images?.includes(imageToRemove) || false;
-      
-      if (isExistingImage) {
-        // Add to removed images list for backend processing
-        setRemovedImageNames(prev => [...prev, imageToRemove]);
-      }
-      
-      // Remove from previews
-      setImagePreviews(prev => prev.filter((_, i) => i !== index));
-      
-      // If it's a new file, remove from selected files
-      if (!isExistingImage && index >= (product?.prod_images?.length || 0)) {
-        const newFileIndex = index - (product?.prod_images?.length || 0);
-        setSelectedFiles(prev => prev.filter((_, i) => i !== newFileIndex));
-      }
-    };
+   
 
     const handleInputChange = (field: keyof Productdto, value: any) => {
       setFormData(prev => ({ ...prev, [field]: value }));

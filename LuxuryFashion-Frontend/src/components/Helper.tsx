@@ -4,7 +4,7 @@ import { validateToken } from "../api/LoginRegisterApi";
 
 const ProtectedPage: React.FC = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {

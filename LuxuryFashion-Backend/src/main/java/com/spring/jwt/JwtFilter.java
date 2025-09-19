@@ -109,7 +109,7 @@ public class JwtFilter extends OncePerRequestFilter {
         // 2️⃣ Fallback to cookies
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
-                if ("authToken".equals(cookie.getName())) {  // 👈 be consistent here
+                if ("authToken".equals(cookie.getName())) {
                     return cookie.getValue();
                 }
             }

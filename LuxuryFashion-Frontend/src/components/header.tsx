@@ -40,7 +40,7 @@ const Header: React.FC<HeaderProps> = ({ cartCount = 0 }) => {
             className="text-xl sm:text-2xl md:text-3xl font-serif font-medium text-black tracking-widest hover:scale-105 transition-transform duration-300 cursor-pointer"
             onClick={() => navigate("/")}
           >
-            ÉLÉGANCE
+          LuxuryFashion
           </div>
 
           {/* Desktop Navigation */}

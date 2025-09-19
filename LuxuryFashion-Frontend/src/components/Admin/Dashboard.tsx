@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Users, ShoppingBag, DollarSign, Package, Star
-} from 'lucide-react';
-import type { Product } from '../Admin';
+import React, { useState } from 'react';
+import {  Star} from 'lucide-react';
+import type { Product } from '../../api/base';
+
 
 
 interface DashboardProps {
@@ -10,58 +9,93 @@ interface DashboardProps {
 
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ products = []}) => {
+const Dashboard: React.FC<DashboardProps> = ({ }) => {
   // Initialize with mock data if not provided
-  const [dashboardProducts, setDashboardProducts] = useState<Product[]>([
-    {
+  const [dashboardProducts] = useState<Product[]>([
+  {
+
       id: '1',
-      prod_id: 1,
-      prod_name: 'Cashmere Oversized Coat',
+
       name: 'Cashmere Oversized Coat',
-      prod_price: 1299,
+
       price: 1299,
-      prod_image: 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+
       image: 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+
+      images: [
+
+        'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+
+      ],
+
+      originalPrice: undefined,
+
+      quantity: 15,
+
       badge: 'New',
+
       rating: 4.9,
+
       reviewCount: 124,
+
       brand: 'LUNA',
-      prod_category: 'Outerwear',
+
       category: 'Outerwear',
-      prod_quantity: 15,
-      stock: 15,
-      prod_description: 'Luxurious cashmere blend coat with oversized silhouette',
+
       description: 'Luxurious cashmere blend coat with oversized silhouette',
-      featured: true,
-      prod_tag: 'luxury',
-      prod_gender: 'unisex',
-      prod_status: 'ACTIVE'
+
+      sizes: undefined,
+
+      colors: undefined,
+
+      inStock: true,
+
+      prodStatus: 'ACTIVE',
+
     },
+
     {
+
       id: '2',
-      prod_id: 2,
-      prod_name: 'Silk Midi Dress',
+
       name: 'Silk Midi Dress',
-      prod_price: 899,
+
       price: 899,
-      originalPrice: 1199,
-      prod_image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+
       image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+
+      images: [
+
+        'https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+
+      ],
+
+      originalPrice: 1199,
+
+      quantity: 8,
+
       badge: 'Sale',
+
       rating: 4.8,
+
       reviewCount: 89,
+
       brand: 'AURORA',
-      prod_category: 'Dresses',
+
       category: 'Dresses',
-      prod_quantity: 8,
-      stock: 8,
-      prod_description: 'Elegant silk midi dress with contemporary cut',
+
       description: 'Elegant silk midi dress with contemporary cut',
-      featured: false,
-      prod_tag: 'elegant',
-      prod_gender: 'women',
-      prod_status: 'ACTIVE'
+
+      sizes: undefined,
+
+      colors: undefined,
+
+      inStock: true,
+
+      prodStatus: 'ACTIVE',
+
     }
+
   ]);
 
 
@@ -108,10 +142,10 @@ const Dashboard: React.FC<DashboardProps> = ({ products = []}) => {
           <div className="space-y-4">
             {dashboardProducts.slice(0, 3).map((product) => (
               <div key={product.id} className="flex items-center space-x-4 p-4 bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
-                <img src={product.image || product.prod_image} alt={product.name || product.prod_name} className="w-12 h-12 object-cover" />
+                <img src={product.image || product.image} alt={product.name || product.name} className="w-12 h-12 object-cover" />
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900">{product.name || product.prod_name}</p>
-                  <p className="text-gray-600 text-sm">${product.price || product.prod_price}</p>
+                  <p className="font-medium text-gray-900">{product.name || product.name}</p>
+                  <p className="text-gray-600 text-sm">${product.price || product.price}</p>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Star className="w-4 h-4 fill-amber-400 text-amber-400" />

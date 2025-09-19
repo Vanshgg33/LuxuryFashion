@@ -6,10 +6,15 @@ import { baseApiUrl, type Gallerydata, type Productdto } from "./base";
 
 export async function addProductApi(formData: FormData): Promise<any> {
   try {
+      const token = sessionStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in sessionStorage");
+
     const response = await fetch(baseApiUrl + "/admin-api/add-product", {
       method: "POST",
       body: formData,
-      credentials: "include",
+       headers: {
+          Authorization: `Bearer ${token}`,
+        },
     });
 
     if (!response.ok) {
@@ -26,9 +31,13 @@ export async function addProductApi(formData: FormData): Promise<any> {
 
 export async function fetchProductsApi(): Promise<Productdto[]> {
   try {
+  const token = sessionStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in sessionStorage");
     const response = await fetch(`${baseApiUrl}/admin-api/fetch-products`, {
       method: "GET",
-      credentials: "include", // keep cookies/session if needed
+     headers: {
+          Authorization: `Bearer ${token}`,
+        },
     });
 
     if (!response.ok) {
@@ -45,14 +54,19 @@ export async function fetchProductsApi(): Promise<Productdto[]> {
 
 
 export async function addGalleryImage(gallery: Gallerydata): Promise<Gallerydata> {
-  try {
+  try {  
+    
+    const token = sessionStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in sessionStorage");
+
     const response = await fetch(`${baseApiUrl}/admin-api/add-gallery-images`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(gallery),
-      credentials: "include",
+   
     });
 
     if (!response.ok) {
@@ -70,12 +84,17 @@ export async function updateGalleryStatus(
   galleries: Gallerydata[]
 ): Promise<Gallerydata[]> {
   try {
+
+      const token = sessionStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in sessionStorage");
+
     const response = await fetch(`${baseApiUrl}/admin-api/update-gallery-status`, {
       method: "PUT", 
       headers: {
         "Content-Type": "application/json",
+         Authorization: `Bearer ${token}`,
       },
-      credentials: "include", 
+     
       body: JSON.stringify(galleries),
     });
 
@@ -94,9 +113,14 @@ export async function updateGalleryStatus(
 
 export async function fetchGalleryImages(): Promise<Gallerydata[]> {
   try {
+
+      const token = sessionStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in sessionStorage");
+
     const response = await fetch(`${baseApiUrl}/admin-api/fetch-gallery-images`, {
       method: "GET",
-      credentials: "include",
+        headers: {
+        Authorization: `Bearer ${token}`,}
     });
 
     if (!response.ok) {
@@ -113,11 +137,15 @@ export async function fetchGalleryImages(): Promise<Gallerydata[]> {
 
 
 export async function updateProductApi(productId: number, dto: Productdto): Promise<Productdto> {
+    const token = sessionStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in sessionStorage");
+
   const response = await fetch(`${baseApiUrl}/admin-api/update-product/${productId}`, {
+    
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json",Authorization: `Bearer ${token}`, },
     body: JSON.stringify(dto),
-    credentials: "include",
+    
   });
 
   if (!response.ok) {
@@ -131,10 +159,16 @@ export async function updateProductApi(productId: number, dto: Productdto): Prom
 
 
 export async function deleteProductApi(productId: number): Promise<void> {
+
+    const token = sessionStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in sessionStorage");
+
   try {
     const response = await fetch(`${baseApiUrl}/admin-api/delete-product/${productId}`, {
       method: "DELETE",
-      credentials: "include", 
+         headers: {
+          Authorization: `Bearer ${token}`,
+        },
     });
 
     if (!response.ok) {
@@ -148,9 +182,15 @@ export async function deleteProductApi(productId: number): Promise<void> {
 
 export const deleteGalleryImage = async (id: number): Promise<void> => {
   try {
+      const token = sessionStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in sessionStorage");
+
+
     const response = await fetch(`${baseApiUrl}/admin-api/delete-gallery-image/${id}`, {
       method: 'DELETE',
-      credentials: 'include',
+       headers: {
+          Authorization: `Bearer ${token}`,
+        },
     });
 
     if (!response.ok) {

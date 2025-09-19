@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Star, ShoppingBag, Heart, Truck, Award, Shield, ArrowRight, TrendingUp, Users, Globe, X, Plus, Minus, Eye } from 'lucide-react';
 import { fetchGalleryImages, fetchProductsshop } from '../api/ProductApi';
-import type { BackendProduct, Gallerydata, Product } from '../api/base';
+import type { Product } from '../api/base';
 import { Link } from 'react-router-dom';
 
 interface FashionHomepageProps {
@@ -14,7 +14,7 @@ const FashionHomepage: React.FC<FashionHomepageProps> = ({
     const [isLoading, setIsLoading] = useState(true);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isAutoplay, setIsAutoplay] = useState(true);
-    const [scrollY, setScrollY] = useState(0);
+    const [, setScrollY] = useState(0);
     const [wishlist, setWishlist] = useState<string[]>([]);
     const [subscriberCount, setSubscriberCount] = useState(0);
     const [products, setProducts] = useState<Product[]>([]);
@@ -247,7 +247,7 @@ const toggleWishlist = (productId: string) => {
                     <div className="text-center">
                         <div className="w-12 h-12 border-2 border-black border-t-transparent rounded-full animate-spin mb-8"></div>
                         <div className="text-black text-2xl font-serif font-medium tracking-widest">
-                            ÉLÉGANCE
+                            Luxury Fashion
                         </div>
                     </div>
                 </div>
@@ -555,7 +555,7 @@ const toggleWishlist = (productId: string) => {
       image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
       count: '90+ Items'
     }
-  ].map((category, index) => (
+  ].map((category) => (
     <Link
       to={`/category/${category.slug}`}
       key={category.name}
@@ -606,7 +606,7 @@ const toggleWishlist = (productId: string) => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {displayProducts.map((product, index) => (
+                            {displayProducts.map((product) => (
                                 <div
                                     key={product.id}
                                     className="group bg-white border border-gray-100 hover:border-gray-200 transition-all duration-500 transform hover:-translate-y-2 hover:shadow-xl"
@@ -775,7 +775,7 @@ const toggleWishlist = (productId: string) => {
                                     title: 'Sustainable Luxury',
                                     description: 'Committed to ethical fashion practices and environmental responsibility'
                                 }
-                            ].map((value, index) => (
+                            ].map((value, ) => (
                                 <div key={value.title} className="text-center group">
                                     <div className="w-16 h-16 bg-black rounded-full mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                                         <value.icon className="w-8 h-8 text-white" />
@@ -839,7 +839,7 @@ const toggleWishlist = (productId: string) => {
                                 { value: '500+', label: 'Premium Pieces', icon: Award },
                                 { value: '50+', label: 'Luxury Brands', icon: Star },
                                 { value: '30+', label: 'Countries', icon: Globe }
-                            ].map((stat, index) => (
+                            ].map((stat) => (
                                 <div key={stat.label} className="group">
                                     <div className="w-12 h-12 bg-white rounded-full mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                                         <stat.icon className="w-6 h-6 text-black" />
