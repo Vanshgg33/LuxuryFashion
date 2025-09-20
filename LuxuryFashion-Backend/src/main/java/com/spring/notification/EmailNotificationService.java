@@ -3,7 +3,7 @@ package com.spring.notification;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.validation.ValidationException;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -22,7 +22,7 @@ public class EmailNotificationService implements NotificationService {
     }
 
     @Override
-    public void sendNotification(String recipient, String[] recipientList, String subject, String content) {
+    public void sendNotification(String recipient, String[] recipientList, String subject, String content) throws Exception {
         try {
             MimeMessage message = emailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -41,7 +41,7 @@ public class EmailNotificationService implements NotificationService {
             System.out.println("HTML Email sent successfully to: " + recipient);
         } catch (MessagingException e) {
             System.err.println("Failed to send email: " + e.getMessage());
-            throw new ValidationException("Something went wrong");
+            throw new Exception("Something went wrong");
         }
     }
 }

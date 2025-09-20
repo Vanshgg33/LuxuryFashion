@@ -38,8 +38,7 @@ public class User {
     @Column(name="role")
     private String role;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<Address> addresses;
+
 
     @OneToOne(cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     @JoinColumn(name = "cart_id", referencedColumnName = "cartid")

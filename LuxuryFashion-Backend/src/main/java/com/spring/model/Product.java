@@ -11,7 +11,7 @@ import java.util.List;
 @Data
 public class Product {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int prod_id;
 
     private String prod_name;
@@ -24,6 +24,7 @@ public class Product {
     private String prod_gender;
     private String prodStatus;
     private String prod_brand;
+
     @ElementCollection
     private List<String> imagenames;
     @ElementCollection
