@@ -90,12 +90,14 @@ const Header: React.FC<HeaderProps> = ({ cartCount = 0 }) => {
               )}
             </div>
 
-            <button
-              aria-label="User"
-              className="p-2 text-gray-700 hover:text-black transition-colors duration-300 hidden md:block"
-            >
-              <User className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+        <button
+  aria-label="Admin"
+  onClick={() => navigate("/admin")}
+  className="p-2 text-gray-700 hover:text-black transition-colors duration-300 hidden md:block"
+>
+  <User className="w-5 h-5 sm:w-6 sm:h-6" />
+</button>
+
             <button
               aria-label="Cart"
               className="relative p-2 text-gray-700 hover:text-black transition-colors duration-300"

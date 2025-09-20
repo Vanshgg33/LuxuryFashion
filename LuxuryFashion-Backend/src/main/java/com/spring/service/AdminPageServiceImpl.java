@@ -1,5 +1,8 @@
 package com.spring.service;
 
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import com.spring.dto.ProductDto;
 import com.spring.model.Gallery;
 import com.spring.model.Product;
@@ -31,30 +34,16 @@ public class AdminPageServiceImpl implements AdminService {
     @Value("${product.picture.path}")
     private String profilePicturePath;
 
-    
+
     public List<Product> fetchProducts() {
         List<Product> products = productRepository.findAll();
 
         for (Product product : products) {
             if (product.getImagenames() != null && !product.getImagenames().isEmpty()) {
-                List<String> base64Images = new ArrayList<>();
+                // Since images are stored as public URLs, use them directly
+                List<String> imageUrls = new ArrayList<>(product.getImagenames());
 
-                for (String imageName : product.getImagenames()) {
-                    try {
-                        Path imagePath = Paths.get(profilePicturePath, imageName);
-                        if (Files.exists(imagePath)) {
-                            byte[] imageBytes = Files.readAllBytes(imagePath);
-                            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-
-                            String contentType = Files.probeContentType(imagePath);
-                            if (contentType == null) contentType = "image/jpeg";
-
-                            base64Images.add("data:" + contentType + ";base64," + base64Image);
-                        }
-                    } catch (Exception ignored) {}
-                }
-
-                product.setProd_images(base64Images);
+                product.setProd_images(imageUrls);
             }
         }
 
@@ -64,40 +53,49 @@ public class AdminPageServiceImpl implements AdminService {
 
     public Product addProduct(ProductDto dto) {
         Product savedProduct = new Product();
-        List<String> imageFileNames = new ArrayList<>();
+        List<String> imageUrls = new ArrayList<>();
+
+
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        String bucketName = "productphotos1";
 
         if (dto.getProd_photo() != null && !dto.getProd_photo().isEmpty()) {
             int index = 0;
             for (MultipartFile photo : dto.getProd_photo()) {
                 if (!photo.isEmpty()) {
                     try {
-                        File dir = new File(profilePicturePath);
-                        if (!dir.exists() && !dir.mkdirs()) {
-                            throw new RuntimeException("Failed to create directory: " + profilePicturePath);
-                        }
-
+                        // Determine file extension
                         String extension = ".jpg";
                         String originalFilename = photo.getOriginalFilename();
                         if (originalFilename != null && originalFilename.contains(".")) {
                             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
                         }
 
+                        // Create unique file name
                         String fileName = dto.getProd_name().replaceAll("\\s+", "_")
                                 + "_" + index + "_" + System.currentTimeMillis() + extension;
 
-                        Path filePath = Paths.get(profilePicturePath, fileName);
-                        Files.copy(photo.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                        String objectName = "photos/" + fileName;
 
-                        imageFileNames.add(fileName);
+                        // Upload file to GCS
+                        BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, objectName)
+                                .setContentType(photo.getContentType())
+                                .build();
+                        storage.create(blobInfo, photo.getInputStream());
+
+                        // Construct public URL
+                        String publicUrl = "https://storage.googleapis.com/" + bucketName + "/" + objectName;
+                        imageUrls.add(publicUrl);
+
                         index++;
                     } catch (IOException e) {
-                        throw new RuntimeException("Error saving product image", e);
+                        throw new RuntimeException("Error uploading product image to GCS", e);
                     }
                 }
             }
         }
 
-        // Map DTO to Entity with all fields
+        // Map DTO to Entity fields
         savedProduct.setProd_name(dto.getProd_name());
         savedProduct.setProd_description(dto.getProd_description());
         savedProduct.setProd_price((int) dto.getProd_price());
@@ -107,15 +105,12 @@ public class AdminPageServiceImpl implements AdminService {
         savedProduct.setProd_tag(dto.getProd_tag());
         savedProduct.setProd_gender(dto.getProd_gender());
         savedProduct.setProdStatus(dto.getProdStatus());
-        savedProduct.setProd_brand(dto.getProd_brand()); // Add brand field mapping
+        savedProduct.setProd_brand(dto.getProd_brand());
         savedProduct.setBadge(dto.getBadge());
         savedProduct.setRating(dto.getRating());
 
-        // Handle new fields if your Product entity supports them
-        // savedProduct.setReviewCount(dto.getReviewCount());
-        // savedProduct.setFeatured(dto.getFeatured());
-        savedProduct.setImagenames(imageFileNames);
-        savedProduct.setProd_images(imageFileNames);
+        savedProduct.setImagenames(imageUrls);
+        savedProduct.setProd_images(imageUrls);
 
         String currentTime = String.valueOf(System.currentTimeMillis());
         savedProduct.setCreatedAt(currentTime);
@@ -149,6 +144,8 @@ public class AdminPageServiceImpl implements AdminService {
             throw new RuntimeException("Product not found, not able to update it ");
         }
     }
+
+
     public void deleteProduct(Long productId) {
         Optional<Product> productOpt = productRepository.findById(productId);
         if (!productOpt.isPresent()) {
@@ -157,14 +154,17 @@ public class AdminPageServiceImpl implements AdminService {
 
         Product product = productOpt.get();
 
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        String bucketName = "productphotos1";
 
         if (product.getProd_images() != null) {
-            for (String fileName : product.getProd_images()) {
+            for (String imageUrl : product.getProd_images()) {
                 try {
-                    Path filePath = Paths.get(profilePicturePath, fileName);
-                    Files.deleteIfExists(filePath);
+                    // Extract object name from URL
+                    String objectName = imageUrl.substring(imageUrl.indexOf(bucketName) + bucketName.length() + 1);
+                    storage.delete(bucketName, objectName);
                 } catch (Exception e) {
-                    System.err.println("Failed to delete image: " + fileName + " - " + e.getMessage());
+                    System.err.println("Failed to delete image from GCS: " + imageUrl + " - " + e.getMessage());
                 }
             }
         }
@@ -172,6 +172,7 @@ public class AdminPageServiceImpl implements AdminService {
         // Delete product from database
         productRepository.deleteById(productId);
     }
+
 
     @Override
     public Product getProductById(Long productId) {

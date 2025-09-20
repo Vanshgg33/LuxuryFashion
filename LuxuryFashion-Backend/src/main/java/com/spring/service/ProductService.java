@@ -34,35 +34,15 @@ public class ProductService {
 
         for (Product product : products) {
             if (product.getProd_images() != null && !product.getProd_images().isEmpty()) {
-                List<String> base64Images = new ArrayList<>();
-
-                for (String imageName : product.getProd_images()) {
-                    try {
-                        Path imagePath = Paths.get(productPicturePath, imageName);
-
-                        if (Files.exists(imagePath)) {
-                            byte[] imageBytes = Files.readAllBytes(imagePath);
-                            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-
-                            // detect content type (default fallback to jpeg)
-                            String contentType = Files.probeContentType(imagePath);
-                            if (contentType == null) contentType = "image/jpeg";
-
-                            base64Images.add("data:" + contentType + ";base64," + base64Image);
-                        }
-                    } catch (Exception e) {
-                        // optional: log the error instead of ignoring
-                        System.err.println("Error encoding image " + imageName + ": " + e.getMessage());
-                    }
-                }
-
-                // replace product images with base64 strings
-                product.setProd_images(base64Images);
+                // Use the public URLs directly for frontend
+                List<String> imageUrls = new ArrayList<>(product.getProd_images());
+                product.setProd_images(imageUrls);
             }
         }
 
         return products;
     }
+
 
 
     public ResponseEntity<?> getGallery(){
