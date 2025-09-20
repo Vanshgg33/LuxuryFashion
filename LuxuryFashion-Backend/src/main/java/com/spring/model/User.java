@@ -40,8 +40,5 @@ public class User {
 
 
 
-    @OneToOne(cascade = CascadeType.ALL,fetch = FetchType.LAZY)
-    @JoinColumn(name = "cart_id", referencedColumnName = "cartid")
-    private Cart cart;
 }
 
