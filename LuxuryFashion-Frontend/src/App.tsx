@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import { Analytics } from "@vercel/analytics/next"
 import MainLayout from "./MainLayout";
 import ProtectedPage from "./components/Helper.tsx";
 import Shop from "./components/Shop.tsx";
@@ -36,6 +36,7 @@ function App() {
             </Routes>
         </BrowserRouter>
     );
+    <Analytics />
 }
 
 export default App;
