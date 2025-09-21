@@ -8,13 +8,10 @@ RUN mvn clean package -DskipTests
 # Stage 2: Run the application
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-# Stage 2: Run the application
-FROM eclipse-temurin:21-jre
-WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
-# Cloud Run expects the app to listen on the PORT env variable
-ENV PORT=8080
+# Cloud Run expects the app to listen on PORT
 EXPOSE 8080
+ENV PORT=8080
 
-CMD ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
