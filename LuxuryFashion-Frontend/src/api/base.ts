@@ -1,4 +1,4 @@
-export const baseApiUrl ="https://luxuryfashion-9get.onrender.com";
+export const baseApiUrl ="https://luxuryfashion-142597902731.asia-south1.run.app";
 
 export interface Product {
     id: string;
