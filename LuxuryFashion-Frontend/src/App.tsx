@@ -1,37 +1,36 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import ProtectedPage from './components/Helper';
-import Login from './components/Login';
-import './index.css';
-import Shop from './components/Shop';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import AdminLayout from './components/Admin/AdminLayout';
-import Dashboard from './components/Admin/Dashboard';
-import Products from './components/Admin/Products';
-
-
+import MainLayout from "./MainLayout";
+import ProtectedPage from "./components/Helper.tsx";
+import Shop from "./components/Shop.tsx";
+import Login from "./components/Login.tsx";
+import AdminLayout from "./components/Admin/AdminLayout.tsx";
+import Dashboard from "./components/Admin/Dashboard.tsx";
+import Products from "./components/Admin/Products.tsx";
+import Gallery from "./components/Admin/Gallery.tsx";
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public / Protected routes */}
-        <Route path="/" element={<ProtectedPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/shop" element={<Shop />} />
+    return (
+        <BrowserRouter>
+            <Routes>
+                {/* Routes with Header + Footer */}
+                <Route element={<MainLayout />}>
+                    <Route path="/" element={<ProtectedPage />} />
+                    <Route path="/shop" element={<Shop />} />
+                </Route>
 
-        {/* Admin routes */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Dashboard />} /> {/* /admin */}
-          <Route path="products" element={<Products />} /> {/* /admin/products */}
-          {/* <Route path="users" element={<Users />} />      
-          <Route path="orders" element={<Orders />} />     
-          <Route path="gallery" element={<Gallery />} />   */}
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
+                {/* Routes WITHOUT Header + Footer */}
+                <Route path="/login" element={<Login />} />
+
+                {/* Admin section with its own layout */}
+                <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="products" element={<Products />} />
+                    <Route path="gallery" element={<Gallery />} />
+                </Route>
+            </Routes>
+        </BrowserRouter>
+    );
 }
-
-
 
 export default App;

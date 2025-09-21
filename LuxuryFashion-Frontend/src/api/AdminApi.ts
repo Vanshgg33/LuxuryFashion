@@ -1,32 +1,44 @@
 
 
+
 import type { Product } from "../components/Admin/Products";
 import { baseApiUrl } from "./base";
 
-
-export async function addProductApi(product: Product): Promise<any> {
+export async function addProductApi(formData: FormData): Promise<any> {
   try {
-    console.log("Adding product:", product);
-
     const response = await fetch(baseApiUrl + "/admin-api/add-product", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include", // needed for cookies/session
-      body: JSON.stringify(product),
+      body: formData,
+      credentials: "include",
     });
 
     if (!response.ok) {
-      console.log("Response not ok:", response);
-      throw new Error(`Failed to add product: ${response.status}`);
+      throw new Error(`Failed to add product: ${response.statusText}`);
     }
 
-    // return backend response
-    const data = await response.json();
-    console.log("Product added successfully!", data);
-    return data;
+    // Parse the created product from backend
+    return await response.json();
+  } catch (err) {
+    console.error("Error in addProductApi:", err);
+    throw err;
+  }
+}
 
+export async function fetchProductsApi(): Promise<Product[]> {
+  try {
+    const response = await fetch(`${baseApiUrl}/admin-api/fetch-products`, {
+      method: "GET",
+      credentials: "include", // keep cookies/session if needed
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`);
+    }
+
+    const data: Product[] = await response.json();
+    return data;
   } catch (error) {
-    console.error("Error adding product:", error);
+    console.error("Error fetching products:", error);
     throw error;
   }
 }

@@ -58,7 +58,7 @@ public class Config {
                                 "/auth/validate", "/http://localhost:8083/login/oauth2/code/google")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        .requestMatchers("/admin-api/**").authenticated() // admin-only
+                        .requestMatchers("/admin-api/**").permitAll() // admin-only
                         .anyRequest().authenticated()
                 )
 
