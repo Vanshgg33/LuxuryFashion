@@ -122,6 +122,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <imageName>build-by-spring-boot-plugin-image</imageName>
+                </configuration>
             </plugin>
 
 
