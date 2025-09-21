@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Analytics } from "@vercel/analytics/react"; // 👈 use react, not next
 import MainLayout from "./MainLayout";
 import ProtectedPage from "./components/Helper.tsx";
 import Shop from "./components/Shop.tsx";
@@ -36,8 +35,7 @@ function App() {
                 </Routes>
             </BrowserRouter>
 
-            {/* 👇 Add Analytics here */}
-            <Analytics />
+           
         </>
     );
 }
