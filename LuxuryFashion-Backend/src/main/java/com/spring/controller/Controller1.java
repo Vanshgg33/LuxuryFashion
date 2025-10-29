@@ -1,6 +1,7 @@
 package com.spring.controller;
 
 import com.spring.jwt.JwtUtil;
+import com.spring.model.Role;
 import com.spring.model.User;
 import com.spring.dto.UserRegistrationDto;
 import com.spring.notification.EmailTemplate;
@@ -40,7 +41,7 @@ public class Controller1 {
         user.setGender("Not Specified");
         user.setDob(new Date()); // or null if not mandatory
         user.setActive(true);
-        user.setRole("ROLE_USER");
+        user.setRole(Role.USER);
         if(userRepository.existsByEmail(user.getEmail()) != null) {
         throw new Exception("User already Exsist");
         }

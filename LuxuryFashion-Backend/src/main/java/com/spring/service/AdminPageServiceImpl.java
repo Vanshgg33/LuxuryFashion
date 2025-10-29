@@ -1,13 +1,15 @@
 package com.spring.service;
 
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
+
 import com.spring.dto.ProductDto;
 import com.spring.model.Gallery;
+import com.spring.model.Order;
 import com.spring.model.Product;
+import com.spring.model.User;
 import com.spring.repo.GalleryRepository;
+import com.spring.repo.OrderRepository;
 import com.spring.repo.ProductRepository;
+import com.spring.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,18 +23,30 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.Base64;
+import java.util.Optional;
 
 @Service
 public class AdminPageServiceImpl implements AdminService {
 
     private final ProductRepository productRepository;
     private final GalleryRepository galleryRepository;
-    public AdminPageServiceImpl(ProductRepository productRepository, GalleryRepository galleryRepository) {
+    private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
+    
+    public AdminPageServiceImpl(ProductRepository productRepository, GalleryRepository galleryRepository, UserRepository userRepository, OrderRepository orderRepository) {
         this.productRepository = productRepository;
         this.galleryRepository = galleryRepository;
+        this.userRepository = userRepository;
+        this.orderRepository = orderRepository;
     }
     @Value("${product.picture.path}")
+    private String productPicturePath;
+
+    @Value("${profile.picture.path}")
     private String profilePicturePath;
+
+
 
 
     public List<Product> fetchProducts() {
@@ -40,10 +54,24 @@ public class AdminPageServiceImpl implements AdminService {
 
         for (Product product : products) {
             if (product.getImagenames() != null && !product.getImagenames().isEmpty()) {
-                // Since images are stored as public URLs, use them directly
-                List<String> imageUrls = new ArrayList<>(product.getImagenames());
+                List<String> base64Images = new ArrayList<>();
 
-                product.setProd_images(imageUrls);
+                for (String imageName : product.getImagenames()) {
+                    try {
+                        Path imagePath = Paths.get(profilePicturePath, imageName);
+                        if (Files.exists(imagePath)) {
+                            byte[] imageBytes = Files.readAllBytes(imagePath);
+                            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+
+                            String contentType = Files.probeContentType(imagePath);
+                            if (contentType == null) contentType = "image/jpeg";
+
+                            base64Images.add("data:" + contentType + ";base64," + base64Image);
+                        }
+                    } catch (Exception ignored) {}
+                }
+                System.out.println(base64Images);
+                product.setImagenames(base64Images);
             }
         }
 
@@ -53,49 +81,40 @@ public class AdminPageServiceImpl implements AdminService {
 
     public Product addProduct(ProductDto dto) {
         Product savedProduct = new Product();
-        List<String> imageUrls = new ArrayList<>();
-
-
-        Storage storage = StorageOptions.getDefaultInstance().getService();
-        String bucketName = "productphotos1";
+        List<String> imageFileNames = new ArrayList<>();
 
         if (dto.getProd_photo() != null && !dto.getProd_photo().isEmpty()) {
             int index = 0;
             for (MultipartFile photo : dto.getProd_photo()) {
                 if (!photo.isEmpty()) {
                     try {
-                        // Determine file extension
+                        File dir = new File(profilePicturePath);
+                        if (!dir.exists() && !dir.mkdirs()) {
+                            throw new RuntimeException("Failed to create directory: " + profilePicturePath);
+                        }
+
                         String extension = ".jpg";
                         String originalFilename = photo.getOriginalFilename();
                         if (originalFilename != null && originalFilename.contains(".")) {
                             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
                         }
 
-                        // Create unique file name
                         String fileName = dto.getProd_name().replaceAll("\\s+", "_")
                                 + "_" + index + "_" + System.currentTimeMillis() + extension;
 
-                        String objectName = "photos/" + fileName;
+                        Path filePath = Paths.get(profilePicturePath, fileName);
+                        Files.copy(photo.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-                        // Upload file to GCS
-                        BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, objectName)
-                                .setContentType(photo.getContentType())
-                                .build();
-                        storage.create(blobInfo, photo.getInputStream());
-
-                        // Construct public URL
-                        String publicUrl = "https://storage.googleapis.com/" + bucketName + "/" + objectName;
-                        imageUrls.add(publicUrl);
-
+                        imageFileNames.add(fileName);
                         index++;
                     } catch (IOException e) {
-                        throw new RuntimeException("Error uploading product image to GCS", e);
+                        throw new RuntimeException("Error saving product image", e);
                     }
                 }
             }
         }
 
-        // Map DTO to Entity fields
+        // Map DTO to Entity with all fields
         savedProduct.setProd_name(dto.getProd_name());
         savedProduct.setProd_description(dto.getProd_description());
         savedProduct.setProd_price((int) dto.getProd_price());
@@ -105,12 +124,15 @@ public class AdminPageServiceImpl implements AdminService {
         savedProduct.setProd_tag(dto.getProd_tag());
         savedProduct.setProd_gender(dto.getProd_gender());
         savedProduct.setProdStatus(dto.getProdStatus());
-        savedProduct.setProd_brand(dto.getProd_brand());
+        savedProduct.setProd_brand(dto.getProd_brand()); // Add brand field mapping
         savedProduct.setBadge(dto.getBadge());
         savedProduct.setRating(dto.getRating());
 
-        savedProduct.setImagenames(imageUrls);
-        savedProduct.setProd_images(imageUrls);
+        // Handle new fields if your Product entity supports them
+        // savedProduct.setReviewCount(dto.getReviewCount());
+        // savedProduct.setFeatured(dto.getFeatured());
+        savedProduct.setImagenames(imageFileNames);
+
 
         String currentTime = String.valueOf(System.currentTimeMillis());
         savedProduct.setCreatedAt(currentTime);
@@ -120,7 +142,7 @@ public class AdminPageServiceImpl implements AdminService {
     }
     @Override
     public Product updateProduct(Long productId, ProductDto dto) {
-        Optional<Product> product = productRepository.findById(productId);
+        Optional<Product> product = productRepository.findById(productId.intValue());
         if(product.isPresent()) {
             Product toupdate = product.get();
             toupdate.setProd_name(dto.getProd_name());
@@ -147,30 +169,25 @@ public class AdminPageServiceImpl implements AdminService {
 
 
     public void deleteProduct(Long productId) {
-        Optional<Product> productOpt = productRepository.findById(productId);
+        Optional<Product> productOpt = productRepository.findById(productId.intValue());
         if (!productOpt.isPresent()) {
             throw new RuntimeException("Product with ID " + productId + " not found");
         }
 
         Product product = productOpt.get();
 
-        Storage storage = StorageOptions.getDefaultInstance().getService();
-        String bucketName = "productphotos1";
-
-        if (product.getProd_images() != null) {
-            for (String imageUrl : product.getProd_images()) {
+        if (product.getImagenames() != null) {
+            for (String imageName : product.getImagenames()) {
                 try {
-                    // Extract object name from URL
-                    String objectName = imageUrl.substring(imageUrl.indexOf(bucketName) + bucketName.length() + 1);
-                    storage.delete(bucketName, objectName);
+                    Path filePath = Paths.get(productPicturePath).resolve(imageName);
+                    Files.deleteIfExists(filePath);
                 } catch (Exception e) {
-                    System.err.println("Failed to delete image from GCS: " + imageUrl + " - " + e.getMessage());
+                    System.err.println("Failed to delete image file: " + imageName + " - " + e.getMessage());
                 }
             }
         }
 
-        // Delete product from database
-        productRepository.deleteById(productId);
+        productRepository.deleteById(productId.intValue());
     }
 
 
@@ -220,7 +237,61 @@ public void deleteGalleryImage(Long id) {
         if (!galleryRepository.existsById(id)) {
             throw new IllegalArgumentException("Gallery image with ID " + id + " not found");
         }
-
         galleryRepository.deleteById(id);
+    }
+
+    // User Management Methods
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    @Override
+    public User updateUser(Long userId, User userDetails) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (!userOpt.isPresent()) {
+            throw new RuntimeException("User with ID " + userId + " not found");
+        }
+        
+        User user = userOpt.get();
+        if (userDetails.getName() != null) user.setName(userDetails.getName());
+        if (userDetails.getEmail() != null) user.setEmail(userDetails.getEmail());
+        if (userDetails.getPhoneNumber() != null) user.setPhoneNumber(userDetails.getPhoneNumber());
+        if (userDetails.getGender() != null) user.setGender(userDetails.getGender());
+        if (userDetails.getDob() != null) user.setDob(userDetails.getDob());
+        if (userDetails.getRole() != null) user.setRole(userDetails.getRole());
+        if (userDetails.getActive() != null) user.setActive(userDetails.getActive());
+        
+        return userRepository.save(user);
+    }
+
+    @Override
+    public User deactivateUser(Long userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (!userOpt.isPresent()) {
+            throw new RuntimeException("User with ID " + userId + " not found");
+        }
+        
+        User user = userOpt.get();
+        user.setActive(false);
+        return userRepository.save(user);
+    }
+
+    // Order Management Methods
+    @Override
+    public List<Order> getAllOrders() {
+        return orderRepository.findAllByOrderByOrderDateDesc();
+    }
+
+    @Override
+    public Order updateOrderStatus(Long orderId, Order.OrderStatus status) {
+        Optional<Order> orderOpt = orderRepository.findById(orderId);
+        if (!orderOpt.isPresent()) {
+            throw new RuntimeException("Order with ID " + orderId + " not found");
+        }
+        
+        Order order = orderOpt.get();
+        order.setStatus(status);
+        return orderRepository.save(order);
     }
 }

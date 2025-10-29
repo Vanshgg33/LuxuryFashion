@@ -1,17 +1,29 @@
-# Stage 1: Build the JAR
-FROM maven:3.9.4-eclipse-temurin-21 AS build
+FROM openjdk:17-jdk-slim
+
 WORKDIR /app
-COPY pom.xml .
+
+# Copy Maven wrapper and pom.xml
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+
+# Download dependencies
+RUN ./mvnw dependency:go-offline
+
+# Copy source code
 COPY src ./src
-RUN mvn clean package -DskipTests
 
-# Stage 2: Run the application
-FROM eclipse-temurin:21-jre
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+# Build application
+RUN ./mvnw clean package -DskipTests
 
-# Cloud Run expects the app to listen on PORT
+# Create uploads directory
+RUN mkdir -p /app/uploads/products /app/uploads/profiles
+
+# Expose port
 EXPOSE 8080
+
+# Set environment variables
+ENV ENVIRONMENT=production
 ENV PORT=8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run application
+CMD ["java", "-jar", "target/JwtDemo-0.0.1-SNAPSHOT.jar"]

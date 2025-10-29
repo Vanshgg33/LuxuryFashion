@@ -4,6 +4,9 @@ import { Heart, Eye, Star, ShoppingBag, X, ChevronLeft, ChevronRight } from "luc
 import type { BackendProduct } from "../api/base";
 import { fetchProductsall } from "../api/ProductApi";
 import Fuse from "fuse.js";
+import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import Toast from './Toast';
 
 
 
@@ -14,6 +17,11 @@ const ProductDisplayPage: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<BackendProduct | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [wishlist, ] = useState<number[]>([]);
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'warning'} | null>(null);
+  const [showFloatingCart, setShowFloatingCart] = useState(false);
+  const { addToCart, cart, cartCount, refreshCart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   
   const location = useLocation();
   const params = useParams();
@@ -131,17 +139,17 @@ useEffect(() => {
   };
 
   const nextImage = () => {
-    if (selectedProduct?.prod_images && selectedProduct.prod_images.length > 1) {
+    if (selectedProduct?.imagenames && selectedProduct.imagenames.length > 1) {
       setCurrentImageIndex(prev => 
-        (prev + 1) % selectedProduct.prod_images.length
+        (prev + 1) % selectedProduct.imagenames.length
       );
     }
   };
 
   const prevImage = () => {
-    if (selectedProduct?.prod_images && selectedProduct.prod_images.length > 1) {
+    if (selectedProduct?.imagenames && selectedProduct.imagenames.length > 1) {
       setCurrentImageIndex(prev => 
-        (prev - 1 + selectedProduct.prod_images.length) % selectedProduct.prod_images.length
+        (prev - 1 + selectedProduct.imagenames.length) % selectedProduct.imagenames.length
       );
     }
   };
@@ -238,8 +246,27 @@ useEffect(() => {
   }
 
   function toggleWishlist(_prod_id: number): void {
-    throw new Error("Function not implemented.");
+    // Wishlist functionality can be implemented later
+    setToast({ message: 'Wishlist feature coming soon!', type: 'warning' });
   }
+
+  const handleAddToCart = async (product: BackendProduct) => {
+    if (!isAuthenticated) {
+      setToast({ message: 'Please login to add items to cart', type: 'warning' });
+      return;
+    }
+
+    try {
+      await addToCart(product.prod_id, 1, product.selling_price);
+      setToast({ message: 'Item added to cart!', type: 'success' });
+      if (selectedProduct) {
+        closeProductPreview();
+      }
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      setToast({ message: 'Failed to add item to cart', type: 'error' });
+    }
+  };
 
   return (
     <>
@@ -266,14 +293,14 @@ useEffect(() => {
                   
                   <div className="aspect-square overflow-hidden bg-gray-50">
                     <img
-                      src={selectedProduct.prod_images?.[currentImageIndex] || selectedProduct.prod_images?.[0] || "https://via.placeholder.com/600"}
+                      src={selectedProduct.imagenames?.[currentImageIndex] || selectedProduct.imagenames?.[0] || "/placeholder.jpg"}
                       alt={selectedProduct.prod_name}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   
                   {/* Image Navigation */}
-                  {selectedProduct.prod_images && selectedProduct.prod_images.length > 1 && (
+                  {selectedProduct.imagenames && selectedProduct.imagenames.length > 1 && (
                     <>
                       <button
                         onClick={prevImage}
@@ -290,7 +317,7 @@ useEffect(() => {
                       
                       {/* Thumbnail Strip */}
                       <div className="flex space-x-2 p-6 overflow-x-auto">
-                        {selectedProduct.prod_images.map((image, index) => (
+                        {selectedProduct.imagenames.map((image, index) => (
                           <button
                             key={index}
                             onClick={() => setCurrentImageIndex(index)}
@@ -326,10 +353,10 @@ useEffect(() => {
                       {formatPrice(selectedProduct.prod_price, selectedProduct.selling_price)}
                     </div>
 
-                    {(selectedProduct.Badge || selectedProduct.Badge) && (
+                    {selectedProduct.Badge && (
                       <div className="mb-6">
-                        <span className={`inline-block px-4 py-2 text-sm font-medium tracking-wide ${getBadgeStyles(selectedProduct.Badge || selectedProduct.Badge)} uppercase`}>
-                          {selectedProduct.Badge || selectedProduct.Badge}
+                        <span className={`inline-block px-4 py-2 text-sm font-medium tracking-wide ${getBadgeStyles(selectedProduct.Badge)} uppercase`}>
+                          {selectedProduct.Badge}
                         </span>
                       </div>
                     )}
@@ -364,6 +391,7 @@ useEffect(() => {
                   {/* Action Buttons */}
                   <div className="space-y-4">
                     <button 
+                      onClick={() => handleAddToCart(selectedProduct)}
                       className={`w-full py-4 font-medium text-sm tracking-wide transition-all duration-300 uppercase ${
                         selectedProduct.prod_quantity > 0
                           ? 'bg-black text-white hover:bg-gray-800'
@@ -446,16 +474,16 @@ useEffect(() => {
                       {/* Product Image */}
                       <div className="relative overflow-hidden aspect-square bg-gray-50">
                         <img
-                          src={product.prod_images?.[0] || "https://via.placeholder.com/400"}
+                          src={product.imagenames?.[0] || "/placeholder.jpg"}
                           alt={product.prod_name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         />
                         
                         {/* Badge */}
-                        {(product.Badge || product.Badge) && (
+                        {product.Badge && (
                           <div className="absolute top-4 left-4">
-                            <span className={`inline-block px-3 py-1 text-xs font-medium tracking-wide ${getBadgeStyles(product.Badge || product.prodStatus)} uppercase`}>
-                              {product.Badge || product.Badge}
+                            <span className={`inline-block px-3 py-1 text-xs font-medium tracking-wide ${getBadgeStyles(product.Badge)} uppercase`}>
+                              {product.Badge}
                             </span>
                           </div>
                         )}
@@ -478,7 +506,13 @@ useEffect(() => {
                               <Eye className="w-4 h-4" />
                               <span>Quick View</span>
                             </button>
-                            <button className="border-2 border-white text-white px-6 py-3 font-medium text-sm tracking-wide hover:bg-white hover:text-black transition-all duration-300 uppercase transform scale-95 group-hover:scale-100">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddToCart(product);
+                              }}
+                              className="border-2 border-white text-white px-6 py-3 font-medium text-sm tracking-wide hover:bg-white hover:text-black transition-all duration-300 uppercase transform scale-95 group-hover:scale-100"
+                            >
                               Add to Cart
                             </button>
                           </div>
@@ -525,6 +559,7 @@ useEffect(() => {
 
                         {/* Action Button */}
                         <button 
+                          onClick={() => handleAddToCart(product)}
                           className={`w-full py-3 font-medium text-sm tracking-wide transition-all duration-300 uppercase ${
                             product.prod_quantity > 0
                               ? 'bg-black text-white hover:bg-gray-800 active:scale-95'
@@ -543,10 +578,95 @@ useEffect(() => {
           )}
         </main>
 
-        {/* Floating Cart Button */}
-        <button className="fixed bottom-8 right-8 w-14 h-14 bg-black text-white rounded-full shadow-lg flex items-center justify-center transform hover:scale-110 transition-all duration-300 z-30">
-          <ShoppingBag className="w-6 h-6" />
-        </button>
+        {/* Toast Notifications */}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+
+        {/* Floating Cart Button with Preview */}
+        <div className="fixed bottom-8 right-8 z-30">
+          <div className="relative">
+            <button 
+              onClick={() => {
+                if (isAuthenticated && !cart) {
+                  refreshCart();
+                }
+                navigate('/cart');
+              }}
+              onMouseEnter={() => {
+                if (isAuthenticated && !cart) {
+                  refreshCart();
+                }
+                setShowFloatingCart(true);
+              }}
+              className="w-14 h-14 bg-black text-white rounded-full shadow-lg flex items-center justify-center transform hover:scale-110 transition-all duration-300"
+            >
+              <ShoppingBag className="w-6 h-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </button>
+            
+            {/* Floating Cart Preview */}
+            {showFloatingCart && cart && cart.items && cart.items.length > 0 && (
+              <div 
+                className="absolute bottom-16 right-0 w-72 bg-white border border-gray-200 rounded-lg shadow-xl"
+                onMouseEnter={() => setShowFloatingCart(true)}
+                onMouseLeave={() => setShowFloatingCart(false)}
+              >
+                <div className="p-3 border-b border-gray-100">
+                  <h3 className="font-semibold text-sm">Cart ({cartCount} items)</h3>
+                </div>
+                
+                <div className="max-h-48 overflow-y-auto">
+                  {cart.items.slice(0, 2).map((item) => (
+                    <div key={item.cartItemId} className="p-3 border-b border-gray-50">
+                      <div className="flex gap-2">
+                        <img
+                          src={item.product.prod_images[0] || '/placeholder.jpg'}
+                          alt={item.product.prod_name}
+                          className="w-10 h-10 object-cover rounded"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-xs truncate">{item.product.prod_name}</h4>
+                          <p className="text-xs text-gray-600">{item.product.prod_brand}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-xs font-semibold">${item.product.selling_price}</span>
+                            <span className="text-xs text-gray-500">×{item.quantity}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {cart.items.length > 2 && (
+                  <div className="p-2 text-center text-xs text-gray-600 border-b border-gray-100">
+                    +{cart.items.length - 2} more items
+                  </div>
+                )}
+                
+                <div className="p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-sm">Total: ${cart.totalAmount.toFixed(2)}</span>
+                  </div>
+                  <button
+                    onClick={() => navigate('/checkout')}
+                    className="w-full bg-black text-white py-2 px-3 rounded text-xs hover:bg-gray-800 transition"
+                  >
+                    Checkout
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );

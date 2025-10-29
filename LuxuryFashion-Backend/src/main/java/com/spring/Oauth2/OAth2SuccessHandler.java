@@ -61,16 +61,18 @@ public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
         // Generate JWT
         String token = jwtUtil.generateToken(userShow.getUsername());
 
-        // Secure cookie
+        // Secure cookie - match AuthController settings
         ResponseCookie cookie = ResponseCookie.from("authToken", token)
                 .httpOnly(true)
-                .secure(true)           // HTTPS only
+                .secure(false)          // Set to false for localhost
                 .path("/")
-                .sameSite("None")
+                .sameSite("Lax")        // Changed from None to Lax
                 .maxAge(24 * 60 * 60)   // 1 day
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        
+        System.out.println("OAuth2 Success - Setting cookie: " + cookie.toString());
 
         // Redirect to frontend
         response.sendRedirect(frontendUrl + "/shop");

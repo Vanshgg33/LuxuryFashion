@@ -14,7 +14,20 @@ export interface SignupRequest {
   password: string;
   firstName: string;
   lastName: string;
+  role: string;
 }
+
+export const registerUser = async (data: SignupRequest) => {
+  try {
+    const response = await axios.post(`${baseApiUrl}/auth/register`, data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data.error || "Registration failed");
+    }
+    throw error;
+  }
+};
 
 
 
@@ -24,9 +37,9 @@ export const loginUser = async (data: LoginRequest) => {
    
     const response = await axios.post(`${baseApiUrl}/auth/login`, data);
 
-    // Store token in memory
+    // Store token in localStorage
     if (response.data.token) {
-      sessionStorage.setItem("authToken", response.data.token);
+      localStorage.setItem("authToken", response.data.token);
     }
 
     return response.data; // { message: "Login successful", token: "..." }
@@ -39,8 +52,8 @@ export const loginUser = async (data: LoginRequest) => {
 };
 
 export const validateToken = async () => {
-  const token = sessionStorage.getItem("authToken");
-  if (!token) throw new Error("No token found in sessionStorage");
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("No token found in localStorage");
 
   try {
     const response = await axios.post(

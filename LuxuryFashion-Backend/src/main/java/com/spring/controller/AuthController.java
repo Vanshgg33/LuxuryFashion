@@ -1,10 +1,12 @@
 package com.spring.controller;
 
+import com.spring.dto.UserRegistrationDto;
 import com.spring.jwt.JwtUtil;
 import com.spring.model.LoginRequest;
 import com.spring.model.User;
 import com.spring.model.UserShow;
 import com.spring.repo.UserRepository;
+import com.spring.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,6 +36,9 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private UserService userService;
+
     // --- LOGIN ---
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
@@ -54,9 +59,9 @@ public class AuthController {
         // Secure cookie
         ResponseCookie cookie = ResponseCookie.from("authToken", token)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)          // Set to false for localhost
                 .path("/")
-                .sameSite("None")
+                .sameSite("Lax")        // Changed from None to Lax
                 .maxAge(24 * 60 * 60)   // 1 day
                 .build();
 
@@ -86,11 +91,41 @@ public class AuthController {
             }
 
             String username = jwtUtil.extractUsername(token);
-            return ResponseEntity.ok(Collections.singletonMap("message", "Token valid for user: " + username));
+            User user = userRepository.findByEmail(username);
+            
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Collections.singletonMap("error", "User not found"));
+            }
+
+            UserShow userShow = new UserShow(user);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Token valid");
+            response.put("user", userShow);
+            
+            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("error", "Invalid token"));
+        }
+    }
+
+    // --- REGISTRATION ---
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody UserRegistrationDto registrationDto) {
+        try {
+            User user = userService.registerUser(registrationDto);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "User registered successfully");
+            response.put("userId", user.getId());
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            System.out.println("Error during registration: " + e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Collections.singletonMap("error", e.getMessage()));
         }
     }
 

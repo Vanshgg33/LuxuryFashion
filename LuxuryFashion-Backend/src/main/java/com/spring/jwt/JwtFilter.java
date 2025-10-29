@@ -46,10 +46,11 @@ public class JwtFilter extends OncePerRequestFilter {
         // Skip JWT validation for public paths
         if (path.equals("/") ||
                 path.equals("/login") ||
-                path.equals("/users/register") ||
                 path.equals("/auth/validate") ||
                 path.equals("/auth/login") ||
-                path.startsWith("/luxuryfashion/")) {
+                path.equals("/auth/register") ||
+                path.startsWith("/luxuryfashion/") ||
+                path.startsWith("/products/")) {
             filterChain.doFilter(request, response);
             return;
         }

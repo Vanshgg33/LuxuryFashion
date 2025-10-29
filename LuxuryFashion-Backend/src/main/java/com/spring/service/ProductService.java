@@ -15,28 +15,42 @@ import java.nio.file.Paths;
 import java.util.*;
 
 @Service
-
 public class ProductService {
+
     @Value("${product.picture.path}")
     private String productPicturePath;
 
-
-
-    private final  ProductRepository productRepository;
+    private final ProductRepository productRepository;
     private final GalleryRepository galleryRepository;
+
     public ProductService(ProductRepository productRepository, GalleryRepository galleryRepository) {
         this.productRepository = productRepository;
         this.galleryRepository = galleryRepository;
     }
 
+
     public List<Product> fetchAllProducts() {
         List<Product> products = productRepository.findByProdStatus("active");
 
         for (Product product : products) {
-            if (product.getProd_images() != null && !product.getProd_images().isEmpty()) {
-                // Use the public URLs directly for frontend
-                List<String> imageUrls = new ArrayList<>(product.getProd_images());
-                product.setProd_images(imageUrls);
+            if (product.getImagenames() != null && !product.getImagenames().isEmpty()) {
+                List<String> base64Images = new ArrayList<>();
+
+                for (String imageName : product.getImagenames()) {
+                    try {
+                        Path imagePath = Paths.get(productPicturePath, imageName);
+                        if (Files.exists(imagePath)) {
+                            byte[] imageBytes = Files.readAllBytes(imagePath);
+                            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+                            String contentType = Files.probeContentType(imagePath);
+                            if (contentType == null) contentType = "image/jpeg";
+                            base64Images.add("data:" + contentType + ";base64," + base64Image);
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                product.setImagenames(base64Images);
             }
         }
 
@@ -44,15 +58,16 @@ public class ProductService {
     }
 
 
-
-    public ResponseEntity<?> getGallery(){
+    public ResponseEntity<?> getGallery() {
         try {
             List<Gallery> gallery = galleryRepository.findByActiveTrue();
             return ResponseEntity.ok(gallery);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to fetch gallery ", "message", e.getMessage()));
+                    .body(Map.of(
+                            "error", "Failed to fetch gallery",
+                            "message", e.getMessage()
+                    ));
         }
     }
 }

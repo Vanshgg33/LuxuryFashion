@@ -2,15 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Star, ShoppingBag, Heart, Truck, Award, Shield, ArrowRight, TrendingUp, Users, Globe, X, Plus, Minus, Eye } from 'lucide-react';
 import { fetchGalleryImages, fetchProductsshop } from '../api/ProductApi';
 import type { Product } from '../api/base';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import Toast from './Toast';
 
 interface FashionHomepageProps {
     apiEndpoint?: string;
 }
 
-const FashionHomepage: React.FC<FashionHomepageProps> = ({
-
-}) => {
+const FashionHomepage: React.FC<FashionHomepageProps> = () => {
+    const { addToCart, cart, cartCount, refreshCart } = useCart();
+    const { isAuthenticated } = useAuth();
+    const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'warning'} | null>(null);
+    const [showFloatingCart, setShowFloatingCart] = useState(false);
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isAutoplay, setIsAutoplay] = useState(true);
@@ -20,7 +26,7 @@ const FashionHomepage: React.FC<FashionHomepageProps> = ({
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoadingProducts, setIsLoadingProducts] = useState(true);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [selectedSize, setSelectedSize] = useState<string>('');
+    const [, setSelectedSize] = useState<string>('');
     const [selectedColor, setSelectedColor] = useState<string>('');
     const [quantity, setQuantity] = useState<number>(1);
     const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
@@ -140,6 +146,24 @@ const toggleWishlist = (productId: string) => {
       ? prev.filter((id) => id !== productId)
       : [...prev, productId]
   );
+};
+
+const handleAddToCart = async (product: Product, qty: number = 1) => {
+  if (!isAuthenticated) {
+    setToast({ message: 'Please login to add items to cart', type: 'warning' });
+    return;
+  }
+
+  try {
+    await addToCart(parseInt(product.id), qty, product.price);
+    setToast({ message: 'Item added to cart!', type: 'success' });
+    if (selectedProduct) {
+      closeProductPreview();
+    }
+  } catch (error) {
+    console.error('Failed to add to cart:', error);
+    setToast({ message: 'Failed to add item to cart', type: 'error' });
+  }
 };
 
 
@@ -345,28 +369,7 @@ const toggleWishlist = (productId: string) => {
                                 )}
                                 
                                 {/* Size Selection */}
-                                {selectedProduct.sizes && selectedProduct.sizes.length > 0 && (
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-medium text-black mb-3">
-                                            Size
-                                        </label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {selectedProduct.sizes.map((size) => (
-                                                <button
-                                                    key={size}
-                                                    onClick={() => setSelectedSize(size)}
-                                                    className={`px-4 py-2 border text-sm font-medium transition-colors ${
-                                                        selectedSize === size
-                                                            ? 'border-black bg-black text-white'
-                                                            : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                                                    }`}
-                                                >
-                                                    {size}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+
                                 
                                 {/* Color Selection */}
                                 {selectedProduct.colors && selectedProduct.colors.length > 0 && (
@@ -418,7 +421,10 @@ const toggleWishlist = (productId: string) => {
                                 
                                 {/* Add to Cart Button */}
                                 <div className="space-y-4">
-                                    <button className="w-full bg-black text-white py-4 font-medium text-sm tracking-wide hover:bg-gray-800 transition-colors duration-300 uppercase">
+                                    <button 
+                                        onClick={() => handleAddToCart(selectedProduct, quantity)}
+                                        className="w-full bg-black text-white py-4 font-medium text-sm tracking-wide hover:bg-gray-800 transition-colors duration-300 uppercase"
+                                    >
                                         Add to Cart - ${(selectedProduct.price * quantity).toLocaleString()}
                                     </button>
                                     <button
@@ -643,7 +649,13 @@ const toggleWishlist = (productId: string) => {
                                                     <Eye className="w-4 h-4" />
                                                     <span>Quick View</span>
                                                 </button>
-                                                <button className="border-2 border-white text-white px-6 py-3 font-medium text-sm tracking-wide hover:bg-white hover:text-black transition-all duration-300 uppercase transform scale-95 group-hover:scale-100">
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAddToCart(product);
+                                                    }}
+                                                    className="border-2 border-white text-white px-6 py-3 font-medium text-sm tracking-wide hover:bg-white hover:text-black transition-all duration-300 uppercase transform scale-95 group-hover:scale-100"
+                                                >
                                                     Add to Cart
                                                 </button>
                                             </div>
@@ -893,10 +905,95 @@ const toggleWishlist = (productId: string) => {
                 </section>
             </main>
 
-            {/* Floating Cart Button */}
-            <button className="fixed bottom-8 right-8 w-14 h-14 bg-black text-white rounded-full shadow-lg flex items-center justify-center transform hover:scale-110 transition-all duration-300 z-30 animate-luxury-glow">
-                <ShoppingBag className="w-6 h-6" />
-            </button>
+            {/* Toast Notifications */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
+
+            {/* Floating Cart Button with Preview */}
+            <div className="fixed bottom-8 right-8 z-30">
+              <div className="relative">
+                <button 
+                  onClick={() => {
+                    if (isAuthenticated && !cart) {
+                      refreshCart();
+                    }
+                    navigate('/cart');
+                  }}
+                  onMouseEnter={() => {
+                    if (isAuthenticated && !cart) {
+                      refreshCart();
+                    }
+                    setShowFloatingCart(true);
+                  }}
+                  className="w-14 h-14 bg-black text-white rounded-full shadow-lg flex items-center justify-center transform hover:scale-110 transition-all duration-300 animate-luxury-glow"
+                >
+                  <ShoppingBag className="w-6 h-6" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Floating Cart Preview */}
+                {showFloatingCart && cart && cart.items && cart.items.length > 0 && (
+                  <div 
+                    className="absolute bottom-16 right-0 w-72 bg-white border border-gray-200 rounded-lg shadow-xl"
+                    onMouseEnter={() => setShowFloatingCart(true)}
+                    onMouseLeave={() => setShowFloatingCart(false)}
+                  >
+                    <div className="p-3 border-b border-gray-100">
+                      <h3 className="font-semibold text-sm">Cart ({cartCount} items)</h3>
+                    </div>
+                    
+                    <div className="max-h-48 overflow-y-auto">
+                      {cart.items.slice(0, 2).map((item) => (
+                        <div key={item.cartItemId} className="p-3 border-b border-gray-50">
+                          <div className="flex gap-2">
+                            <img
+                              src={item.product.imagenames[0] || '/placeholder.jpg'}
+                              alt={item.product.prod_name}
+                              className="w-10 h-10 object-cover rounded"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-xs truncate">{item.product.prod_name}</h4>
+                              <p className="text-xs text-gray-600">{item.product.prod_brand}</p>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-xs font-semibold">${item.product.selling_price}</span>
+                                <span className="text-xs text-gray-500">×{item.quantity}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {cart.items.length > 2 && (
+                      <div className="p-2 text-center text-xs text-gray-600 border-b border-gray-100">
+                        +{cart.items.length - 2} more items
+                      </div>
+                    )}
+                    
+                    <div className="p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold text-sm">Total: ${cart.totalAmount.toFixed(2)}</span>
+                      </div>
+                      <button
+                        onClick={() => navigate('/checkout')}
+                        className="w-full bg-black text-white py-2 px-3 rounded text-xs hover:bg-gray-800 transition"
+                      >
+                        Checkout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
         </div>
     );
 };

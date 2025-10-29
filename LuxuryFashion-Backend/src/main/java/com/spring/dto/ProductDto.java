@@ -31,6 +31,5 @@ public class ProductDto {
     private Integer reviewCount;
     private Boolean featured;
 
-    // For response (base64 images)
-    private List<String> prod_images;
+
 }

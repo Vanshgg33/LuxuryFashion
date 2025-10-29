@@ -1,4 +1,30 @@
-export const baseApiUrl ="https://luxuryfashion-142597902731.asia-south1.run.app";
+export const baseApiUrl ="http://localhost:8081";
+
+export const OAUTH_LOGIN_URL = 'http://localhost:8081/oauth2/authorization/google';
+// Production: 'https://api.rangeelaboutique.com/oauth2/authorization/google'
+
+export interface CartItem {
+  id: number;
+  cartItemId?: number;
+  productId: number;
+  quantity: number;
+  product: {
+    prod_id: number;
+    prod_name: string;
+    prod_price: number;
+    selling_price: number;
+    imagenames: string[];
+    prod_brand: string;
+  };
+}
+
+export interface Cart {
+  cartItems: CartItem[];
+  items?: CartItem[];
+  totalPrice: number;
+  totalAmount?: number;
+  totalItems: number;
+}
 
 export interface Product {
     id: string;
@@ -33,7 +59,7 @@ export interface BackendProduct {
     prod_tag: string;
     prod_gender: string;
     prodStatus: string;
-    prod_images: string[];
+    imagenames: string[];
     rating?: number;
      reviewCount?: number;
     createdAt: string;
@@ -58,9 +84,7 @@ export interface Productdto {
 
    prod_brand: string;
   prod_image?: string;
-imagenames:string[];
-  prod_images: string[];
-
+  imagenames: string[];
 
   prod_category: string;
   prod_quantity: number;
@@ -72,10 +96,11 @@ imagenames:string[];
   rating?: number;
   reviewCount?: number;
   featured?: boolean;
-
+  sizes?:string[];
   createdAt?: string;
   updatedAt?: string;
 
   // For uploads
   prod_photos?: File[];
+  removedImages?: string[];
 }

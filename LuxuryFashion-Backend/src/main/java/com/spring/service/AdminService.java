@@ -2,7 +2,9 @@ package com.spring.service;
 
 import com.spring.dto.ProductDto;
 import com.spring.model.Gallery;
+import com.spring.model.Order;
 import com.spring.model.Product;
+import com.spring.model.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -52,5 +54,14 @@ public interface AdminService {
     ResponseEntity<?> updateGalleryStatus(List<Gallery> galleries);
 
     void deleteGalleryImage(Long id);
+
+    // User management methods
+    List<User> getAllUsers();
+    User updateUser(Long userId, User userDetails);
+    User deactivateUser(Long userId);
+    
+    // Order management methods
+    List<Order> getAllOrders();
+    Order updateOrderStatus(Long orderId, Order.OrderStatus status);
 }
 
