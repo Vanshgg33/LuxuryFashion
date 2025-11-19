@@ -268,3 +268,4 @@ const RefundPolicy: React.FC = () => {
 
 export default RefundPolicy;
 
+

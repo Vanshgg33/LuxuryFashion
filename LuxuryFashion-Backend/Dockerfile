@@ -36,12 +36,11 @@ USER appuser
 
 # Environment variables
 ENV ENVIRONMENT=production
-ENV PORT=8081
 ENV GOOGLE_APPLICATION_CREDENTIALS=/app/config/service-account-key.json
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
-# Expose port
-EXPOSE 8081
+# Expose port (Cloud Run will set PORT env var)
+EXPOSE 8080
 
 # Run application
 CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
