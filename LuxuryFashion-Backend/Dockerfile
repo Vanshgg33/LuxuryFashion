@@ -1,5 +1,5 @@
 # Multi-stage build for smaller image
-FROM openjdk:17-jdk-slim AS builder
+FROM eclipse-temurin:17-jdk AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
 # Production stage
-FROM openjdk:17-jre-slim
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
