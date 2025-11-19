@@ -10,8 +10,10 @@ import {
   TrendingUp,
   CheckCircle,
   AlertCircle,
+  Bell,
 } from "lucide-react";
 import { validateToken } from "../../api/LoginRegisterApi";
+import { fetchOrdersApi } from "../../api/AdminApi";
 
 interface NotificationProps {
   type: "success" | "error";
@@ -35,6 +37,8 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
+  const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
 
   const { notification, showNotification } = useNotification();
 
@@ -53,6 +57,30 @@ const AdminLayout: React.FC = () => {
 
     checkAuth();
   }, [navigate]);
+
+  // Check for new orders
+  useEffect(() => {
+    const checkNewOrders = async () => {
+      try {
+        const orders = await fetchOrdersApi();
+        const today = new Date().toDateString();
+        const todayOrders = orders.filter(order => 
+          new Date(order.orderDate).toDateString() === today
+        );
+        
+        if (todayOrders.length > 0) {
+          setNewOrdersCount(todayOrders.length);
+          setShowNewOrderAlert(true);
+        }
+      } catch (error) {
+        console.error('Error checking new orders:', error);
+      }
+    };
+
+    if (!loading) {
+      checkNewOrders();
+    }
+  }, [loading]);
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3, path: "/admin" },
@@ -81,9 +109,8 @@ const AdminLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Fonts */}
+      {/* Fonts are already imported globally in index.css */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
         .font-serif { font-family: 'Playfair Display', serif; }
         .font-sans { font-family: 'Inter', sans-serif; }
       `}</style>
@@ -103,6 +130,25 @@ const AdminLayout: React.FC = () => {
             <AlertCircle className="w-5 h-5" />
           )}
           <span className="font-medium">{notification.message}</span>
+        </div>
+      )}
+
+      {/* New Order Alert */}
+      {showNewOrderAlert && (
+        <div className="fixed top-20 right-4 z-50 bg-blue-100 border border-blue-300 text-blue-800 p-4 rounded-lg shadow-lg">
+          <div className="flex items-center space-x-3">
+            <Bell className="w-5 h-5" />
+            <div>
+              <div className="font-medium">New Orders Today!</div>
+              <div className="text-sm">{newOrdersCount} new order{newOrdersCount > 1 ? 's' : ''} received</div>
+            </div>
+            <button
+              onClick={() => setShowNewOrderAlert(false)}
+              className="ml-4 text-blue-600 hover:text-blue-800"
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
 

@@ -46,7 +46,7 @@ public class Controller1 {
         throw new Exception("User already Exsist");
         }
         userRepository.save(user);
-        notificationManager.sendNotification("email",user.getEmail(),null,"Account Created ", EmailTemplate.getWelcomeTemplate(user.getName(),user.getEmail(),null));
+        notificationManager.sendNotification("email",user.getEmail(),null,"Account Created ", EmailTemplate.getWelcomeTemplate(user.getName(),user.getEmail()));
         return ResponseEntity.ok("User registered successfully");
     }
 

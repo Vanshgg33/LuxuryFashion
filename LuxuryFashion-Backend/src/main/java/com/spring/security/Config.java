@@ -60,7 +60,8 @@ private String allowedOrigins;
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/products/**", "/save", "/css/**", "/style.css",
-                                "/auth/validate", "/auth/login", "/auth/register", "/oauth2/**", "/login/oauth2/**")
+                                "/auth/validate", "/auth/login", "/auth/register", "/auth/oauth/user", 
+                                "/oauth2/**", "/login/oauth2/**")
                         .permitAll()
                         .requestMatchers("/luxuryfashion/**","/luxuryfashion/fetch-gallery").permitAll()
                         .requestMatchers("/admin-api/**").hasRole("ADMIN")

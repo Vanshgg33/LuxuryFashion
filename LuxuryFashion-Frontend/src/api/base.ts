@@ -1,13 +1,14 @@
-export const baseApiUrl ="http://localhost:8081";
+import { config } from '../config/env';
 
-export const OAUTH_LOGIN_URL = 'http://localhost:8081/oauth2/authorization/google';
-// Production: 'https://api.rangeelaboutique.com/oauth2/authorization/google'
+export const baseApiUrl = config.apiUrl;
+export const OAUTH_LOGIN_URL = config.oauthLoginUrl;
 
 export interface CartItem {
   id: number;
   cartItemId?: number;
   productId: number;
   quantity: number;
+  size?: string; // Size selected for this cart item
   product: {
     prod_id: number;
     prod_name: string;
@@ -40,14 +41,14 @@ export interface Product {
     brand?: string;
     category?: string;
     description?: string;
-    sizes?: string[];
+    sizes?: Record<string, number>; // Changed from string[] to Record<string, number> e.g., { "S": 10, "M": 15 }
+    reservedSizes?: Record<string, number>; // Items currently in carts e.g., { "S": 2 }
     colors?: string[];
     inStock?: boolean;
     prodStatus: string;
 }
 
 export interface BackendProduct {
-    
     prod_id: number;
     prod_name: string;
     prod_brand: string;
@@ -60,8 +61,10 @@ export interface BackendProduct {
     prod_gender: string;
     prodStatus: string;
     imagenames: string[];
+    sizes?: Record<string, number>; // Size quantities e.g., { "S": 10, "M": 15 }
+    reservedSizes?: Record<string, number>; // Items in carts e.g., { "S": 2 }
     rating?: number;
-     reviewCount?: number;
+    reviewCount?: number;
     createdAt: string;
     updatedAt: string;
     Badge?: string;
@@ -96,7 +99,7 @@ export interface Productdto {
   rating?: number;
   reviewCount?: number;
   featured?: boolean;
-  sizes?:string[];
+  sizes?: Record<string, number>; // Size quantities e.g., { "S": 10, "M": 15 }
   createdAt?: string;
   updatedAt?: string;
 

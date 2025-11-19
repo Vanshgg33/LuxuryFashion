@@ -1,14 +1,18 @@
 package com.spring.Oauth2;
 
 import com.spring.jwt.JwtUtil;
+import com.spring.model.Role;
 import com.spring.model.User;
 import com.spring.model.UserShow;
+import com.spring.notification.EmailNotificationService;
+import com.spring.notification.EmailTemplate;
 import com.spring.repo.UserRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -17,7 +21,9 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.UUID;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Component
 public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
@@ -27,6 +33,13 @@ public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EmailNotificationService emailService;
+
+    @Autowired
+    @Lazy
+    private PasswordEncoder passwordEncoder;
 
     @Value("${app.frontend.url}")
     private String frontendUrl; // e.g. http://localhost:5173
@@ -39,20 +52,41 @@ public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
 
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
         String email = oauth2User.getAttribute("email");
+        String name = oauth2User.getAttribute("name");
+
+        if (email == null || email.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Email not provided by OAuth provider");
+            return;
+        }
 
         // Find or create user
         User user = userRepository.findByEmail(email);
+        
         if (user == null) {
+            // Create new user - only set password for NEW users
             User newUser = new User();
             newUser.setEmail(email);
+            newUser.setName(name != null ? name : email.split("@")[0]); // Use email prefix if name not available
+            
+            // Set OAuth user password to "1234" (encoded) - ONLY for new users
+            newUser.setPassword(passwordEncoder.encode("1234"));
 
-            // Prevent dummy password login by using random encoded string
-            newUser.setPassword(UUID.randomUUID().toString());
-
-            // Store more info if available
+            // Set default values
             newUser.setGender("UNKNOWN");
-            newUser.setName(oauth2User.getAttribute("name"));
+            newUser.setRole(Role.USER); // Set default role
+            
             user = userRepository.save(newUser);
+            
+            // Send welcome email for new users
+            sendWelcomeEmail(user);
+        } else {
+            // Existing user - DO NOT change password, preserve existing password
+            // Only update name if it's missing or empty
+            if ((user.getName() == null || user.getName().isEmpty()) && name != null) {
+                user.setName(name);
+                userRepository.save(user);
+            }
+            // Password remains unchanged for existing users
         }
 
         // DTO wrapper
@@ -62,19 +96,38 @@ public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
         String token = jwtUtil.generateToken(userShow.getUsername());
 
         // Secure cookie - match AuthController settings
+        // Set domain to null for localhost, or set it explicitly for production
         ResponseCookie cookie = ResponseCookie.from("authToken", token)
                 .httpOnly(true)
-                .secure(false)          // Set to false for localhost
+                .secure(false)          // Set to false for localhost, true for production
                 .path("/")
                 .sameSite("Lax")        // Changed from None to Lax
-                .maxAge(24 * 60 * 60)   // 1 day
+                .maxAge(5 * 24 * 60 * 60)   // 5 days to match JWT token expiration
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         
-        System.out.println("OAuth2 Success - Setting cookie: " + cookie.toString());
+        // Encode token for URL
+        String encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8);
+        
+        // Redirect to frontend with token in URL (frontend will extract and call /auth/oauth/user)
+        String redirectUrl = frontendUrl + "oauth/callback?token=" + encodedToken + "&email=" +
+                           URLEncoder.encode(email, StandardCharsets.UTF_8);
+        
+        System.out.println("OAuth2 Success - Redirecting with token for user: " + email);
 
-        // Redirect to frontend
-        response.sendRedirect(frontendUrl + "/shop");
+        // Redirect to frontend OAuth callback page
+        response.sendRedirect(redirectUrl);
+    }
+
+    private void sendWelcomeEmail(User user) {
+        try {
+            String subject = "Welcome to LuxuryFashion! 🎉";
+            // Use OAuth welcome template with password "1234"
+            String content = EmailTemplate.getOAuthWelcomeTemplate(user.getName(), user.getEmail(), "1234");
+            emailService.sendNotification(user.getEmail(), null, subject, content);
+        } catch (Exception e) {
+            System.err.println("Failed to send OAuth2 welcome email: " + e.getMessage());
+        }
     }
 }

@@ -37,7 +37,5 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 """)
     List<Product> searchActiveProducts(@Param("keyword") String keyword);
 
-
-
 }
 

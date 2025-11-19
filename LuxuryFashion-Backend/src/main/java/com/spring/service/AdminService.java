@@ -62,6 +62,8 @@ public interface AdminService {
     
     // Order management methods
     List<Order> getAllOrders();
+    Order getOrderById(Long orderId);
     Order updateOrderStatus(Long orderId, Order.OrderStatus status);
+    Order saveOrder(Order order);
 }
 
