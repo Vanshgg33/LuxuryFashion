@@ -26,8 +26,8 @@ RUN mkdir -p /app/uploads/products /app/uploads/profiles /app/config
 # Copy built JAR from builder stage
 COPY --from=builder /app/target/JwtDemo-0.0.1-SNAPSHOT.jar app.jar
 
-# Copy GCS service account key (optional)
-COPY service-account-key.json* /app/config/
+# Copy GCS service account key
+COPY service-account-key.json /app/config/
 
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
