@@ -1,217 +1,228 @@
-
-
-
-
+import axios, { type AxiosError } from 'axios';
 import { baseApiUrl, type Gallerydata, type Productdto } from "./base";
+import { logger } from '../utils/logger';
 
-export async function addProductApi(formData: FormData): Promise<any> {
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return token ? { 
+    Authorization: `Bearer ${token}`
+  } : {};
+};
+
+const getAuthHeadersWithJson = () => {
+  const token = localStorage.getItem('authToken');
+  return token ? { 
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  } : {
+    'Content-Type': 'application/json'
+  };
+};
+
+export async function addProductApi(formData: FormData): Promise<Productdto> {
   try {
-      const token = sessionStorage.getItem("authToken");
-  if (!token) throw new Error("No token found in sessionStorage");
-
-    const response = await fetch(baseApiUrl + "/admin-api/add-product", {
-      method: "POST",
-      body: formData,
-       headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    const headers = getAuthHeaders();
+    
+    logger.debug('Adding product via FormData');
+    
+    const response = await axios.post<Productdto>(`${baseApiUrl}/admin-api/add-product`, formData, {
+      headers: headers,
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to add product: ${response.statusText}`);
-    }
-
-    // Parse the created product from backend
-    return await response.json();
+    return response.data;
   } catch (err) {
-    console.error("Error in addProductApi:", err);
-    throw err;
+    const error = err as AxiosError<{ error?: string }>;
+    logger.error('Error in addProductApi', error, {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+    });
+    throw error;
   }
 }
 
 export async function fetchProductsApi(): Promise<Productdto[]> {
   try {
-  const token = sessionStorage.getItem("authToken");
-  if (!token) throw new Error("No token found in sessionStorage");
-    const response = await fetch(`${baseApiUrl}/admin-api/fetch-products`, {
-      method: "GET",
-     headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    const response = await axios.get<Productdto[]>(`${baseApiUrl}/admin-api/fetch-products`, {
+      headers: getAuthHeaders(),
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`);
-    }
-
-    const data: Productdto[] = await response.json();
-    return data;
+    return response.data;
   } catch (error) {
-    console.error("Error fetching products:", error);
+    logger.error("Error fetching products", error);
     throw error;
   }
 }
-
 
 export async function addGalleryImage(gallery: Gallerydata): Promise<Gallerydata> {
-  try {  
-    
-    const token = sessionStorage.getItem("authToken");
-  if (!token) throw new Error("No token found in sessionStorage");
-
-    const response = await fetch(`${baseApiUrl}/admin-api/add-gallery-images`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-         Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(gallery),
-   
+  try {
+    const response = await axios.post<Gallerydata>(`${baseApiUrl}/admin-api/add-gallery-images`, gallery, {
+      headers: getAuthHeadersWithJson(),
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to add gallery image: ${response.status} ${response.statusText}`);
-    }
-    return await response.json();
+    return response.data;
   } catch (error) {
-    console.error("Error adding gallery image:", error);
+    logger.error("Error adding gallery image", error);
     throw error;
   }
 }
 
-
-export async function updateGalleryStatus(
-  galleries: Gallerydata[]
-): Promise<Gallerydata[]> {
+export async function updateGalleryStatus(galleries: Gallerydata[]): Promise<Gallerydata[]> {
   try {
-
-      const token = sessionStorage.getItem("authToken");
-  if (!token) throw new Error("No token found in sessionStorage");
-
-    const response = await fetch(`${baseApiUrl}/admin-api/update-gallery-status`, {
-      method: "PUT", 
-      headers: {
-        "Content-Type": "application/json",
-         Authorization: `Bearer ${token}`,
-      },
-     
-      body: JSON.stringify(galleries),
+    const response = await axios.put<Gallerydata[]>(`${baseApiUrl}/admin-api/update-gallery-status`, galleries, {
+      headers: getAuthHeadersWithJson(),
     });
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to update gallery status: ${response.status} ${response.statusText}`
-      );
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
-    console.error("Error updating gallery status:", error);
+    logger.error("Error updating gallery status", error);
     throw error;
   }
 }
 
 export async function fetchGalleryImages(): Promise<Gallerydata[]> {
   try {
-
-      const token = sessionStorage.getItem("authToken");
-  if (!token) throw new Error("No token found in sessionStorage");
-
-    const response = await fetch(`${baseApiUrl}/admin-api/fetch-gallery-images`, {
-      method: "GET",
-        headers: {
-        Authorization: `Bearer ${token}`,}
+    const response = await axios.get<Gallerydata[]>(`${baseApiUrl}/admin-api/fetch-gallery-images`, {
+      headers: getAuthHeaders(),
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch gallery images: ${response.status} ${response.statusText}`);
-    }
-
-    const images: Gallerydata[] = await response.json();
-    return images;
+    return response.data;
   } catch (error) {
-    console.error("Error fetching gallery images:", error);
+    logger.error("Error fetching gallery images", error);
     throw error;
   }
 }
 
-
-export async function updateProductApi(productId: number, dto: Productdto): Promise<Productdto> {
-    const token = sessionStorage.getItem("authToken");
-  if (!token) throw new Error("No token found in sessionStorage");
-
-  const response = await fetch(`${baseApiUrl}/admin-api/update-product/${productId}`, {
+export async function updateProductApi(productId: number, dto: Productdto | FormData): Promise<Productdto> {
+  try {
+    const headers = dto instanceof FormData 
+      ? getAuthHeaders() 
+      : getAuthHeadersWithJson();
     
-    method: "PUT",
-    headers: { "Content-Type": "application/json",Authorization: `Bearer ${token}`, },
-    body: JSON.stringify(dto),
+    logger.debug(`Updating product ${productId}`, { 
+      isFormData: dto instanceof FormData 
+    });
     
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to update product: ${response.status}`);
+    const response = await axios.put<Productdto>(`${baseApiUrl}/admin-api/update-product/${productId}`, dto, {
+      headers: headers,
+    });
+    return response.data;
+  } catch (err) {
+    const error = err as AxiosError<{ error?: string }>;
+    logger.error(`Error in updateProductApi for product ${productId}`, error, {
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+    throw error;
   }
-
-  return response.json();
 }
 
-
-
-
 export async function deleteProductApi(productId: number): Promise<void> {
-
-    const token = sessionStorage.getItem("authToken");
-  if (!token) throw new Error("No token found in sessionStorage");
-
   try {
-    const response = await fetch(`${baseApiUrl}/admin-api/delete-product/${productId}`, {
-      method: "DELETE",
-         headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    await axios.delete(`${baseApiUrl}/admin-api/delete-product/${productId}`, {
+      headers: getAuthHeaders(),
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to delete product: ${response.statusText}`);
-    }
   } catch (error) {
-    console.error("Error deleting product:", error);
+    logger.error(`Error deleting product ${productId}`, error);
     throw error;
   }
 }
 
 export const deleteGalleryImage = async (id: number): Promise<void> => {
   try {
-      const token = sessionStorage.getItem("authToken");
-  if (!token) throw new Error("No token found in sessionStorage");
-
-
-    const response = await fetch(`${baseApiUrl}/admin-api/delete-gallery-image/${id}`, {
-      method: 'DELETE',
-       headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    await axios.delete(`${baseApiUrl}/admin-api/delete-gallery-image/${id}`, {
+      headers: getAuthHeaders(),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(
-        errorData?.message || 
-        errorData?.error || 
-        `Failed to delete image: ${response.status} ${response.statusText}`
-      );
-    }
-
-    // If response has content, you can process it
-    // const result = await response.json();
-    // return result;
   } catch (error) {
-    console.error('Error deleting gallery image:', error);
+    logger.error(`Error deleting gallery image ${id}`, error);
     throw error;
   }
 };
 
+export const fetchUsersApi = async (): Promise<unknown[]> => {
+  try {
+    const response = await axios.get<unknown[]>(`${baseApiUrl}/admin-api/users`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    logger.error('Error fetching users', error);
+    throw error;
+  }
+};
 
+export const fetchUserOrdersApi = async (userId: number): Promise<unknown> => {
+  try {
+    const response = await axios.get(`${baseApiUrl}/admin-api/users/${userId}/orders`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    logger.error(`Error fetching user orders for user ${userId}`, error);
+    throw error;
+  }
+};
 
+export const updateUserApi = async (userId: number, userData: Record<string, unknown>): Promise<unknown> => {
+  try {
+    const response = await axios.put(`${baseApiUrl}/admin-api/users/${userId}`, userData, {
+      headers: getAuthHeadersWithJson(),
+    });
+    return response.data;
+  } catch (error) {
+    logger.error(`Error updating user ${userId}`, error);
+    throw error;
+  }
+};
 
+export const deactivateUserApi = async (userId: number): Promise<unknown> => {
+  try {
+    const response = await axios.put(`${baseApiUrl}/admin-api/users/${userId}/deactivate`, {}, {
+      headers: getAuthHeadersWithJson(),
+    });
+    return response.data;
+  } catch (error) {
+    logger.error(`Error deactivating user ${userId}`, error);
+    throw error;
+  }
+};
 
+export const fetchOrdersApi = async (): Promise<unknown> => {
+  try {
+    const response = await axios.get(`${baseApiUrl}/api/orders/admin/all`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ error?: string }>;
+    logger.error('Error fetching orders', axiosError, {
+      status: axiosError.response?.status,
+      data: axiosError.response?.data,
+    });
+    if (axiosError.response?.status === 401) {
+      logger.warn('Authentication failed - token may be invalid or expired');
+    }
+    throw axiosError;
+  }
+};
+
+export const updateOrderStatusApi = async (orderId: number, status: string): Promise<unknown> => {
+  try {
+    const response = await axios.put(`${baseApiUrl}/api/orders/admin/${orderId}/status`, { status }, {
+      headers: getAuthHeadersWithJson(),
+    });
+    return response.data;
+  } catch (error) {
+    logger.error(`Error updating order status for order ${orderId}`, error);
+    throw error;
+  }
+};
+
+export const fetchAnalyticsApi = async (): Promise<{ orders: unknown; users: unknown[]; products: Productdto[] }> => {
+  try {
+    const [orders, users, products] = await Promise.all([
+      fetchOrdersApi(),
+      fetchUsersApi(),
+      fetchProductsApi()
+    ]);
+    return { orders, users, products };
+  } catch (error) {
+    logger.error('Error fetching analytics data', error);
+    throw error;
+  }
+};

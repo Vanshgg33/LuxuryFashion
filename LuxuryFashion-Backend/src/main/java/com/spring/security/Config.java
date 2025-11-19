@@ -45,6 +45,9 @@ public class Config {
 @Value("${app.frontend.url}")
 private String frontendUrl;
 
+@Value("${ALLOWED_ORIGINS:https://rangeelaboutique.com,http://localhost:5173}")
+private String allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -56,13 +59,17 @@ private String frontendUrl;
 
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/products/**", "/save", "/users/register", "/css/**", "/style.css",
-                                "/auth/validate", "/http://localhost:8083/login/oauth2/code/google")
+                        .requestMatchers("/", "/products/**", "/save", "/css/**", "/style.css",
+                                "/auth/validate", "/auth/login", "/auth/register", "/auth/oauth/user", 
+                                "/oauth2/**", "/login/oauth2/**")
                         .permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        .requestMatchers("/admin-api/**").authenticated() // admin-only
                         .requestMatchers("/luxuryfashion/**","/luxuryfashion/fetch-gallery").permitAll()
-                        .anyRequest().permitAll()
+                        .requestMatchers("/admin-api/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin-api/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/admin-api/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/admin-api/**").hasRole("ADMIN")
+                        .requestMatchers("/api/cart/**", "/api/orders/**").hasAnyRole("USER", "ADMIN")
+                        .anyRequest().authenticated()
                 )
 
                 // OAuth2 login success handler
@@ -80,7 +87,7 @@ private String frontendUrl;
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("https://rangeelaboutique.com"));
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true); // important for cookies

@@ -113,9 +113,9 @@ const Dashboard: React.FC<DashboardProps> = ({ }) => {
           <h3 className="text-xl font-serif font-medium text-gray-900 mb-6">Recent Orders</h3>
           <div className="space-y-4">
             {[
-              { id: '#1234', customer: 'Sarah Johnson', amount: '$299', status: 'Completed' },
-              { id: '#1235', customer: 'Michael Chen', amount: '$599', status: 'Processing' },
-              { id: '#1236', customer: 'Emma Wilson', amount: '$199', status: 'Shipped' }
+              { id: '#1234', customer: 'Sarah Johnson', amount: '₹299', status: 'Completed' },
+              { id: '#1235', customer: 'Michael Chen', amount: '₹599', status: 'Processing' },
+              { id: '#1236', customer: 'Emma Wilson', amount: '₹199', status: 'Shipped' }
             ].map((order) => (
               <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
                 <div>
@@ -145,7 +145,7 @@ const Dashboard: React.FC<DashboardProps> = ({ }) => {
                 <img src={product.image || product.image} alt={product.name || product.name} className="w-12 h-12 object-cover" />
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{product.name || product.name}</p>
-                  <p className="text-gray-600 text-sm">${product.price || product.price}</p>
+                  <p className="text-gray-600 text-sm">₹{product.price || product.price}</p>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Star className="w-4 h-4 fill-amber-400 text-amber-400" />

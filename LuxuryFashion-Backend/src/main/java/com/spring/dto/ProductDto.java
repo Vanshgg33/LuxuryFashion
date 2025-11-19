@@ -3,7 +3,9 @@ package com.spring.dto;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class ProductDto {
@@ -31,6 +33,8 @@ public class ProductDto {
     private Integer reviewCount;
     private Boolean featured;
 
-    // For response (base64 images)
-    private List<String> prod_images;
+    // Size quantities map: Key = size (e.g., "S", "M", "L"), Value = quantity
+    // Example: {"S": 10, "M": 15, "L": 8, "36": 5, "38": 12}
+    private Map<String, Integer> sizes = new HashMap<>();
+
 }

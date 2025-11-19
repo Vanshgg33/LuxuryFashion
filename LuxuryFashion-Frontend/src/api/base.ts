@@ -1,4 +1,31 @@
-export const baseApiUrl ="https://luxuryfashion-142597902731.asia-south1.run.app";
+import { config } from '../config/env';
+
+export const baseApiUrl = config.apiUrl;
+export const OAUTH_LOGIN_URL = config.oauthLoginUrl;
+
+export interface CartItem {
+  id: number;
+  cartItemId?: number;
+  productId: number;
+  quantity: number;
+  size?: string; // Size selected for this cart item
+  product: {
+    prod_id: number;
+    prod_name: string;
+    prod_price: number;
+    selling_price: number;
+    imagenames: string[];
+    prod_brand: string;
+  };
+}
+
+export interface Cart {
+  cartItems: CartItem[];
+  items?: CartItem[];
+  totalPrice: number;
+  totalAmount?: number;
+  totalItems: number;
+}
 
 export interface Product {
     id: string;
@@ -14,14 +41,14 @@ export interface Product {
     brand?: string;
     category?: string;
     description?: string;
-    sizes?: string[];
+    sizes?: Record<string, number>; // Changed from string[] to Record<string, number> e.g., { "S": 10, "M": 15 }
+    reservedSizes?: Record<string, number>; // Items currently in carts e.g., { "S": 2 }
     colors?: string[];
     inStock?: boolean;
     prodStatus: string;
 }
 
 export interface BackendProduct {
-    
     prod_id: number;
     prod_name: string;
     prod_brand: string;
@@ -33,9 +60,11 @@ export interface BackendProduct {
     prod_tag: string;
     prod_gender: string;
     prodStatus: string;
-    prod_images: string[];
+    imagenames: string[];
+    sizes?: Record<string, number>; // Size quantities e.g., { "S": 10, "M": 15 }
+    reservedSizes?: Record<string, number>; // Items in carts e.g., { "S": 2 }
     rating?: number;
-     reviewCount?: number;
+    reviewCount?: number;
     createdAt: string;
     updatedAt: string;
     Badge?: string;
@@ -58,9 +87,7 @@ export interface Productdto {
 
    prod_brand: string;
   prod_image?: string;
-imagenames:string[];
-  prod_images: string[];
-
+  imagenames: string[];
 
   prod_category: string;
   prod_quantity: number;
@@ -72,10 +99,11 @@ imagenames:string[];
   rating?: number;
   reviewCount?: number;
   featured?: boolean;
-
+  sizes?: Record<string, number>; // Size quantities e.g., { "S": 10, "M": 15 }
   createdAt?: string;
   updatedAt?: string;
 
   // For uploads
   prod_photos?: File[];
+  removedImages?: string[];
 }

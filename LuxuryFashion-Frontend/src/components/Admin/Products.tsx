@@ -8,6 +8,10 @@ import {
 import { addProductApi, deleteProductApi, fetchProductsApi, updateProductApi } from '../../api/AdminApi';
 import type { Productdto } from '../../api/base';
 
+// Data URI placeholder images (no external requests needed)
+const PLACEHOLDER_IMAGE_48 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjZTZlOGViIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzljOWFhOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+const PLACEHOLDER_IMAGE_300 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2U1ZTdlYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5Yzk5YTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
+
 interface ProductsContextType {
   showNotification: (type: 'success' | 'error' | 'warning', message: string) => void;
 }
@@ -30,6 +34,11 @@ const addProduct = async (product: Productdto) => {
     if (product.rating) formData.append("rating", product.rating.toString());
     if (product.reviewCount) formData.append("reviewCount", product.reviewCount.toString());
     formData.append("featured", product.featured ? 'true' : 'false');
+    
+    // Add sizes if provided
+    if (product.sizes && Object.keys(product.sizes).length > 0) {
+      formData.append("sizes", JSON.stringify(product.sizes));
+    }
     
     // Add image files
     if (product.prod_photos && product.prod_photos.length > 0) {
@@ -76,8 +85,8 @@ const Products: React.FC = () => {
         images = [product.prod_images];
       }
       
-      // Set primary image for backward compatibility
-      const primaryImage = images.length > 0 ? images[0] : 'https://via.placeholder.com/300x300?text=No+Image';
+      // Set primary image for backward compatibility - use data URI as fallback
+      const primaryImage = images.length > 0 ? images[0] : PLACEHOLDER_IMAGE_300;
 
       return {
         // Required fields from Productdto interface
@@ -104,6 +113,7 @@ const Products: React.FC = () => {
         badge: product.badge,
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,
+        sizes: product.sizes || undefined, // Include sizes from backend
         
         // Optional fields with default values
         featured: false
@@ -295,6 +305,27 @@ const handleDeleteProduct = async (id: number) => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [removedImageNames, setRemovedImageNames] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // State for sizes management - Initialize from product if editing
+  const [sizes, setSizes] = useState<Record<string, number>>(() => {
+    if (product?.sizes && typeof product.sizes === 'object' && !Array.isArray(product.sizes)) {
+      return product.sizes;
+    }
+    return {};
+  });
+  const [newSize, setNewSize] = useState<string>('');
+  const [newSizeQuantity, setNewSizeQuantity] = useState<number>(0);
+  
+  const availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '28', '30', '32', '34', '36', '38', '40', '42', '44', '46', '48', '50', '52', 'One Size'];
+  
+  // Update sizes when product changes (for editing)
+  useEffect(() => {
+    if (product?.sizes && typeof product.sizes === 'object' && !Array.isArray(product.sizes)) {
+      setSizes(product.sizes);
+    } else {
+      setSizes({});
+    }
+  }, [product?.sizes]);
 
   // ---------------------------
   // Remove existing image by index
@@ -348,6 +379,7 @@ const handleDeleteProduct = async (id: number) => {
       rating: formData.rating || 4.5,
       reviewCount: formData.reviewCount || 0,
       featured: formData.featured || false,
+      sizes: Object.keys(sizes).length > 0 ? sizes : undefined, // Include sizes
       prod_photos: selectedFiles.length > 0 ? selectedFiles : undefined, // New uploads
       prod_images: existingImages, // Keep only current existing
       removedImages: removedImageNames // Send removed images to backend
@@ -571,6 +603,86 @@ const handleDeleteProduct = async (id: number) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter product description"
               />
+            </div>
+
+            {/* Size Management */}
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Product Sizes & Quantities
+              </label>
+              <p className="text-xs text-gray-500 mb-4">
+                Add sizes and their available quantities. If no sizes are added, the product will use general quantity.
+              </p>
+              
+              {/* Existing Sizes */}
+              {Object.keys(sizes).length > 0 && (
+                <div className="mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-3">
+                    {Object.entries(sizes).map(([size, quantity]) => (
+                      <div key={size} className="flex items-center justify-between bg-white p-3 rounded border border-gray-200">
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-900">{size}</span>
+                          <span className="ml-2 text-gray-600">Qty: {quantity}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSizes = { ...sizes };
+                            delete newSizes[size];
+                            setSizes(newSizes);
+                          }}
+                          className="ml-2 text-red-600 hover:text-red-800 transition-colors"
+                          title="Remove size"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Add New Size */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <select
+                    value={newSize}
+                    onChange={(e) => setNewSize(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select Size</option>
+                    {availableSizes
+                      .filter(size => !sizes[size])
+                      .map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    min="0"
+                    value={newSizeQuantity || ''}
+                    onChange={(e) => setNewSizeQuantity(parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Quantity"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newSize && newSizeQuantity > 0) {
+                      setSizes({ ...sizes, [newSize]: newSizeQuantity });
+                      setNewSize('');
+                      setNewSizeQuantity(0);
+                    }
+                  }}
+                  disabled={!newSize || newSizeQuantity <= 0}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  Add Size
+                </button>
+              </div>
             </div>
 
             {/* Optional Fields */}
@@ -908,10 +1020,10 @@ const handleDeleteProduct = async (id: number) => {
                         <div className="h-12 w-12 flex-shrink-0">
                           <img
                             className="h-12 w-12 rounded-lg object-cover"
-                            src={product.prod_image || 'https://via.placeholder.com/48x48?text=No+Image'}
+                            src={product.prod_image || PLACEHOLDER_IMAGE_48}
                             alt={product.prod_name}
                             onError={(e) => {
-                              e.currentTarget.src = 'https://via.placeholder.com/48x48?text=No+Image';
+                              e.currentTarget.src = PLACEHOLDER_IMAGE_48;
                             }}
                           />
                         </div>
@@ -978,11 +1090,11 @@ const handleDeleteProduct = async (id: number) => {
             <div key={product.prod_id} className="bg-white rounded-lg border overflow-hidden hover:shadow-lg transition-shadow">
               <div className="relative">
                 <img
-                  src={product.prod_image || 'https://via.placeholder.com/300x300?text=No+Image'}
+                  src={product.prod_image || PLACEHOLDER_IMAGE_300}
                   alt={product.prod_name}
                   className="w-full h-48 object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = 'https://via.placeholder.com/300x300?text=No+Image';
+                    e.currentTarget.src = PLACEHOLDER_IMAGE_300;
                   }}
                 />
                 {product.badge && (
