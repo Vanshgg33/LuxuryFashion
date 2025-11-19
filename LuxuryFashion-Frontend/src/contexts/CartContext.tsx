@@ -46,11 +46,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       setIsLoading(true);
       const cartData = await getCart();
       // Normalize cart data structure
-      const normalizedCart = {
+      const normalizedCart: Cart = {
         ...cartData,
         items: cartData.cartItems || cartData.items || [],
         totalAmount: cartData.totalPrice || cartData.totalAmount || 0,
-        totalItems: cartData.totalItems || (cartData.cartItems || cartData.items || []).reduce((sum, item) => sum + item.quantity, 0)
+        totalItems: cartData.totalItems || (cartData.cartItems || cartData.items || []).reduce((sum: number, item) => sum + item.quantity, 0)
       };
       setCart(normalizedCart);
     } catch (error) {
@@ -71,11 +71,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       const cartData = await apiAddToCart(productId, quantity, price || 0, size);
       // Backend returns updated cart, so normalize and set it directly
-      const normalizedCart = {
+      const normalizedCart: Cart = {
         ...cartData,
         items: cartData.cartItems || cartData.items || [],
         totalAmount: cartData.totalPrice || cartData.totalAmount || 0,
-        totalItems: cartData.totalItems || (cartData.cartItems || cartData.items || []).reduce((sum, item) => sum + item.quantity, 0)
+        totalItems: cartData.totalItems || (cartData.cartItems || cartData.items || []).reduce((sum: number, item) => sum + item.quantity, 0)
       };
       setCart(normalizedCart);
     } catch (error) {
@@ -106,11 +106,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       const cartData = await updateCartItem(cartItemId, quantity);
       // Backend returns updated cart
-      const normalizedCart = {
+      const normalizedCart: Cart = {
         ...cartData,
         items: cartData.cartItems || cartData.items || [],
         totalAmount: cartData.totalPrice || cartData.totalAmount || 0,
-        totalItems: cartData.totalItems || (cartData.cartItems || cartData.items || []).reduce((sum, item) => sum + item.quantity, 0)
+        totalItems: cartData.totalItems || (cartData.cartItems || cartData.items || []).reduce((sum: number, item) => sum + item.quantity, 0)
       };
       setCart(normalizedCart);
     } catch (error) {
@@ -126,11 +126,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       const cartData = await removeCartItem(cartItemId);
       // Backend returns updated cart
-      const normalizedCart = {
+      const normalizedCart: Cart = {
         ...cartData,
         items: cartData.cartItems || cartData.items || [],
         totalAmount: cartData.totalPrice || cartData.totalAmount || 0,
-        totalItems: cartData.totalItems || (cartData.cartItems || cartData.items || []).reduce((sum, item) => sum + item.quantity, 0)
+        totalItems: cartData.totalItems || (cartData.cartItems || cartData.items || []).reduce((sum: number, item) => sum + item.quantity, 0)
       };
       setCart(normalizedCart);
     } catch (error) {
@@ -168,7 +168,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   //   }
   // }, [isAuthenticated]);
 
-  const cartCount = cart?.totalItems || (cart?.items || []).reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const cartCount = cart?.totalItems || (cart?.items || []).reduce((sum: number, item) => sum + item.quantity, 0) || 0;
 
   const value: CartContextType = {
     cart,

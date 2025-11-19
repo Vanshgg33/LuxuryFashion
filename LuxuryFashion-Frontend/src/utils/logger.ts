@@ -71,13 +71,13 @@ class Logger {
 
   debug(message: string, data?: unknown): void {
     if (!this.isDevelopment) return;
-    const entry = this.formatMessage('debug', message, data);
+    this.formatMessage('debug', message, data);
     console.debug(`[DEBUG] ${message}`, data || '');
   }
 
   info(message: string, data?: unknown): void {
     if (!this.isDevelopment) return;
-    const entry = this.formatMessage('info', message, data);
+    this.formatMessage('info', message, data);
     console.info(`[INFO] ${message}`, data || '');
   }
 

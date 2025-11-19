@@ -49,7 +49,7 @@ interface AddToCartRequest {
   size?: string;
 }
 
-export const addToCart = async (productId: number, quantity: number = 1, price: number, size?: string): Promise<unknown> => {
+export const addToCart = async (productId: number, quantity: number = 1, price: number, size?: string): Promise<Cart> => {
   const requestBody: AddToCartRequest = { 
     productId: productId,
     quantity: quantity,
@@ -66,24 +66,24 @@ export const addToCart = async (productId: number, quantity: number = 1, price: 
     requestBody,
     { headers: getAuthHeaders() }
   );
-  return response.data;
+  return response.data as Cart;
 };
 
-export const updateCartItem = async (cartItemId: number, quantity: number) => {
+export const updateCartItem = async (cartItemId: number, quantity: number): Promise<Cart> => {
   const response = await axios.put(
     `${baseApiUrl}/api/cart/update/${cartItemId}?quantity=${quantity}`,
     {},
     { headers: getAuthHeaders() }
   );
-  return response.data;
+  return response.data as Cart;
 };
 
-export const removeCartItem = async (cartItemId: number) => {
+export const removeCartItem = async (cartItemId: number): Promise<Cart> => {
   const response = await axios.delete(
     `${baseApiUrl}/api/cart/remove/${cartItemId}`,
     { headers: getAuthHeaders() }
   );
-  return response.data;
+  return response.data as Cart;
 };
 
 export const clearCart = async () => {
