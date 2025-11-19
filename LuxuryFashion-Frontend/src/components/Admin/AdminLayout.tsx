@@ -13,7 +13,7 @@ import {
   Bell,
 } from "lucide-react";
 import { validateToken } from "../../api/LoginRegisterApi";
-import { fetchOrdersApi } from "../../api/AdminApi";
+import { fetchOrdersApi, type AdminOrder } from "../../api/AdminApi";
 
 interface NotificationProps {
   type: "success" | "error";
@@ -64,7 +64,7 @@ const AdminLayout: React.FC = () => {
       try {
         const orders = await fetchOrdersApi();
         const today = new Date().toDateString();
-        const todayOrders = orders.filter(order => 
+        const todayOrders = orders.filter((order: AdminOrder) => 
           new Date(order.orderDate).toDateString() === today
         );
         

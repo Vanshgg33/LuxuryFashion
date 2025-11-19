@@ -78,11 +78,11 @@ const Products: React.FC = () => {
       // Ensure prod_images is always an array
       let images: string[] = [];
       
-      if (product.prod_images && Array.isArray(product.prod_images)) {
-        images = product.prod_images;
-      } else if (product.prod_images) {
+      if (product.imagenames && Array.isArray(product.imagenames)) {
+        images = product.imagenames;
+      } else if (product.prod_image) {
         // If single image exists, convert to array
-        images = [product.prod_images];
+        images = [product.prod_image];
       }
       
       // Set primary image for backward compatibility - use data URI as fallback
@@ -284,7 +284,7 @@ const handleDeleteProduct = async (id: number) => {
       prod_name: '',
       prod_price: 0,
       originalPrice: 0,
-      prod_images: [],
+      imagenames: [],
       prod_brand: '',
       prod_category: '',
       prod_description: '',
@@ -300,7 +300,7 @@ const handleDeleteProduct = async (id: number) => {
   );
 
   // Separate states for existing images and new ones
-  const [existingImages, setExistingImages] = useState<string[]>(product?.prod_images || []);
+  const [existingImages, setExistingImages] = useState<string[]>(product?.imagenames || []);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [removedImageNames, setRemovedImageNames] = useState<string[]>([]);

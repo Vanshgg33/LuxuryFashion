@@ -167,7 +167,7 @@ useEffect(() => {
     // Initialize size selection
     const hasSizes = product.sizes && typeof product.sizes === 'object' && Object.keys(product.sizes).length > 0;
     if (hasSizes) {
-      const firstSize = Object.keys(product.sizes).find(size => product.sizes![size] > 0) || null;
+      const firstSize = product.sizes ? Object.keys(product.sizes).find(size => product.sizes![size] > 0) || null : null;
       setSelectedSize(firstSize);
       // Always start with quantity 1, not from backend
       setQuantity(1);
@@ -315,7 +315,7 @@ useEffect(() => {
     
     // For products with sizes, check if all sizes are out of stock
     if (hasSizes) {
-      const totalStock = Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
+      const totalStock = product.sizes ? Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0) : 0;
       if (totalStock <= 0) {
         setToast({ message: 'This product is out of stock', type: 'error' });
         return;
@@ -679,7 +679,7 @@ useEffect(() => {
                                 let isOutOfStock = false;
                                 if (hasSizes) {
                                   // For products with sizes, check if all sizes are out of stock
-                                  const totalStock = Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
+                                  const totalStock = product.sizes ? Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0) : 0;
                                   isOutOfStock = totalStock <= 0;
                                 } else {
                                   // For products without sizes, check prod_quantity
@@ -700,7 +700,7 @@ useEffect(() => {
                               disabled={(() => {
                                 const hasSizes = product.sizes && typeof product.sizes === 'object' && Object.keys(product.sizes).length > 0;
                                 if (hasSizes) {
-                                  const totalStock = Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
+                                  const totalStock = product.sizes ? Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0) : 0;
                                   return totalStock <= 0;
                                 }
                                 return product.prod_quantity <= 0;
@@ -710,7 +710,7 @@ useEffect(() => {
                               {(() => {
                                 const hasSizes = product.sizes && typeof product.sizes === 'object' && Object.keys(product.sizes).length > 0;
                                 if (hasSizes) {
-                                  const totalStock = Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
+                                  const totalStock = product.sizes ? Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0) : 0;
                                   if (totalStock <= 0) return 'Currently Unavailable';
                                   return 'Select Size';
                                 }
@@ -769,7 +769,7 @@ useEffect(() => {
                             let isOutOfStock = false;
                             if (hasSizes) {
                               // For products with sizes, check if all sizes are out of stock
-                              const totalStock = Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
+                              const totalStock = product.sizes ? Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0) : 0;
                               isOutOfStock = totalStock <= 0;
                             } else {
                               // For products without sizes, check prod_quantity
@@ -790,7 +790,7 @@ useEffect(() => {
                           disabled={(() => {
                             const hasSizes = product.sizes && typeof product.sizes === 'object' && Object.keys(product.sizes).length > 0;
                             if (hasSizes) {
-                              const totalStock = Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
+                              const totalStock = product.sizes ? Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0) : 0;
                               return totalStock <= 0;
                             }
                             return product.prod_quantity <= 0;
@@ -799,7 +799,7 @@ useEffect(() => {
                             (() => {
                               const hasSizes = product.sizes && typeof product.sizes === 'object' && Object.keys(product.sizes).length > 0;
                               if (hasSizes) {
-                                const totalStock = Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
+                                const totalStock = product.sizes ? Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0) : 0;
                                 return totalStock > 0;
                               }
                               return product.prod_quantity > 0;
@@ -812,7 +812,7 @@ useEffect(() => {
                             const hasSizes = product.sizes && typeof product.sizes === 'object' && Object.keys(product.sizes).length > 0;
                             let isOutOfStock = false;
                             if (hasSizes) {
-                              const totalStock = Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
+                              const totalStock = product.sizes ? Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0) : 0;
                               isOutOfStock = totalStock <= 0;
                             } else {
                               isOutOfStock = product.prod_quantity <= 0;
@@ -882,7 +882,7 @@ useEffect(() => {
                     <div key={item.cartItemId || item.id} className="p-3 border-b border-gray-50">
                       <div className="flex gap-2">
                         <img
-                          src={item.product.prod_images[0] || '/placeholder.jpg'}
+                          src={item.product.imagenames?.[0] || '/placeholder.jpg'}
                           alt={item.product.prod_name}
                           className="w-10 h-10 object-cover rounded"
                         />
@@ -907,7 +907,7 @@ useEffect(() => {
                 
                 <div className="p-3">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-semibold text-sm">Total: ₹{cart.totalAmount.toFixed(2)}</span>
+                    <span className="font-semibold text-sm">Total: ₹{(cart.totalAmount || cart.totalPrice || 0).toFixed(2)}</span>
                   </div>
                   <button
                     onClick={() => navigate('/checkout')}

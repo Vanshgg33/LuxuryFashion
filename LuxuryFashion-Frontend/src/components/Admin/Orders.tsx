@@ -105,7 +105,7 @@ const Orders: React.FC = () => {
     if (searchTerm) {
       filtered = filtered.filter(order => 
         order.id.toString().includes(searchTerm) ||
-        order.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.user.name && order.user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         order.user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }

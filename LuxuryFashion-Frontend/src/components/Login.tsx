@@ -88,12 +88,27 @@ const ElegantLoginPage: React.FC = () => {
       }
       
       if (response && response.token) {
-        login(response.token, response.user || {
-          id: response.userId || '1',
-          email: formData.email,
-          firstName: response.firstName || 'User',
-          lastName: response.lastName || ''
-        });
+        // Extract user data from response
+        let userData;
+        if (response.user && typeof response.user === 'object' && response.user !== null) {
+          const user = response.user as { id?: string | number; email?: string; name?: string; firstName?: string; lastName?: string };
+          const name = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User';
+          const [firstName, ...lastNameParts] = name.split(' ');
+          userData = {
+            id: String(user.id || '1'),
+            email: user.email || formData.email,
+            firstName: user.firstName || firstName || 'User',
+            lastName: user.lastName || lastNameParts.join(' ') || ''
+          };
+        } else {
+          userData = {
+            id: '1',
+            email: formData.email,
+            firstName: 'User',
+            lastName: ''
+          };
+        }
+        login(response.token, userData);
         navigate('/');
       }
     } catch (error) {

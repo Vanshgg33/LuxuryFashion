@@ -3,28 +3,15 @@ import { useOutletContext } from 'react-router-dom';
 import {
   Users as UsersIcon,
   Search,
-  Filter,
   Edit,
-  Eye,
   UserX,
   UserCheck,
   X,
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import { fetchUsersApi, updateUserApi, deactivateUserApi } from '../../api/AdminApi';
+import { fetchUsersApi, updateUserApi, deactivateUserApi, type AdminUser } from '../../api/AdminApi';
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  phoneNumber?: string;
-  gender?: string;
-  role: string;
-  active: boolean;
-  createdAt: string;
-  dateOfBirth?: string;
-}
 
 interface UsersContextType {
   showNotification: (type: 'success' | 'error' | 'warning', message: string) => void;
@@ -32,15 +19,15 @@ interface UsersContextType {
 
 const Users: React.FC = () => {
   const { showNotification } = useOutletContext<UsersContextType>();
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState<{show: boolean, user: User | null}>({show: false, user: null});
+  const [showConfirmDialog, setShowConfirmDialog] = useState<{show: boolean, user: AdminUser | null}>({show: false, user: null});
 
   useEffect(() => {
     fetchUsers();
@@ -54,7 +41,7 @@ const Users: React.FC = () => {
     try {
       setLoading(true);
       const data = await fetchUsersApi();
-      setUsers(data);
+      setUsers(data as AdminUser[]);
     } catch (error) {
       showNotification('error', 'Failed to fetch users');
     } finally {
@@ -85,7 +72,7 @@ const Users: React.FC = () => {
     setFilteredUsers(filtered);
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: AdminUser) => {
     setEditingUser({...user});
     setShowEditModal(true);
   };
@@ -94,7 +81,7 @@ const Users: React.FC = () => {
     if (!editingUser) return;
 
     try {
-      await updateUserApi(editingUser.id, editingUser);
+      await updateUserApi(editingUser.id, editingUser as unknown as Record<string, unknown>);
       setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
       setShowEditModal(false);
       setEditingUser(null);
@@ -104,7 +91,7 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleToggleUserStatus = async (user: User) => {
+  const handleToggleUserStatus = async (user: AdminUser) => {
     try {
       await deactivateUserApi(user.id);
       setUsers(users.map(u => u.id === user.id ? {...u, active: !u.active} : u));

@@ -134,9 +134,21 @@ export const deleteGalleryImage = async (id: number): Promise<void> => {
   }
 };
 
-export const fetchUsersApi = async (): Promise<unknown[]> => {
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+  gender?: string;
+  role: string;
+  active: boolean;
+  createdAt: string;
+  dateOfBirth?: string;
+}
+
+export const fetchUsersApi = async (): Promise<AdminUser[]> => {
   try {
-    const response = await axios.get<unknown[]>(`${baseApiUrl}/admin-api/users`, {
+    const response = await axios.get<AdminUser[]>(`${baseApiUrl}/admin-api/users`, {
       headers: getAuthHeaders(),
     });
     return response.data;
@@ -182,9 +194,53 @@ export const deactivateUserApi = async (userId: number): Promise<unknown> => {
   }
 };
 
-export const fetchOrdersApi = async (): Promise<unknown> => {
+export interface AdminOrder {
+  id: number;
+  user: {
+    id: number;
+    username?: string;
+    name?: string;
+    email: string;
+    phoneNumber?: string;
+  };
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  };
+  items: Array<{
+    id: number;
+    product: {
+      prod_id: number;
+      prod_name: string;
+      prod_price: number;
+      selling_price: number;
+      prod_brand: string;
+      prod_category: string;
+      imageUrl?: string;
+    };
+    quantity: number;
+    price: number;
+  }>;
+  totalPrice: number;
+  orderDate: string;
+  status: string;
+  paymentStatus?: 'PENDING' | 'CAPTURED' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  paymentMethod?: string;
+  paymentBank?: string;
+  paymentWallet?: string;
+  paymentVpa?: string;
+  paidAt?: string;
+  paymentFailureReason?: string;
+}
+
+export const fetchOrdersApi = async (): Promise<AdminOrder[]> => {
   try {
-    const response = await axios.get(`${baseApiUrl}/api/orders/admin/all`, {
+    const response = await axios.get<AdminOrder[]>(`${baseApiUrl}/api/orders/admin/all`, {
       headers: getAuthHeaders(),
     });
     return response.data;
@@ -213,7 +269,7 @@ export const updateOrderStatusApi = async (orderId: number, status: string): Pro
   }
 };
 
-export const fetchAnalyticsApi = async (): Promise<{ orders: unknown; users: unknown[]; products: Productdto[] }> => {
+export const fetchAnalyticsApi = async (): Promise<{ orders: AdminOrder[]; users: unknown[]; products: Productdto[] }> => {
   try {
     const [orders, users, products] = await Promise.all([
       fetchOrdersApi(),

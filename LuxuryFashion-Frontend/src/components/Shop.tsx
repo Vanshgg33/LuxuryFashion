@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Star, ShoppingBag, Heart, X, Plus, Minus, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, ShoppingBag, Heart, X, Plus, Minus } from 'lucide-react';
 import { fetchGalleryImages, fetchProductsshop } from '../api/ProductApi';
 import type { Product } from '../api/base';
 import { Link, useNavigate } from 'react-router-dom';
@@ -158,7 +158,7 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
   
   // For products with sizes, check if all sizes are out of stock
   if (hasSizes) {
-    const totalStock = Object.values(product.sizes).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
+    const totalStock = product.sizes ? Object.values(product.sizes).reduce((sum: number, qty: number) => sum + (qty || 0), 0) : 0;
     if (totalStock <= 0) {
       setToast({ message: 'This product is out of stock', type: 'error' });
       return;
@@ -186,11 +186,12 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
     if (selectedProduct) {
       closeProductPreview();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to add to cart:', error);
+    const axiosError = error as { response?: { status?: number }; message?: string };
     
     // Handle 401 Unauthorized specifically
-    if (error.response?.status === 401 || error.message?.includes('Unauthorized') || error.message?.includes('JWT')) {
+    if (axiosError.response?.status === 401 || axiosError.message?.includes('Unauthorized') || axiosError.message?.includes('JWT')) {
       setToast({ 
         message: 'Your session has expired. Please login again.', 
         type: 'warning' 
@@ -202,7 +203,7 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
     }
     
     setToast({ 
-      message: error.message || 'Failed to add item to cart. Please try again.', 
+      message: axiosError.message || 'Failed to add item to cart. Please try again.', 
       type: 'error' 
     });
   }
@@ -281,7 +282,7 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
             return;
         }
 
-        let sorted = [...products];
+        const sorted = [...products];
         
         switch (sortBy) {
             case 'price-low':
@@ -713,7 +714,7 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
                                           }
                                         } else {
                                           // For products without sizes, check prod_quantity
-                                          isInStock = selectedProduct.quantity > 0;
+                                          isInStock = (selectedProduct.quantity || 0) > 0;
                                         }
                                         
                                         // Button is disabled if no size selected OR out of stock
@@ -1161,7 +1162,7 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
                     
                     <div className="p-3">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-semibold text-sm">Total: ₹{cart.totalAmount.toFixed(2)}</span>
+                        <span className="font-semibold text-sm">Total: ₹{(cart.totalAmount || cart.totalPrice || 0).toFixed(2)}</span>
                       </div>
                       <button
                         onClick={() => navigate('/checkout')}

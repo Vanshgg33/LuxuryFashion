@@ -165,7 +165,6 @@ const OrderHistory: React.FC = () => {
                         <img
                           src={
                             (item.product?.prod_images && item.product.prod_images.length > 0 && item.product.prod_images[0]) ||
-                            (item.product?.image) ||
                             '/placeholder.jpg'
                           }
                           alt={item.product?.prod_name || 'Product'}

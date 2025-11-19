@@ -9,7 +9,7 @@ import {
   RefreshCw,
   Download
 } from 'lucide-react';
-import { fetchAnalyticsApi } from '../../api/AdminApi';
+import { fetchAnalyticsApi, type AdminOrder } from '../../api/AdminApi';
 import RevenueChart from './Charts/RevenueChart';
 import StatusChart from './Charts/StatusChart';
 
@@ -47,11 +47,11 @@ const Analytics: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const { orders, users, products } = await fetchAnalyticsApi();
+      const { orders, users } = await fetchAnalyticsApi();
       
       const totalOrders = orders.length;
-      const totalRevenue = orders.reduce((sum: number, order: any) => sum + (order.totalPrice || 0), 0);
-      const pendingOrders = orders.filter((order: any) => order.status === 'PENDING').length;
+      const totalRevenue = orders.reduce((sum: number, order: AdminOrder) => sum + (order.totalPrice || 0), 0);
+      const pendingOrders = orders.filter((order: AdminOrder) => order.status === 'PENDING').length;
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
       
       setStats({
@@ -80,7 +80,7 @@ const Analytics: React.FC = () => {
     }
   };
 
-  const processMonthlyRevenue = (orders: any[]) => {
+  const processMonthlyRevenue = (orders: AdminOrder[]) => {
     const monthlyData: { [key: string]: number } = {};
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
@@ -96,7 +96,7 @@ const Analytics: React.FC = () => {
     })).filter(item => item.revenue > 0);
   };
 
-  const processStatusDistribution = (orders: any[]) => {
+  const processStatusDistribution = (orders: AdminOrder[]) => {
     const statusColors: { [key: string]: string } = {
       'DELIVERED': '#10b981',
       'SHIPPED': '#f59e0b',
@@ -117,11 +117,11 @@ const Analytics: React.FC = () => {
     }));
   };
 
-  const processTopProducts = (orders: any[]) => {
+  const processTopProducts = (orders: AdminOrder[]) => {
     const productCounts: { [key: string]: number } = {};
     
     orders.forEach(order => {
-      order.items?.forEach((item: any) => {
+      order.items?.forEach((item) => {
         const productName = item.product?.prod_name || 'Unknown Product';
         productCounts[productName] = (productCounts[productName] || 0) + item.quantity;
       });
@@ -256,7 +256,7 @@ const Analytics: React.FC = () => {
         <div className="bg-white rounded-lg p-6 shadow-lg">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Top Selling Products</h3>
           <div className="space-y-3">
-            {topProducts.length > 0 ? topProducts.map((product, index) => {
+            {topProducts.length > 0 ? topProducts.map((product) => {
               const maxSold = Math.max(...topProducts.map(p => p.sold));
               return (
                 <div key={product.name} className="flex items-center justify-between p-3 bg-gray-50 rounded">

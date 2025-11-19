@@ -21,12 +21,32 @@ const RAZORPAY_KEY_ID = 'rzp_test_RdcgBs8hLIAVc7';
 
 const Checkout: React.FC = () => {
   const { cart, refreshCart, updateQuantity, removeItem } = useCart();
-  const { isAuthenticated, user, isLoading: authLoading, logout } = useAuth();  
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();  
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [formData, setFormData] = useState({
+  interface FormData {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    phoneNumber: string;
+  }
+
+  interface UserProfile {
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      country?: string;
+    };
+    phoneNumber?: string;
+  }
+
+  const [formData, setFormData] = useState<FormData>({
     street: '',
     city: '',
     state: '',
@@ -34,8 +54,8 @@ const Checkout: React.FC = () => {
     country: 'USA',
     phoneNumber: ''
   });
-  const [validationErrors, setValidationErrors] = useState({});
-  const [userProfile, setUserProfile] = useState(null);
+  const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [razorpayReady, setRazorpayReady] = useState(false);
@@ -338,7 +358,7 @@ const Checkout: React.FC = () => {
   };
 
   const validateForm = () => {
-    const errors = {};
+    const errors: Partial<Record<keyof FormData, string>> = {};
     // Only validate address fields if user doesn't have a complete profile
     if (!hasCompleteProfile()) {
       if (!formData.street.trim()) errors.street = 'Street address is required';
@@ -352,7 +372,7 @@ const Checkout: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (validationErrors[field]) {
       setValidationErrors(prev => ({ ...prev, [field]: '' }));
@@ -466,7 +486,7 @@ const Checkout: React.FC = () => {
 
     logger.info('Starting payment flow - Payment gateway will open first, APIs called only after success', {
       cartItems: cart.items.length,
-      totalAmount: cart.totalAmount
+      totalAmount: cart.totalAmount || cart.totalPrice || 0
     });
 
     setLoading(true);
@@ -477,17 +497,17 @@ const Checkout: React.FC = () => {
       // If user has a saved address, use it; otherwise use form data
       let orderData;
       
-      if (hasCompleteProfile()) {
+      if (hasCompleteProfile() && userProfile) {
         // User has saved address - use it
         orderData = {
           address: {
-            street: userProfile.address.street,
-            city: userProfile.address.city,
-            state: userProfile.address.state,
-            zipCode: userProfile.address.zipCode,
-            country: userProfile.address.country
+            street: userProfile.address?.street || '',
+            city: userProfile.address?.city || '',
+            state: userProfile.address?.state || '',
+            zipCode: userProfile.address?.zipCode || '',
+            country: userProfile.address?.country || ''
           },
-          phoneNumber: userProfile.phoneNumber
+          phoneNumber: userProfile.phoneNumber || ''
         };
       } else {
         // User doesn't have saved address - use form data and optionally save it
@@ -513,7 +533,7 @@ const Checkout: React.FC = () => {
       }
 
       // Calculate total amount with tax
-      const totalAmount = (cart.totalAmount * 1.1).toFixed(2);
+      const totalAmount = ((cart.totalAmount || cart.totalPrice || 0) * 1.1).toFixed(2);
       const amountInPaise = Math.round(parseFloat(totalAmount) * 100); // Convert to paise
 
       // Check if Razorpay is loaded - wait a bit if not ready
@@ -1254,12 +1274,12 @@ const Checkout: React.FC = () => {
                           setSuccessMessage(''); // Clear any success messages
                           // Pre-fill form with saved address
                           setFormData({
-                            street: userProfile.address.street || '',
-                            city: userProfile.address.city || '',
-                            state: userProfile.address.state || '',
-                            zipCode: userProfile.address.zipCode || '',
-                            country: userProfile.address.country || 'USA',
-                            phoneNumber: userProfile.phoneNumber || ''
+                            street: userProfile?.address?.street || '',
+                            city: userProfile?.address?.city || '',
+                            state: userProfile?.address?.state || '',
+                            zipCode: userProfile?.address?.zipCode || '',
+                            country: userProfile?.address?.country || 'USA',
+                            phoneNumber: userProfile?.phoneNumber || ''
                           });
                         }}
                         className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto justify-center touch-manipulation"
@@ -1277,13 +1297,13 @@ const Checkout: React.FC = () => {
                         </div>
                         <div className="flex-1">
                           <div className="space-y-2">
-                            <p className="text-gray-900 font-semibold text-lg">{userProfile.address.street}</p>
+                            <p className="text-gray-900 font-semibold text-lg">{userProfile?.address?.street}</p>
                             <p className="text-gray-700">
-                              {userProfile.address.city}, {userProfile.address.state} {userProfile.address.zipCode}
+                              {userProfile?.address?.city}, {userProfile?.address?.state} {userProfile?.address?.zipCode}
                             </p>
-                            <p className="text-gray-700">{userProfile.address.country}</p>
+                            <p className="text-gray-700">{userProfile?.address?.country}</p>
                             <p className="text-gray-700 mt-3 pt-3 border-t border-gray-200">
-                              <span className="font-semibold">Phone:</span> {userProfile.phoneNumber}
+                              <span className="font-semibold">Phone:</span> {userProfile?.phoneNumber}
                             </p>
                           </div>
                         </div>
@@ -1543,7 +1563,7 @@ const Checkout: React.FC = () => {
                   <div className="space-y-4 mb-6">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700">Subtotal ({cart.totalItems} items)</span>
-                      <span className="font-semibold text-lg">₹{cart.totalAmount.toFixed(2)}</span>
+                      <span className="font-semibold text-lg">₹{(cart.totalAmount || cart.totalPrice || 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700">Shipping</span>
@@ -1551,12 +1571,12 @@ const Checkout: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700">Tax</span>
-                      <span className="font-semibold">₹{(cart.totalAmount * 0.1).toFixed(2)}</span>
+                      <span className="font-semibold">₹{((cart.totalAmount || cart.totalPrice || 0) * 0.1).toFixed(2)}</span>
                     </div>
                     <div className="border-t pt-4">
                       <div className="flex justify-between items-center">
                         <span className="text-xl font-bold text-gray-900">Total</span>
-                        <span className="text-2xl font-bold text-gray-900">₹{(cart.totalAmount * 1.1).toFixed(2)}</span>
+                        <span className="text-2xl font-bold text-gray-900">₹{((cart.totalAmount || cart.totalPrice || 0) * 1.1).toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
