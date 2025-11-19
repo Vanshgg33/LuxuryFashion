@@ -1,29 +1,47 @@
-FROM openjdk:17-jdk-slim
+# Multi-stage build for smaller image
+FROM openjdk:17-jdk-slim AS builder
 
 WORKDIR /app
 
 # Copy Maven wrapper and pom.xml
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
+RUN chmod +x ./mvnw
 
 # Download dependencies
 RUN ./mvnw dependency:go-offline
 
-# Copy source code
+# Copy source code and build
 COPY src ./src
-
-# Build application
 RUN ./mvnw clean package -DskipTests
 
-# Create uploads directory
-RUN mkdir -p /app/uploads/products /app/uploads/profiles
+# Production stage
+FROM openjdk:17-jre-slim
+
+WORKDIR /app
+
+# Create necessary directories
+RUN mkdir -p /app/uploads/products /app/uploads/profiles /app/config
+
+# Copy built JAR from builder stage
+COPY --from=builder /app/target/JwtDemo-0.0.1-SNAPSHOT.jar app.jar
+
+# Copy GCS service account key (optional)
+COPY service-account-key.json* /app/config/
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# Environment variables
+ENV ENVIRONMENT=production
+ENV PORT=8081
+ENV GOOGLE_APPLICATION_CREDENTIALS=/app/config/service-account-key.json
+ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
 # Expose port
-EXPOSE 8080
-
-# Set environment variables
-ENV ENVIRONMENT=production
-ENV PORT=8080
+EXPOSE 8081
 
 # Run application
-CMD ["java", "-jar", "target/JwtDemo-0.0.1-SNAPSHOT.jar"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
