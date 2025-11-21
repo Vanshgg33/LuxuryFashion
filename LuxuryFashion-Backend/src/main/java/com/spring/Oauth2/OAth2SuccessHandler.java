@@ -44,6 +44,12 @@ public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
     @Value("${app.frontend.url}")
     private String frontendUrl; // e.g. http://localhost:5173
 
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
+
+    @Value("${app.cookie.same-site:Lax}")
+    private String cookieSameSite;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
                                         HttpServletResponse response,
@@ -95,13 +101,12 @@ public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
         // Generate JWT
         String token = jwtUtil.generateToken(userShow.getUsername());
 
-        // Secure cookie - match AuthController settings
-        // Set domain to null for localhost, or set it explicitly for production
+        // Secure cookie - configured via properties (matches AuthController)
         ResponseCookie cookie = ResponseCookie.from("authToken", token)
                 .httpOnly(true)
-                .secure(false)          // Set to false for localhost, true for production
+                .secure(cookieSecure)   // Dynamic: true for HTTPS, false for HTTP
                 .path("/")
-                .sameSite("Lax")        // Changed from None to Lax
+                .sameSite(cookieSameSite)  // Dynamic: Lax for dev, None for production
                 .maxAge(5 * 24 * 60 * 60)   // 5 days to match JWT token expiration
                 .build();
 

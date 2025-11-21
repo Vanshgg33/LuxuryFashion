@@ -10,6 +10,7 @@ import com.spring.repo.UserRepository;
 import com.spring.service.CartService;
 import com.spring.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -44,6 +45,12 @@ public class AuthController {
     @Autowired
     private CartService cartService;
 
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
+
+    @Value("${app.cookie.same-site:Lax}")
+    private String cookieSameSite;
+
     // --- LOGIN ---
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
@@ -61,12 +68,12 @@ public class AuthController {
         UserShow userShow = new UserShow(user);
         String token = jwtUtil.generateToken(userShow.getUsername());
 
-        // Secure cookie
+        // Secure cookie - configured via properties
         ResponseCookie cookie = ResponseCookie.from("authToken", token)
                 .httpOnly(true)
-                .secure(false)          // Set to false for localhost
+                .secure(cookieSecure)   // Dynamic: true for HTTPS, false for HTTP
                 .path("/")
-                .sameSite("Lax")        // Changed from None to Lax
+                .sameSite(cookieSameSite)  // Dynamic: Lax for dev, None for production
                 .maxAge(5 * 24 * 60 * 60)   // 5 days to match JWT token expiration
                 .build();
 
@@ -179,12 +186,12 @@ public class AuthController {
             response.put("user", userShow);
             response.put("cart", cart);
             
-            // Set cookie
+            // Set cookie - configured via properties
             ResponseCookie cookie = ResponseCookie.from("authToken", token)
                     .httpOnly(true)
-                    .secure(false)
+                    .secure(cookieSecure)   // Dynamic: true for HTTPS, false for HTTP
                     .path("/")
-                    .sameSite("Lax")
+                    .sameSite(cookieSameSite)  // Dynamic: Lax for dev, None for production
                     .maxAge(5 * 24 * 60 * 60)
                     .build();
 
@@ -248,12 +255,12 @@ public class AuthController {
             response.put("user", userShow);
             response.put("cart", cart);
             
-            // Set cookie
+            // Set cookie - configured via properties
             ResponseCookie cookie = ResponseCookie.from("authToken", token)
                     .httpOnly(true)
-                    .secure(false)
+                    .secure(cookieSecure)   // Dynamic: true for HTTPS, false for HTTP
                     .path("/")
-                    .sameSite("Lax")
+                    .sameSite(cookieSameSite)  // Dynamic: Lax for dev, None for production
                     .maxAge(5 * 24 * 60 * 60)
                     .build();
 

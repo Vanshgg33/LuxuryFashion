@@ -87,10 +87,23 @@ private String allowedOrigins;
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("https://www.rangeelaboutique.com", "http://localhost:5173", frontendUrl));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        
+        // For development: allow all origins (REMOVE IN PRODUCTION)
+        config.setAllowedOriginPatterns(List.of("*"));
+        
+        // Parse allowed origins from environment variable or use defaults
+        String[] origins = allowedOrigins.split(",");
+        config.setAllowedOrigins(List.of(origins));
+        
+        // Also add the configured frontend URL
+        if (frontendUrl != null && !frontendUrl.isEmpty()) {
+            config.addAllowedOrigin(frontendUrl);
+        }
+        
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L); // Cache preflight response for 1 hour
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
