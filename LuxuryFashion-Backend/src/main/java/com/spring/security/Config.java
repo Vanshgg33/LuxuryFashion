@@ -25,6 +25,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -45,7 +46,7 @@ public class Config {
 @Value("${app.frontend.url}")
 private String frontendUrl;
 
-@Value("${ALLOWED_ORIGINS:https://www.rangeelaboutique.com,http://localhost:5173}")
+@Value("${app.cors.allowed-origins:http://localhost:5173,https://www.rangeelaboutique.com}")
 private String allowedOrigins;
 
     @Bean
@@ -88,22 +89,45 @@ private String allowedOrigins;
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         
-        // For development: allow all origins (REMOVE IN PRODUCTION)
-        config.setAllowedOriginPatterns(List.of("*"));
-        
         // Parse allowed origins from environment variable or use defaults
         String[] origins = allowedOrigins.split(",");
-        config.setAllowedOrigins(List.of(origins));
         
-        // Also add the configured frontend URL
-        if (frontendUrl != null && !frontendUrl.isEmpty()) {
-            config.addAllowedOrigin(frontendUrl);
+        // Build list of allowed origins
+        List<String> allowedOriginsList = new ArrayList<>();
+        
+        // Add origins from environment variable
+        for (String origin : origins) {
+            String trimmed = origin.trim();
+            if (!trimmed.isEmpty()) {
+                allowedOriginsList.add(trimmed);
+            }
         }
         
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        // Also add the configured frontend URL if not already present
+        if (frontendUrl != null && !frontendUrl.isEmpty()) {
+            String trimmedFrontendUrl = frontendUrl.trim();
+            if (!allowedOriginsList.contains(trimmedFrontendUrl)) {
+                allowedOriginsList.add(trimmedFrontendUrl);
+            }
+        }
+        
+        // IMPORTANT: When allowCredentials is true, you CANNOT use wildcard "*" 
+        // You must specify exact origins
+        config.setAllowedOrigins(allowedOriginsList);
+        
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+        config.setAllowCredentials(true); // Required for cookies and auth headers
+        config.setExposedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "accept", "Origin", 
+                                         "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         config.setMaxAge(3600L); // Cache preflight response for 1 hour
+
+        // Log CORS configuration for debugging
+        System.out.println("=== CORS Configuration ===");
+        System.out.println("Frontend URL: " + frontendUrl);
+        System.out.println("Allowed Origins: " + allowedOriginsList);
+        System.out.println("Allow Credentials: " + config.getAllowCredentials());
+        System.out.println("==========================");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
