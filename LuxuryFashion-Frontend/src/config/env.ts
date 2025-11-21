@@ -16,7 +16,12 @@ function getEnvVar(key: string, defaultValue?: string): string {
   if (!value && !defaultValue) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
-  return value || defaultValue || '';
+  const result = value || defaultValue || '';
+  // Ensure HTTPS if it's a URL
+  if (result && result.startsWith('http://') && !result.includes('localhost')) {
+    console.warn(`⚠️ Warning: ${key} is using HTTP instead of HTTPS: ${result}`);
+  }
+  return result;
 }
 
 export const config: EnvConfig = {
