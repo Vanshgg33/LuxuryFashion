@@ -29,6 +29,12 @@ export const config: EnvConfig = {
   appName: getEnvVar('VITE_APP_NAME', 'Luxury Fashion'),
 };
 
+// Debug: Log the API URL being used (only in development)
+if (import.meta.env.DEV) {
+  console.log('🔧 Backend API URL:', config.apiUrl);
+  console.log('🔧 Environment VITE_API_URL:', import.meta.env.VITE_API_URL);
+}
+
 
 
 
