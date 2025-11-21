@@ -45,7 +45,7 @@ public class Config {
 @Value("${app.frontend.url}")
 private String frontendUrl;
 
-@Value("${ALLOWED_ORIGINS:https://rangeelaboutique.com,http://localhost:5173}")
+@Value("${ALLOWED_ORIGINS:https://www.rangeelaboutique.com,http://localhost:5173}")
 private String allowedOrigins;
 
     @Bean
