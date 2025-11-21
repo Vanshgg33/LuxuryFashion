@@ -1166,7 +1166,7 @@ const Checkout: React.FC = () => {
                                 item.product.imagenames?.[0] 
                                   ? (item.product.imagenames[0].startsWith('http') || item.product.imagenames[0].startsWith('data:')
                                       ? item.product.imagenames[0]
-                                      : `http://localhost:8081/uploads/${item.product.imagenames[0]}`)
+                                      : `${baseApiUrl}/uploads/${item.product.imagenames[0]}`)
                                   : '/placeholder.jpg'
                               }
                               alt={item.product.prod_name}

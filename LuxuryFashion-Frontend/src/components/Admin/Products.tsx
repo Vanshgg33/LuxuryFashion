@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { addProductApi, deleteProductApi, fetchProductsApi, updateProductApi } from '../../api/AdminApi';
 import type { Productdto } from '../../api/base';
+import { baseApiUrl } from '../../api/base';
 
 // Data URI placeholder images (no external requests needed)
 const PLACEHOLDER_IMAGE_48 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjZTZlOGViIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzljOWFhOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
@@ -746,7 +747,7 @@ const handleDeleteProduct = async (id: number) => {
         {existingImages.map((img, index) => (
           <div key={index} className="relative">
             <img
-              src={`http://localhost:8081/uploads/${img}`}
+              src={`${baseApiUrl}/uploads/${img}`}
               alt={`Image ${index + 1}`}
               className="w-20 h-20 object-cover rounded border"
             />
