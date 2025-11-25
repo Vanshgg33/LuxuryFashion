@@ -755,10 +755,9 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
                 </div>
             )}
 
-     <main className="pt-0">
   {/* Don't render main content until products are loaded */}
   {!isLoading && !isLoadingProducts && (
-    <>
+    <main className="pt-0">
   {/* Hero Carousel - Limeroad Style (Mobile Responsive) with Animations */}
   <section
     ref={heroRef}
@@ -1084,8 +1083,7 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
                         )}
                     </div>
                 </section>
-            </main>
-    </>
+    </main>
   )}
 
             {/* Toast Notifications */}
