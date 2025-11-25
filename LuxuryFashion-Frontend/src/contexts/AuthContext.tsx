@@ -90,8 +90,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const checkAuth = async () => {
-    setIsLoading(true);
-    
     // Check for token in localStorage first
     let token = localStorage.getItem('authToken');
     
@@ -108,22 +106,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     logger.debug('Checking auth, token exists', { hasToken: !!token, tokenLength: token?.length });
     
-    if (!token) {
+    // Restore user from localStorage immediately (optimistic restore) - don't block render
+    const storedUser = loadUserFromStorage();
+    if (storedUser) {
+      logger.debug('Restoring user from localStorage', { userId: storedUser.id, email: storedUser.email });
+      setUser(storedUser);
+      setIsLoading(false); // Allow UI to render immediately with cached user
+    } else if (!token) {
       logger.debug('No token found, user not authenticated');
       // Clear any stale user data
       localStorage.removeItem('userData');
       setIsLoading(false);
       return;
+    } else {
+      // Token exists but no stored user - still allow render, validate in background
+      setIsLoading(false);
     }
 
-    // Restore user from localStorage immediately (optimistic restore)
-    const storedUser = loadUserFromStorage();
-    if (storedUser) {
-      logger.debug('Restoring user from localStorage', { userId: storedUser.id, email: storedUser.email });
-      setUser(storedUser);
+    // Validate token with backend in the background (non-blocking)
+    if (!token) {
+      return;
     }
 
-    // Validate token with backend in the background
     try {
       logger.debug('Validating token with backend');
       const response: ValidateTokenResponse = await validateToken();
@@ -182,8 +186,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           logger.debug('Token validation error (non-auth), keeping user logged in with stored data', error);
         }
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 

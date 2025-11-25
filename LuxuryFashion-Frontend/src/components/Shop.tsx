@@ -44,10 +44,23 @@ const FashionHomepage: React.FC<FashionHomepageProps> = () => {
 ];
 
 
+// Parallelize API calls for better performance
 useEffect(() => {
-  const loadGalleryImages = async () => {
+  const loadInitialData = async () => {
     try {
-      const apiImages = await fetchGalleryImages(); // returns Gallerydata[]
+      // Load both gallery images and products in parallel
+      const [apiImages, products] = await Promise.all([
+        fetchGalleryImages().catch((error) => {
+          console.error("Error loading gallery images, using fallback:", error);
+          return [];
+        }),
+        fetchProductsshop().catch((error) => {
+          console.error("Error fetching products:", error);
+          return [];
+        })
+      ]);
+
+      // Process gallery images
       const urls = apiImages
         ?.map((img) => img.imageUrl)
         .filter((url): url is string => !!url && url.trim() !== "") ?? [];
@@ -63,43 +76,28 @@ useEffect(() => {
         // Only backend
         setGalleryImages(urls);
       }
+
+      // Process products - CRITICAL: Don't hide loading until products are loaded
+      if (products.length > 0) {
+        setProducts(products);
+        setFilteredProducts(products);
+      }
+
+      // Only set loading to false AFTER products are loaded
+      // This ensures page doesn't show empty state while products are loading
+      setIsLoadingProducts(false);
+      setIsLoading(false); // Hide main loading screen only after products are ready
     } catch (error) {
-      console.error("Error loading gallery images, using fallback:", error);
+      console.error("Error loading initial data:", error);
+      // Set fallback values
       setGalleryImages(fallbackHeroImages);
-    } finally {
-      setIsLoading(false);
+      setIsLoadingProducts(false);
+      setIsLoading(false); // Still hide loading even on error to show error state
     }
   };
 
-  loadGalleryImages();
+  loadInitialData();
 }, []);
-
-
-
-const fetchProducts = async () => {
-  try {
-    setIsLoadingProducts(true);
-    const products = await fetchProductsshop(); 
-    // Show all available products - no limits
-    setProducts(products);
-    setFilteredProducts(products);
-  } catch (error) {
-    console.error("Error fetching products:", error);
-  } finally {
-    setIsLoadingProducts(false);
-  }
-};
-
-    useEffect(() => {
-        const loadingTimer = setTimeout(() => setIsLoading(false), 2000);
-
-        // Fetch products on component mount
-        fetchProducts();
-
-        return () => {
-            clearTimeout(loadingTimer);
-        };
-    }, []);
 
 useEffect(() => {
   if (!isAutoplay || galleryImages.length === 0) return;
@@ -511,8 +509,8 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
         }
       `}</style>
 
-            {/* Enhanced Loading Screen with Animations */}
-            {isLoading && (
+            {/* Enhanced Loading Screen with Animations - Show until products are loaded */}
+            {(isLoading || isLoadingProducts) && (
                 <div className="fixed inset-0 bg-white flex items-center justify-center z-50 animate-fade-in">
                     <div className="text-center space-y-6">
                         <div className="relative">
@@ -524,7 +522,7 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
                                 Luxury Fashion
                             </div>
                             <div className="text-gray-600 text-sm animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                                Loading your style...
+                                {isLoadingProducts ? 'Loading products...' : 'Loading your style...'}
                             </div>
                         </div>
                     </div>
@@ -758,6 +756,9 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
             )}
 
      <main className="pt-0">
+  {/* Don't render main content until products are loaded */}
+  {!isLoading && !isLoadingProducts && (
+    <>
   {/* Hero Carousel - Limeroad Style (Mobile Responsive) with Animations */}
   <section
     ref={heroRef}
@@ -1083,8 +1084,9 @@ const handleAddToCart = async (product: Product, qty: number = 1, size?: string)
                         )}
                     </div>
                 </section>
-
             </main>
+    </>
+  )}
 
             {/* Toast Notifications */}
             {toast && (

@@ -1,8 +1,16 @@
 
 import { baseApiUrl, type BackendProduct, type Gallerydata , type Product} from "./base";
 import { logger } from '../utils/logger';
+import { apiCache, CACHE_KEYS } from '../utils/apiCache';
 
 export async function fetchProductsshop(): Promise<Product[]> {
+  // Check cache first
+  const cached = apiCache.get<Product[]>(CACHE_KEYS.PRODUCTS_SHOP);
+  if (cached) {
+    logger.debug('Returning cached products');
+    return cached;
+  }
+
   try {
     const response = await fetch(`${baseApiUrl}/luxuryfashion/fetch-products-shop`, {
       method: "GET",
@@ -38,6 +46,10 @@ export async function fetchProductsshop(): Promise<Product[]> {
       inStock: product.prodStatus == 'ACTIVE' && (product.sizes ? Object.values(product.sizes).some(qty => qty > 0) : product.prod_quantity > 0), 
       prodStatus: product.prodStatus
     }));
+    
+    // Cache the transformed products for 5 minutes
+    apiCache.set(CACHE_KEYS.PRODUCTS_SHOP, transformedProducts, 5 * 60 * 1000);
+    
     return transformedProducts;
   } catch (error) {
     logger.error("Error fetching products", error);
@@ -48,6 +60,13 @@ export async function fetchProductsshop(): Promise<Product[]> {
 
 
 export async function fetchGalleryImages(): Promise<Gallerydata[]> {
+  // Check cache first
+  const cached = apiCache.get<Gallerydata[]>(CACHE_KEYS.GALLERY_IMAGES);
+  if (cached) {
+    logger.debug('Returning cached gallery images');
+    return cached;
+  }
+
   try {
     const response = await fetch(`${baseApiUrl}/luxuryfashion/fetch-gallery`, {
       method: "GET",
@@ -61,7 +80,12 @@ export async function fetchGalleryImages(): Promise<Gallerydata[]> {
       throw new Error(`Failed to fetch gallery images: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json(); 
+    const data = await response.json();
+    
+    // Cache gallery images for 10 minutes (they change less frequently)
+    apiCache.set(CACHE_KEYS.GALLERY_IMAGES, data, 10 * 60 * 1000);
+    
+    return data; 
   } catch (error) {
     logger.error("Error fetching gallery images", error);
     throw error;
@@ -69,6 +93,13 @@ export async function fetchGalleryImages(): Promise<Gallerydata[]> {
 }
 
 export async function fetchProductsall(): Promise<BackendProduct[]> {
+  // Check cache first
+  const cached = apiCache.get<BackendProduct[]>(CACHE_KEYS.PRODUCTS_ALL);
+  if (cached) {
+    logger.debug('Returning cached all products');
+    return cached;
+  }
+
   try {
     const url = `${baseApiUrl}/luxuryfashion/products`;
 
@@ -81,7 +112,12 @@ export async function fetchProductsall(): Promise<BackendProduct[]> {
       throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Cache all products for 5 minutes
+    apiCache.set(CACHE_KEYS.PRODUCTS_ALL, data, 5 * 60 * 1000);
+    
+    return data;
   } catch (error) {
     logger.error("Error fetching products", error);
     throw error;

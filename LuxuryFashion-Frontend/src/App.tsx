@@ -22,6 +22,8 @@ import PrivacyPolicy from "./components/PrivacyPolicy.tsx";
 import TermsOfService from "./components/TermsOfService.tsx";
 import RefundPolicy from "./components/RefundPolicy.tsx";
 import CookiePolicy from "./components/CookiePolicy.tsx";
+import ContactUs from "./components/ContactUs.tsx";
+import ShippingPolicy from "./components/ShippingPolicy.tsx";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -48,6 +50,8 @@ function App() {
                         <Route path="/terms-of-service" element={<TermsOfService />} />
                         <Route path="/refund-policy" element={<RefundPolicy />} />
                         <Route path="/cookie-policy" element={<CookiePolicy />} />
+                        <Route path="/contact-us" element={<ContactUs />} />
+                        <Route path="/shipping-policy" element={<ShippingPolicy />} />
                     </Route>
 
                     {/* Routes WITHOUT Header + Footer */}

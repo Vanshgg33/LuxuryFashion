@@ -108,7 +108,11 @@ const ElegantLoginPage: React.FC = () => {
             lastName: ''
           };
         }
+        // Update auth context
         login(response.token, userData);
+        
+        // Navigate immediately - cart will be fetched automatically by CartContext
+        // This provides better UX as user sees content faster
         navigate('/');
       }
     } catch (error) {

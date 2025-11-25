@@ -16,11 +16,14 @@ function getEnvVar(key: string, defaultValue?: string): string {
   if (!value && !defaultValue) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
-  const result = value || defaultValue || '';
-  // Ensure HTTPS if it's a URL
-  if (result && result.startsWith('http://') && !result.includes('localhost')) {
-    console.warn(`⚠️ Warning: ${key} is using HTTP instead of HTTPS: ${result}`);
+  let result = value || defaultValue || '';
+  
+  // Force HTTPS in production for API URLs (security requirement)
+  if (import.meta.env.PROD && result.startsWith('http://') && !result.includes('localhost')) {
+    console.warn(`⚠️ Warning: ${key} was using HTTP, forcing HTTPS for production`);
+    result = result.replace('http://', 'https://');
   }
+  
   return result;
 }
 
@@ -34,11 +37,11 @@ export const config: EnvConfig = {
   appName: getEnvVar('VITE_APP_NAME', 'Luxury Fashion'),
 };
 
-// Debug: Log the API URL being used (only in development)
-if (import.meta.env.DEV) {
-  console.log('🔧 Backend API URL:', config.apiUrl);
-  console.log('🔧 Environment VITE_API_URL:', import.meta.env.VITE_API_URL);
-}
+// Debug: Log the API URL being used (both development and production)
+console.log('🔧 Backend API URL:', config.apiUrl);
+console.log('🔧 Environment VITE_API_URL:', import.meta.env.VITE_API_URL);
+console.log('🔧 Is Production:', config.isProduction);
+console.log('🔧 Is Development:', config.isDevelopment);
 
 
 

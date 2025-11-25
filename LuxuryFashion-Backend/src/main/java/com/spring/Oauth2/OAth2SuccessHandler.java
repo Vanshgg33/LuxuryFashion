@@ -116,7 +116,7 @@ public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
         String encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8);
         
         // Redirect to frontend with token in URL (frontend will extract and call /auth/oauth/user)
-        String redirectUrl = frontendUrl + "oauth/callback?token=" + encodedToken + "&email=" +
+        String redirectUrl = frontendUrl + "/oauth/callback?token=" + encodedToken + "&email=" +
                            URLEncoder.encode(email, StandardCharsets.UTF_8);
         
         System.out.println("OAuth2 Success - Redirecting with token for user: " + email);

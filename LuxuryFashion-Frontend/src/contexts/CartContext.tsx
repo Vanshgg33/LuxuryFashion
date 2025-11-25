@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { getCart, addToCart as apiAddToCart, updateCartItem, removeCartItem, clearCart } from '../api/CartApi';
 import type { Cart } from '../api/base';
@@ -159,14 +159,19 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
-  // Only fetch cart when explicitly requested
-  // useEffect(() => {
-  //   if (isAuthenticated) {
-  //     refreshCart();
-  //   } else {
-  //     setCart(null);
-  //   }
-  // }, [isAuthenticated]);
+  // Automatically fetch cart when user becomes authenticated
+  // This ensures cart is loaded after login without blocking navigation
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Fetch cart in background - don't block UI
+      refreshCart().catch((error) => {
+        // Silently handle errors - cart will be fetched when needed
+        logger.debug('Background cart fetch failed', error);
+      });
+    } else {
+      setCart(null);
+    }
+  }, [isAuthenticated, refreshCart]);
 
   const cartCount = cart?.totalItems || (cart?.items || []).reduce((sum: number, item) => sum + item.quantity, 0) || 0;
 

@@ -29,9 +29,9 @@ const Footer: React.FC = () => {
               <a href="#" className="block text-gray-400 hover:text-white transition-colors">
                 Press
               </a>
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors">
+              <Link to="/contact-us" className="block text-gray-400 hover:text-white transition-colors">
                 Contact Us
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -39,9 +39,9 @@ const Footer: React.FC = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-white text-base mb-4">Customer Service</h3>
             <div className="space-y-2 text-sm">
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors">
-                Shipping Information
-              </a>
+              <Link to="/shipping-policy" className="block text-gray-400 hover:text-white transition-colors">
+                Shipping Policy
+              </Link>
               <a href="#" className="block text-gray-400 hover:text-white transition-colors">
                 Returns & Exchanges
               </a>
@@ -94,6 +94,9 @@ const Footer: React.FC = () => {
               </Link>
               <Link to="/cookie-policy" className="block text-gray-400 hover:text-white transition-colors">
                 Cookie Policy
+              </Link>
+              <Link to="/shipping-policy" className="block text-gray-400 hover:text-white transition-colors">
+                Shipping Policy
               </Link>
             </div>
           </div>

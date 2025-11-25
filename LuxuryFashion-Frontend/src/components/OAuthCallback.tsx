@@ -84,28 +84,13 @@ const OAuthCallback: React.FC = () => {
         // Verify user is set in context
         logger.info('OAuth callback: User context updated', { userId: user.id, email: user.email });
 
+        // Cart will be automatically fetched by CartContext when isAuthenticated becomes true
+        // No need to manually refresh here - it happens in background
+
         // Show success message about checking email for password
         setSuccessMessage('Please check your email for your password.');
         setSuccess(true);
         setLoading(false);
-
-        // Update cart if available
-        if (cartData) {
-          // Cart will be refreshed automatically by CartContext when isAuthenticated becomes true
-          // But we can also set it directly if needed
-          setTimeout(() => {
-            refreshCart().catch(err => {
-              logger.warn('Failed to refresh cart after OAuth login', err);
-            });
-          }, 500);
-        } else {
-          // Refresh cart anyway to get empty cart or existing cart
-          setTimeout(() => {
-            refreshCart().catch(err => {
-              logger.warn('Failed to refresh cart after OAuth login', err);
-            });
-          }, 500);
-        }
 
         // Wait a moment to show success message, then redirect to home page
         logger.info('OAuth callback: Login successful, redirecting to home');
