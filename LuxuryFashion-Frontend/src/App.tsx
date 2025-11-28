@@ -1,80 +1,54 @@
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import MainLayout from "./MainLayout";
-import ProtectedPage from "./components/Helper.tsx";
-import Shop from "./components/Shop.tsx";
-import Home from "./components/Home.tsx";
-import Login from "./components/Login.tsx";
-import Register from "./components/Register.tsx";
-import Cart from "./components/Cart.tsx";
-import Checkout from "./components/Checkout.tsx";
-import OrderHistory from "./components/OrderHistory.tsx";
-import OrderConfirmation from "./components/OrderConfirmation.tsx";
-import AdminLayout from "./components/Admin/AdminLayout.tsx";
-import Dashboard from "./components/Admin/Dashboard.tsx";
-import Products from "./components/Admin/Products.tsx";
-import Gallery from "./components/Admin/Gallery.tsx";
-import Users from "./components/Admin/Users.tsx";
-import Orders from "./components/Admin/Orders.tsx";
-import Analytics from "./components/Admin/Analytics.tsx";
-import ProductDisplay from "./components/ProductDisplay.tsx";
-import OAuthCallback from "./components/OAuthCallback.tsx";
-import PrivacyPolicy from "./components/PrivacyPolicy.tsx";
-import TermsOfService from "./components/TermsOfService.tsx";
-import RefundPolicy from "./components/RefundPolicy.tsx";
-import CookiePolicy from "./components/CookiePolicy.tsx";
-import ContactUs from "./components/ContactUs.tsx";
-import ShippingPolicy from "./components/ShippingPolicy.tsx";
-import { AuthProvider } from "./contexts/AuthContext";
-import { CartProvider } from "./contexts/CartContext";
-import ErrorBoundary from "./components/ErrorBoundary";
+import { CartProvider } from "@/contexts/CartContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { Layout } from "@/components/Layout";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import Index from "./pages/Index";
+import Menu from "./pages/Menu";
+import ProductDetails from "./pages/ProductDetails";
+import Cart from "./pages/Cart";
+import Orders from "./pages/Orders";
+import Profile from "./pages/Profile";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminOrders from "./pages/admin/AdminOrders";
+import NotFound from "./pages/NotFound";
 
-function App() {
-    return (
-        <ErrorBoundary>
-            <AuthProvider>
-                <CartProvider>
-                    <BrowserRouter>
-                <Routes>
-                    {/* Routes with Header + Footer */}
-                    <Route element={<MainLayout />}>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/shop" element={<Shop />} />
-                        <Route path="/category/:category" element={<ProductDisplay />} />
-                        <Route path="/search/:query" element={<ProductDisplay />} />
-                        <Route path="/cart" element={<Cart />} />
-                        <Route path="/checkout" element={<Checkout />} />
-                        <Route path="/orders" element={<OrderHistory />} />
-                        <Route path="/order/:orderId" element={<OrderConfirmation />} />
-                        <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-                        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                        <Route path="/terms-of-service" element={<TermsOfService />} />
-                        <Route path="/refund-policy" element={<RefundPolicy />} />
-                        <Route path="/cookie-policy" element={<CookiePolicy />} />
-                        <Route path="/contact-us" element={<ContactUs />} />
-                        <Route path="/shipping-policy" element={<ShippingPolicy />} />
-                    </Route>
+const queryClient = new QueryClient();
 
-                    {/* Routes WITHOUT Header + Footer */}
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/oauth/callback" element={<OAuthCallback />} />
-                    <Route path="/owner" element={<ProtectedPage />} />
-
-                    {/* Admin section with its own layout */}
-                    <Route path="/admin" element={<AdminLayout />}>
-                        <Route index element={<Dashboard />} />
-                        <Route path="products" element={<Products />} />
-                        <Route path="users" element={<Users />} />
-                        <Route path="orders" element={<Orders />} />
-                        <Route path="analytics" element={<Analytics />} />
-                        <Route path="gallery" element={<Gallery />} />
-                    </Route>
-                </Routes>
-                </BrowserRouter>
-            </CartProvider>
-        </AuthProvider>
-        </ErrorBoundary>
-    );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <CartProvider>
+        <NotificationProvider>
+          <Toaster />
+          <Sonner position="top-center" />
+          <BrowserRouter>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/menu" element={<Menu />} />
+                <Route path="/product/:id" element={<ProductDetails />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/profile" element={<Profile />} />
+              </Route>
+              <Route element={<AdminLayout />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/orders" element={<AdminOrders />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </NotificationProvider>
+      </CartProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

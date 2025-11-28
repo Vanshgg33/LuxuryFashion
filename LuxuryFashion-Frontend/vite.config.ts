@@ -1,30 +1,18 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+import { componentTagger } from "lovable-tagger";
 
-// https://vite.dev/config/ 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  build: {
-    // Production optimizations
-    minify: 'esbuild', // Use esbuild (default, faster and doesn't require terser)
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['lucide-react'],
-        },
-      },
-    },
-    sourcemap: false, // Set to true if you need source maps in production
-    chunkSizeWarningLimit: 1000,
-  },
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
   server: {
-    port: 5173,
-    strictPort: false,
+    host: "::",
+    port: 8080,
   },
-  preview: {
-    port: 4173,
-    strictPort: false,
+  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
   },
-})
+}));
