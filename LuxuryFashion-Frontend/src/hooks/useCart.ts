@@ -11,6 +11,7 @@ export interface Order {
   total: number;
   date: string;
   status: "Delivered" | "Preparing" | "On the way";
+  couponCode?: string;
 }
 
 const CART_KEY = "foodie-cart";
@@ -72,7 +73,7 @@ export function useCart() {
 
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
-  const placeOrder = () => {
+  const placeOrder = (couponCode?: string) => {
     if (cartItems.length === 0) return;
 
     const newOrder: Order = {
@@ -87,6 +88,7 @@ export function useCart() {
         minute: "2-digit",
       }),
       status: "Preparing",
+      couponCode, // Store coupon code in order
     };
 
     setOrders((prev) => [newOrder, ...prev]);

@@ -1,13 +1,9 @@
 package com.spring.service;
 
-import com.razorpay.RazorpayClient;
-import com.razorpay.RazorpayException;
 import com.spring.model.*;
 import com.spring.notification.EmailNotificationService;
 import com.spring.notification.EmailTemplate;
 import com.spring.repo.*;
-import com.spring.util.CurrencyUtil;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,15 +13,9 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.hibernate.Hibernate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,14 +30,8 @@ public class OrderServiceImpl implements OrderService {
     private final EmailNotificationService emailService;
     private final AddressRepository addressRepository;
     private final ProductRepository productRepository;
-    private final RazorpayClient razorpayClient;
     private final GoogleCloudStorageService gcsService;
-    
-    @Value("${razorpay.key.id}")
-    private String razorpayKeyId;
-    
-    @Value("${razorpay.key.secret}")
-    private String razorpayKeySecret;
+    private final CouponService couponService;
     
     @Value("${product.picture.path}")
     private String productPicturePath;
@@ -63,8 +47,7 @@ public class OrderServiceImpl implements OrderService {
             AddressRepository addressRepository, 
             ProductRepository productRepository,
             GoogleCloudStorageService gcsService,
-            @Value("${razorpay.key.id}") String keyId,
-            @Value("${razorpay.key.secret}") String keySecret) throws RazorpayException {
+            CouponService couponService) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.userRepository = userRepository;
@@ -72,7 +55,7 @@ public class OrderServiceImpl implements OrderService {
         this.addressRepository = addressRepository;
         this.productRepository = productRepository;
         this.gcsService = gcsService;
-        this.razorpayClient = new RazorpayClient(keyId, keySecret);
+        this.couponService = couponService;
     }
 
     @Override
@@ -87,6 +70,11 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Order placeOrderWithAddressAndPhone(Long userId, Address address, String phoneNumber) {
+        return placeOrderWithAddressAndPhoneAndCoupon(userId, address, phoneNumber, null);
+    }
+
+    @Override
+    public Order placeOrderWithAddressAndPhoneAndCoupon(Long userId, Address address, String phoneNumber, String couponCode) {
         Cart cart = cartService.getCartByUserId(userId);
         
         if (cart.getCartItems().isEmpty()) {
@@ -128,7 +116,7 @@ public class OrderServiceImpl implements OrderService {
         userRepository.save(user);
 
         // Check size availability and create order items
-        // First, reload all products with their sizes collections to ensure they're loaded
+        // Reload all products with their sizes collections to ensure fresh data
         List<OrderItem> orderItems = cart.getCartItems().stream()
                 .map(cartItem -> {
                     // Reload product to ensure we have fresh data from database
@@ -139,15 +127,13 @@ public class OrderServiceImpl implements OrderService {
                     if (product.getSizes() == null) {
                         product.setSizes(new java.util.HashMap<>());
                     } else {
-                        // Force load by accessing the map
-                        product.getSizes().isEmpty(); // Trigger lazy load
+                        Hibernate.initialize(product.getSizes());
                     }
                     
                     if (product.getReservedSizes() == null) {
                         product.setReservedSizes(new java.util.HashMap<>());
                     } else {
-                        // Force load by accessing the map
-                        product.getReservedSizes().isEmpty(); // Trigger lazy load
+                        Hibernate.initialize(product.getReservedSizes());
                     }
                     
                     String size = cartItem.getSize();
@@ -186,8 +172,6 @@ public class OrderServiceImpl implements OrderService {
                         // Clear reserved quantity for this size (item is moving from cart to order)
                         // The reserved quantity should match or exceed cartItem.quantity if it was added properly
                         product.getReservedSizes().put(size, Math.max(0, reservedQuantity - cartItem.getQuantity()));
-                        
-                        productRepository.save(product);
                     } else {
                         // Fallback to general product quantity for:
                         // - No size specified
@@ -198,7 +182,6 @@ public class OrderServiceImpl implements OrderService {
                             throw new RuntimeException("Insufficient quantity available for product '" + product.getProd_name() + "'");
                         }
                         product.setProd_quantity(product.getProd_quantity() - cartItem.getQuantity());
-                        productRepository.save(product);
                     }
                     
                     return OrderItem.builder()
@@ -210,16 +193,55 @@ public class OrderServiceImpl implements OrderService {
                 })
                 .collect(Collectors.toList());
 
+        // Batch save all updated products (more efficient than saving individually)
+        List<Product> productsToUpdate = orderItems.stream()
+                .map(OrderItem::getProduct)
+                .distinct()
+                .collect(Collectors.toList());
+        productRepository.saveAll(productsToUpdate);
+
+        // Calculate subtotal (before discount)
+        Double subtotal = cart.getTotalPrice();
+        Double discountAmount = 0.0;
+        String appliedCouponCode = null;
+
+        // Apply coupon if provided
+        if (couponCode != null && !couponCode.trim().isEmpty()) {
+            Map<String, Object> couponResult = couponService.applyCoupon(couponCode.trim(), subtotal);
+            if ((Boolean) couponResult.get("valid")) {
+                discountAmount = (Double) couponResult.get("discount");
+                appliedCouponCode = couponCode.trim();
+                logger.info("Coupon {} applied: discount {}", appliedCouponCode, discountAmount);
+            } else {
+                logger.warn("Invalid coupon code provided: {}", couponCode);
+                throw new RuntimeException("Invalid or expired coupon code: " + couponCode);
+            }
+        }
+
+        // Calculate final total after discount
+        Double finalTotal = subtotal - discountAmount;
+
         Order order = Order.builder()
                 .user(user)
                 .items(orderItems)
-                .totalPrice(cart.getTotalPrice())
+                .subtotal(subtotal)
+                .discountAmount(discountAmount)
+                .couponCode(appliedCouponCode)
+                .totalPrice(finalTotal)
                 .build();
 
         // Set order reference in order items
         orderItems.forEach(item -> item.setOrder(order));
 
         Order savedOrder = orderRepository.save(order);
+        
+        // Increment coupon usage count if coupon was applied
+        if (appliedCouponCode != null) {
+            com.spring.model.Coupon coupon = couponService.validateCoupon(appliedCouponCode);
+            if (coupon != null) {
+                couponService.incrementUsageCount(coupon);
+            }
+        }
         
         // Clear cart after successful order
         cartService.clearCart(userId);
@@ -277,146 +299,6 @@ public class OrderServiceImpl implements OrderService {
         return updatedOrder;
     }
 
-    @Override
-    public Map<String, Object> createRazorpayOrder(Order order) {
-        try {
-            logger.info("Creating Razorpay order for Order ID: {}", order.getId());
-            
-            // Check if Razorpay order already exists
-            if (order.getRazorpayOrderId() != null && !order.getRazorpayOrderId().isEmpty()) {
-                logger.warn("Razorpay order already exists for Order ID: {}", order.getId());
-                return buildOrderResponse(order);
-            }
-
-            // Create Razorpay order
-            JSONObject orderRequest = new JSONObject();
-            orderRequest.put("amount", (int) (order.getTotalPrice() * 100)); // Amount in paise
-            orderRequest.put("currency", "INR");
-            orderRequest.put("receipt", "order_" + order.getId());
-            orderRequest.put("notes", new JSONObject()
-                    .put("order_id", order.getId().toString())
-                    .put("user_id", order.getUser().getId().toString())
-                    .put("user_email", order.getUser().getEmail()));
-
-            com.razorpay.Order razorpayOrder = razorpayClient.orders.create(orderRequest);
-            
-            logger.info("Razorpay order created: {}", Optional.ofNullable(razorpayOrder.get("id")));
-
-            // Update order with Razorpay order ID
-            order.setRazorpayOrderId(razorpayOrder.get("id").toString());
-            order.setRazorpayResponse(razorpayOrder.toString());
-            order.setPaymentStatus(Order.PaymentStatus.PENDING);
-            orderRepository.save(order);
-
-            logger.info("Order updated with Razorpay order ID: {}", order.getRazorpayOrderId());
-
-            return buildOrderResponse(order);
-        } catch (RazorpayException e) {
-            logger.error("Error creating Razorpay order for Order ID: {}", order.getId(), e);
-            throw new RuntimeException("Failed to create Razorpay order: " + e.getMessage(), e);
-        } catch (Exception e) {
-            logger.error("Unexpected error creating Razorpay order for Order ID: {}", order.getId(), e);
-            throw new RuntimeException("Unexpected error: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public Order verifyPayment(Long orderId, String razorpayOrderId, String razorpayPaymentId, String razorpaySignature) {
-        try {
-            logger.info("Verifying payment - Order ID: {}, Payment ID: {}", orderId, razorpayPaymentId);
-            
-            // Get order
-            Order order = getOrderById(orderId);
-            
-            if (order == null) {
-                throw new RuntimeException("Order not found");
-            }
-            
-            // Verify order belongs to the Razorpay order ID
-            if (!order.getRazorpayOrderId().equals(razorpayOrderId)) {
-                logger.error("Razorpay order ID mismatch for Order ID: {}", orderId);
-                order.setPaymentStatus(Order.PaymentStatus.FAILED);
-                order.setPaymentFailureReason("Razorpay order ID mismatch");
-                orderRepository.save(order);
-                throw new RuntimeException("Razorpay order ID mismatch");
-            }
-
-            // Verify signature
-            if (!verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)) {
-                logger.error("Invalid payment signature for Order ID: {}", orderId);
-                order.setPaymentStatus(Order.PaymentStatus.FAILED);
-                order.setPaymentFailureReason("Invalid signature");
-                orderRepository.save(order);
-                throw new RuntimeException("Invalid payment signature");
-            }
-
-            // Fetch payment details from Razorpay
-            com.razorpay.Payment razorpayPayment = razorpayClient.payments.fetch(razorpayPaymentId);
-            
-            logger.info("Payment verified successfully - Payment ID: {}", razorpayPaymentId);
-
-            // Update order with payment details
-            order.setRazorpayPaymentId(razorpayPaymentId);
-            order.setRazorpaySignature(razorpaySignature);
-            order.setPaymentStatus(Order.PaymentStatus.CAPTURED);
-            order.setPaidAt(LocalDateTime.now());
-            order.setPaymentMethod(razorpayPayment.has("method") ? razorpayPayment.get("method").toString() : null);
-            order.setPaymentBank(razorpayPayment.has("bank") ? razorpayPayment.get("bank").toString() : null);
-            order.setPaymentWallet(razorpayPayment.has("wallet") ? razorpayPayment.get("wallet").toString() : null);
-            order.setPaymentVpa(razorpayPayment.has("vpa") ? razorpayPayment.get("vpa").toString() : null);
-            order.setRazorpayResponse(razorpayPayment.toString());
-
-            // Update order status to CONFIRMED if it was PENDING
-            if (order.getStatus() == Order.OrderStatus.PENDING) {
-                order.setStatus(Order.OrderStatus.CONFIRMED);
-            }
-
-            Order savedOrder = orderRepository.save(order);
-            logger.info("Payment verified and order updated - Order ID: {}", orderId);
-
-            // Process product images for the verified order (write transaction - use detach version)
-            processOrderImagesForWriteTransaction(savedOrder);
-
-            // Send payment success email with order details
-            sendPaymentSuccessEmail(savedOrder);
-
-            return savedOrder;
-        } catch (RazorpayException e) {
-            logger.error("Error verifying payment - Order ID: {}, Payment ID: {}", orderId, razorpayPaymentId, e);
-            throw new RuntimeException("Failed to verify payment: " + e.getMessage(), e);
-        } catch (Exception e) {
-            logger.error("Unexpected error verifying payment", e);
-            throw new RuntimeException("Unexpected error: " + e.getMessage(), e);
-        }
-    }
-
-    private boolean verifySignature(String razorpayOrderId, String razorpayPaymentId, String razorpaySignature) {
-        try {
-            String message = razorpayOrderId + "|" + razorpayPaymentId;
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(razorpayKeySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(secretKeySpec);
-            byte[] hash = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
-            String calculatedSignature = bytesToHex(hash);
-            
-            boolean isValid = calculatedSignature.equals(razorpaySignature);
-            logger.debug("Signature verification - Calculated: {}, Received: {}, Valid: {}", 
-                    calculatedSignature, razorpaySignature, isValid);
-            
-            return isValid;
-        } catch (Exception e) {
-            logger.error("Error verifying signature", e);
-            return false;
-        }
-    }
-
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder result = new StringBuilder();
-        for (byte b : bytes) {
-            result.append(String.format("%02x", b));
-        }
-        return result.toString();
-    }
 
     /**
      * Process product images in order items - ensure images are GCS URLs
@@ -571,23 +453,10 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    private Map<String, Object> buildOrderResponse(Order order) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("razorpay_order_id", order.getRazorpayOrderId());
-        response.put("amount", order.getTotalPrice());
-        response.put("currency", "INR");
-        response.put("currency_code", CurrencyUtil.CURRENCY_CODE);
-        response.put("currency_symbol", CurrencyUtil.CURRENCY_SYMBOL);
-        response.put("currency_name", CurrencyUtil.CURRENCY_NAME);
-        response.put("amount_formatted", CurrencyUtil.formatAmount(order.getTotalPrice()));
-        response.put("key", razorpayKeyId);
-        response.put("order_id", order.getId());
-        return response;
-    }
 
     private void sendOrderConfirmationEmail(Order order) {
         try {
-            String subject = "Order Confirmation - LuxuryFashion";
+            String subject = "Order Confirmation - Food Ordering";
             String itemsHtml = buildOrderItemsHtml(order.getItems());
             String addressHtml = buildAddressHtml(order.getUser().getAddress());
             String content = EmailTemplate.getOrderConfirmationTemplate(
@@ -598,175 +467,27 @@ public class OrderServiceImpl implements OrderService {
                 addressHtml
             );
             emailService.sendNotification(order.getUser().getEmail(), null, subject, content);
+            logger.info("Order confirmation email sent to: {}", order.getUser().getEmail());
         } catch (Exception e) {
-            System.err.println("Failed to send order confirmation email: " + e.getMessage());
+            logger.error("Failed to send order confirmation email for order: {}", order.getId(), e);
         }
     }
 
     private void sendOrderStatusUpdateEmail(Order order) {
         try {
-            String subject = "Order Update - LuxuryFashion";
+            String subject = "Order Update - Food Ordering";
             String content = EmailTemplate.getOrderStatusUpdateTemplate(
                 order.getUser().getName(), 
                 order.getId(), 
                 order.getStatus().toString()
             );
             emailService.sendNotification(order.getUser().getEmail(), null, subject, content);
+            logger.info("Order status update email sent to: {}", order.getUser().getEmail());
         } catch (Exception e) {
-            System.err.println("Failed to send order status update email: " + e.getMessage());
+            logger.error("Failed to send order status update email for order: {}", order.getId(), e);
         }
     }
 
-    private void sendPaymentSuccessEmail(Order order) {
-        try {
-            String subject = "Payment Successful - Order Confirmed | LuxuryFashion";
-            String itemsHtml = buildOrderItemsHtml(order.getItems());
-            String addressHtml = buildAddressHtml(order.getUser().getAddress());
-            
-            // Build payment details
-            String paymentDetailsHtml = buildPaymentDetailsHtml(order);
-            
-            // Support contact information
-            String supportEmail = "rangeelaboutique6@gmail.com";
-            String supportPhone = "8981260291";
-            int year = java.time.Year.now().getValue();
-            
-            // Create email content with improved styling
-            String content = String.format(
-                "<!DOCTYPE html>" +
-                "<html>" +
-                "<head>" +
-                "<meta charset='UTF-8'>" +
-                "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
-                "<title>Payment Successful - LuxuryFashion</title>" +
-                "</head>" +
-                "<body style='margin:0; padding:0; background: linear-gradient(135deg, #f5f7fa 0%%, #c3cfe2 100%%); font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif;'>" +
-                "<table style='width:100%%; max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);'>" +
-                "<tr>" +
-                "<td style='background: linear-gradient(135deg, #28a745 0%%, #20c997 100%%); padding:40px; text-align:center;'>" +
-                "<h1 style='margin:0; font-size:32px; color:#ffffff; font-weight:700; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);'>✅ Payment Successful!</h1>" +
-                "<p style='margin:12px 0 0; font-size:18px; color:#f0f0f0; font-weight:500;'>Your order has been confirmed</p>" +
-                "</td>" +
-                "</tr>" +
-                "<tr>" +
-                "<td style='padding:40px 30px;'>" +
-                "<p style='font-size:18px; margin:0 0 20px; color:#333; font-weight:600;'>Dear <strong>%s</strong>,</p>" +
-                "<p style='font-size:16px; line-height:1.8; color:#555; margin:0 0 25px;'>Great news! Your payment has been successfully processed and your order <strong style='color:#28a745;'>#%d</strong> has been confirmed.</p>" +
-                "<div style='background:linear-gradient(135deg, #f8f9fa 0%%, #e9ecef 100%%); padding:25px; border-radius:10px; margin:25px 0; border-left:4px solid #28a745; box-shadow: 0 2px 10px rgba(0,0,0,0.05);'>" +
-                "<h2 style='margin:0 0 15px; color:#28a745; font-size:22px; font-weight:600;'>💰 Payment Summary</h2>" +
-                "<p style='margin:8px 0; font-size:15px; color:#555;'><strong style='color:#333;'>Order ID:</strong> <span style='color:#28a745; font-weight:600;'>#%d</span></p>" +
-                "<p style='margin:8px 0; font-size:15px; color:#555;'><strong style='color:#333;'>Total Amount:</strong> <span style='color:#28a745; font-size:20px; font-weight:700;'>₹%.2f</span></p>" +
-                "<p style='margin:8px 0; font-size:15px; color:#555;'><strong style='color:#333;'>Payment Status:</strong> <span style='color:#28a745; font-weight:bold; font-size:16px;'>%s</span></p>" +
-                "<p style='margin:8px 0; font-size:15px; color:#555;'><strong style='color:#333;'>Payment Method:</strong> %s</p>" +
-                "<p style='margin:8px 0; font-size:15px; color:#555;'><strong style='color:#333;'>Paid At:</strong> %s</p>" +
-                "</div>" +
-                "%s" + // Order items
-                "%s" + // Delivery address
-                "%s" + // Payment details
-                "<div style='background:#fff3cd; padding:20px; border-radius:10px; margin:25px 0; border-left:4px solid #ffc107;'>" +
-                "<p style='margin:0; color:#856404; font-size:16px; font-weight:600;'>📦 What's Next?</p>" +
-                "<p style='margin:8px 0 0; color:#856404; font-size:14px; line-height:1.6;'>We're preparing your order and will notify you once it ships. You can track your order status in your account dashboard.</p>" +
-                "</div>" +
-                "</td>" +
-                "</tr>" +
-                "<tr>" +
-                "<td style='background: #f8f9fa; padding: 30px; text-align: center; border-top: 2px solid #e0e0e0;'>" +
-                "<div style='margin-bottom: 20px;'>" +
-                "<h3 style='margin: 0 0 15px; color: #333; font-size: 18px;'>Need Help?</h3>" +
-                "<p style='margin: 8px 0; color: #666; font-size: 14px;'><strong>📧 Email:</strong> <a href='mailto:%s' style='color: #d4af37; text-decoration: none; font-weight:600;'>%s</a></p>" +
-                "<p style='margin: 8px 0; color: #666; font-size: 14px;'><strong>📞 Phone:</strong> <a href='tel:%s' style='color: #d4af37; text-decoration: none; font-weight:600;'>%s</a></p>" +
-                "</div>" +
-                "<div style='border-top: 1px solid #e0e0e0; padding-top: 20px; margin-top: 20px;'>" +
-                "<p style='margin: 0; color: #999; font-size: 12px;'>&copy; %d LuxuryFashion. All rights reserved.</p>" +
-                "<p style='margin: 5px 0 0; color: #999; font-size: 11px;'>This is an automated email. Please do not reply directly to this message.</p>" +
-                "</div>" +
-                "</td>" +
-                "</tr>" +
-                "</table>" +
-                "</body>" +
-                "</html>",
-                order.getUser().getName(),
-                order.getId(),
-                order.getId(),
-                order.getTotalPrice(),
-                order.getPaymentStatus().toString(),
-                order.getPaymentMethod() != null ? order.getPaymentMethod() : "N/A",
-                order.getPaidAt() != null ? order.getPaidAt().toString() : "N/A",
-                itemsHtml,
-                addressHtml,
-                paymentDetailsHtml,
-                supportEmail,
-                supportEmail,
-                supportPhone,
-                supportPhone,
-                year
-            );
-            
-            emailService.sendNotification(order.getUser().getEmail(), null, subject, content);
-            logger.info("Payment success email sent to: {}", order.getUser().getEmail());
-        } catch (Exception e) {
-            logger.error("Failed to send payment success email for order: {}", order.getId(), e);
-            System.err.println("Failed to send payment success email: " + e.getMessage());
-        }
-    }
-
-    private String buildPaymentDetailsHtml(Order order) {
-        StringBuilder html = new StringBuilder();
-        html.append("<div style='background:#e7f3ff; padding:20px; border-radius:8px; margin:20px 0; border-left:4px solid #2196F3;'>");
-        html.append("<h3 style='margin:0 0 15px; color:#1976D2;'>💳 Payment Information</h3>");
-        
-        if (order.getRazorpayPaymentId() != null) {
-            html.append(String.format(
-                "<p style='margin:5px 0;'><strong>Payment ID:</strong> %s</p>",
-                order.getRazorpayPaymentId()
-            ));
-        }
-        
-        if (order.getRazorpayOrderId() != null) {
-            html.append(String.format(
-                "<p style='margin:5px 0;'><strong>Razorpay Order ID:</strong> %s</p>",
-                order.getRazorpayOrderId()
-            ));
-        }
-        
-        if (order.getPaymentMethod() != null) {
-            html.append(String.format(
-                "<p style='margin:5px 0;'><strong>Payment Method:</strong> %s</p>",
-                order.getPaymentMethod()
-            ));
-        }
-        
-        if (order.getPaymentBank() != null) {
-            html.append(String.format(
-                "<p style='margin:5px 0;'><strong>Bank:</strong> %s</p>",
-                order.getPaymentBank()
-            ));
-        }
-        
-        if (order.getPaymentWallet() != null) {
-            html.append(String.format(
-                "<p style='margin:5px 0;'><strong>Wallet:</strong> %s</p>",
-                order.getPaymentWallet()
-            ));
-        }
-        
-        if (order.getPaymentVpa() != null) {
-            html.append(String.format(
-                "<p style='margin:5px 0;'><strong>UPI ID:</strong> %s</p>",
-                order.getPaymentVpa()
-            ));
-        }
-        
-        if (order.getPaidAt() != null) {
-            html.append(String.format(
-                "<p style='margin:5px 0;'><strong>Payment Date:</strong> %s</p>",
-                order.getPaidAt().toString()
-            ));
-        }
-        
-        html.append("</div>");
-        return html.toString();
-    }
 
     private boolean isValidAddress(Address address) {
         return address.getStreet() != null && !address.getStreet().trim().isEmpty() &&

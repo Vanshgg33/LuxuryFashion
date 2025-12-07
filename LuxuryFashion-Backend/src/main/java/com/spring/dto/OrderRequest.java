@@ -7,4 +7,5 @@ import lombok.Data;
 public class OrderRequest {
     private Address address;
     private String phoneNumber;
+    private String couponCode; // Optional coupon code
 }

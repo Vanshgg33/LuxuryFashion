@@ -1,7 +1,8 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Star, Plus, Minus, ShoppingBag, Clock, Flame } from "lucide-react";
-import { useState } from "react";
-import { foodItems } from "@/data/foodData";
+import { useState, useEffect } from "react";
+import { fetchProducts } from "@/data/foodData";
+import type { FoodItem } from "@/data/foodData";
 import { useCartContext } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { toast } from "sonner";
@@ -10,12 +11,25 @@ const ProductDetails = () => {
   const { id } = useParams();
   const { addToCart, cartItems, updateQuantity } = useCartContext();
   const [quantity, setQuantity] = useState(1);
+  const [item, setItem] = useState<FoodItem | undefined>(undefined);
+  const [relatedItems, setRelatedItems] = useState<FoodItem[]>([]);
 
-  const item = foodItems.find((f) => f.id === id);
+  useEffect(() => {
+    (async () => {
+      try {
+        const prods = await fetchProducts();
+        const found = prods.find((p) => p.id === id);
+        setItem(found);
+        if (found) {
+          setRelatedItems(prods.filter((f) => f.category === found.category && f.id !== id).slice(0, 4));
+        }
+      } catch (err) {
+        console.error("Failed to fetch product details:", err);
+      }
+    })();
+  }, [id]);
+
   const cartItem = cartItems.find((c) => c.id === id);
-  const relatedItems = foodItems
-    .filter((f) => f.category === item?.category && f.id !== id)
-    .slice(0, 4);
 
   if (!item) {
     return (

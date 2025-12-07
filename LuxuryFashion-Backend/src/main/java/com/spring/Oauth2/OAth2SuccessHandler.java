@@ -127,7 +127,7 @@ public class OAth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private void sendWelcomeEmail(User user) {
         try {
-            String subject = "Welcome to LuxuryFashion! 🎉";
+            String subject = "Welcome to Food Ordering! 🎉";
             // Use OAuth welcome template with password "1234"
             String content = EmailTemplate.getOAuthWelcomeTemplate(user.getName(), user.getEmail(), "1234");
             emailService.sendNotification(user.getEmail(), null, subject, content);

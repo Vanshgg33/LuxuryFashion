@@ -2,9 +2,23 @@ import { Link } from "react-router-dom";
 import { Package, ArrowRight } from "lucide-react";
 import { OrderCard } from "@/components/OrderCard";
 import { useCartContext } from "@/contexts/CartContext";
+import { useEffect } from "react";
 
 const Orders = () => {
-  const { orders } = useCartContext();
+  const { orders, loadOrders, loading } = useCartContext();
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  if (loading) {
+    return (
+      <main className="container mx-auto px-4 py-16 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        <p className="mt-4 text-muted-foreground">Loading orders...</p>
+      </main>
+    );
+  }
 
   if (orders.length === 0) {
     return (

@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { CategoryFilter } from "@/components/CategoryFilter";
-import { foodItems } from "@/data/foodData";
+import { fetchProducts } from "@/data/foodData";
+import type { FoodItem } from "@/data/foodData";
 
 const Menu = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -12,6 +13,18 @@ const Menu = () => {
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("default");
+  const [allItems, setAllItems] = useState<FoodItem[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const prods = await fetchProducts();
+        setAllItems(prods);
+      } catch (err) {
+        console.error("Failed to load products:", err);
+      }
+    })();
+  }, []);
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
@@ -24,7 +37,7 @@ const Menu = () => {
   };
 
   const filteredItems = useMemo(() => {
-    let items = [...foodItems];
+    let items = [...allItems];
 
     // Filter by category
     if (selectedCategory !== "all") {
@@ -73,7 +86,7 @@ const Menu = () => {
           Our Menu
         </h1>
         <p className="text-muted-foreground">
-          Discover our delicious collection of {foodItems.length}+ dishes
+          Discover our delicious collection of {allItems.length}+ dishes
         </p>
       </div>
 

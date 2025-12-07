@@ -32,43 +32,43 @@ export function HeroBanner() {
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-4 py-16 md:py-24 relative">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="container mx-auto px-4 py-12 md:py-16 lg:py-24 relative">
+        <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
           {/* Content */}
-          <div className="space-y-6 animate-fade-in">
-            <span className="inline-block px-4 py-2 bg-sage-light text-primary font-semibold rounded-full text-sm">
+          <div className="space-y-5 md:space-y-6 animate-fade-in">
+            <span className="inline-block px-3 md:px-4 py-1.5 md:py-2 bg-sage-light text-primary font-semibold rounded-full text-xs md:text-sm">
               🍽️ Premium Food Delivery
             </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground leading-tight">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-display font-bold text-foreground leading-tight">
               Delicious Food,{" "}
               <span className="text-gradient">Delivered Fresh</span>
             </h1>
-            <p className="text-lg text-muted-foreground max-w-lg">
+            <p className="text-base md:text-lg text-muted-foreground max-w-lg">
               Experience the finest culinary delights from top restaurants,
               prepared with love and delivered to your doorstep within minutes.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/menu" className="btn-primary inline-flex items-center gap-2">
+            <div className="flex flex-wrap gap-3 md:gap-4">
+              <Link to="/menu" className="btn-primary inline-flex items-center gap-2 text-sm md:text-base px-5 md:px-6 py-2.5 md:py-3">
                 Explore Menu
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-5 md:w-5" />
               </Link>
-              <Link to="/menu?category=Veg" className="btn-outline inline-flex items-center gap-2">
+              <Link to="/menu?category=Veg" className="btn-outline inline-flex items-center gap-2 text-sm md:text-base px-5 md:px-6 py-2.5 md:py-3">
                 🥬 Veg Specials
               </Link>
             </div>
 
             {/* Stats */}
-            <div className="flex gap-8 pt-6">
+            <div className="flex gap-6 md:gap-8 pt-4 md:pt-6">
               {[
                 { value: "30min", label: "Fast Delivery" },
                 { value: "500+", label: "Menu Items" },
                 { value: "4.8", label: "Avg Rating" },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-xl md:text-2xl font-bold text-foreground">
                     {stat.value}
                   </p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
                 </div>
               ))}
             </div>

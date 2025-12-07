@@ -1,6 +1,6 @@
 import { Search, Filter } from "lucide-react";
-import { useState } from "react";
-import { demoAdminOrders, AdminOrder } from "@/data/adminData";
+import { useState, useEffect } from "react";
+import { AdminOrder, fetchAdminOrders } from "@/data/adminData";
 import { cn } from "@/lib/utils";
 
 const statusColors: Record<AdminOrder["status"], string> = {
@@ -12,11 +12,24 @@ const statusColors: Record<AdminOrder["status"], string> = {
 const AdminOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<AdminOrder["status"] | "All">("All");
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
 
-  const filteredOrders = demoAdminOrders.filter((order) => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchAdminOrders();
+        setOrders(Array.isArray(res) ? res : []);
+      } catch (err) {
+        console.error("Failed to fetch admin orders:", err);
+        setOrders([]);
+      }
+    })();
+  }, []);
+
+  const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.userName.toLowerCase().includes(searchTerm.toLowerCase());
+      (order.userName || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "All" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

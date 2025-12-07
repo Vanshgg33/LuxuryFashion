@@ -15,9 +15,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,8 +28,7 @@ import java.util.Map;
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -59,7 +59,7 @@ public class AuthController {
 
         User user = userRepository.findByEmail(email);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-            System.out.println("Wrong password");
+            logger.warn("Failed login attempt for email: {}", email);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("error", "Invalid credentials"));
         }
@@ -135,7 +135,7 @@ public class AuthController {
             
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            System.out.println("Error during registration: " + e.getMessage());
+            logger.error("Error during registration: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(Collections.singletonMap("error", e.getMessage()));
         }
@@ -153,55 +153,9 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Collections.singletonMap("error", "Missing or invalid Authorization header"));
             }
-
-            // Validate token
-            if (!jwtUtil.validateToken(token)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Collections.singletonMap("error", "Invalid or expired token"));
-            }
-
-            // Get user from token
-            String email = jwtUtil.extractUsername(token);
-            User user = userRepository.findByEmail(email);
-            
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Collections.singletonMap("error", "User not found"));
-            }
-
-            // Get user cart
-            Cart cart = null;
-            try {
-                cart = cartService.getCartByUserId(user.getId());
-            } catch (Exception e) {
-                // Cart might not exist yet, that's okay
-                System.out.println("Cart not found for user: " + user.getId() + " - " + e.getMessage());
-            }
-
-            // Build response
-            UserShow userShow = new UserShow(user);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "OAuth login successful");
-            response.put("token", token);
-            response.put("user", userShow);
-            response.put("cart", cart);
-            
-            // Set cookie - configured via properties
-            ResponseCookie cookie = ResponseCookie.from("authToken", token)
-                    .httpOnly(true)
-                    .secure(cookieSecure)   // Dynamic: true for HTTPS, false for HTTP
-                    .path("/")
-                    .sameSite(cookieSameSite)  // Dynamic: Lax for dev, None for production
-                    .maxAge(5 * 24 * 60 * 60)
-                    .build();
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                    .body(response);
-
+            return processOAuthUser(token);
         } catch (Exception e) {
-            System.err.println("Error in OAuth user endpoint: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error in OAuth user endpoint: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Collections.singletonMap("error", "Failed to process OAuth login: " + e.getMessage()));
         }
@@ -222,58 +176,60 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Collections.singletonMap("error", "Token is required"));
             }
-
-            // Validate token
-            if (!jwtUtil.validateToken(token)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Collections.singletonMap("error", "Invalid or expired token"));
-            }
-
-            // Get user from token
-            String email = jwtUtil.extractUsername(token);
-            User user = userRepository.findByEmail(email);
-            
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Collections.singletonMap("error", "User not found"));
-            }
-
-            // Get user cart
-            Cart cart = null;
-            try {
-                cart = cartService.getCartByUserId(user.getId());
-            } catch (Exception e) {
-                // Cart might not exist yet, that's okay
-                System.out.println("Cart not found for user: " + user.getId() + " - " + e.getMessage());
-            }
-
-            // Build response
-            UserShow userShow = new UserShow(user);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "OAuth login successful");
-            response.put("token", token);
-            response.put("user", userShow);
-            response.put("cart", cart);
-            
-            // Set cookie - configured via properties
-            ResponseCookie cookie = ResponseCookie.from("authToken", token)
-                    .httpOnly(true)
-                    .secure(cookieSecure)   // Dynamic: true for HTTPS, false for HTTP
-                    .path("/")
-                    .sameSite(cookieSameSite)  // Dynamic: Lax for dev, None for production
-                    .maxAge(5 * 24 * 60 * 60)
-                    .build();
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                    .body(response);
-
+            return processOAuthUser(token);
         } catch (Exception e) {
-            System.err.println("Error in OAuth user endpoint: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error in OAuth user endpoint: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Collections.singletonMap("error", "Failed to process OAuth login: " + e.getMessage()));
         }
+    }
+
+    // Common method to process OAuth user authentication
+    private ResponseEntity<?> processOAuthUser(String token) {
+        // Validate token
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Collections.singletonMap("error", "Invalid or expired token"));
+        }
+
+        // Get user from token
+        String email = jwtUtil.extractUsername(token);
+        User user = userRepository.findByEmail(email);
+        
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Collections.singletonMap("error", "User not found"));
+        }
+
+        // Get user cart
+        Cart cart = null;
+        try {
+            cart = cartService.getCartByUserId(user.getId());
+        } catch (Exception e) {
+            // Cart might not exist yet, that's okay
+            logger.debug("Cart not found for user: {} - {}", user.getId(), e.getMessage());
+        }
+
+        // Build response
+        UserShow userShow = new UserShow(user);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "OAuth login successful");
+        response.put("token", token);
+        response.put("user", userShow);
+        response.put("cart", cart);
+        
+        // Set cookie - configured via properties
+        ResponseCookie cookie = ResponseCookie.from("authToken", token)
+                .httpOnly(true)
+                .secure(cookieSecure)   // Dynamic: true for HTTPS, false for HTTP
+                .path("/")
+                .sameSite(cookieSameSite)  // Dynamic: Lax for dev, None for production
+                .maxAge(5 * 24 * 60 * 60)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
     }
 
 }

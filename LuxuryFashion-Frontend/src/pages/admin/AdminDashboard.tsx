@@ -1,17 +1,30 @@
 import { Users, ShoppingBag, DollarSign, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
-import { demoUsers, topSellingItems, revenueData, orderStatusData } from "@/data/adminData";
+import { fetchAdminOrders } from "@/data/adminData";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useEffect, useState } from "react";
 
 const AdminDashboard = () => {
-  const totalUsers = demoUsers.length;
-  const totalOrders = 305;
-  const totalRevenue = 336000;
+  const [orders, setOrders] = useState<any[]>([]);
+  const totalUsers = new Set(orders.map((o) => o.user?.id || o.userId)).size;
+  const totalOrders = orders.length;
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.totalPrice || o.total || 0), 0) || 0;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchAdminOrders();
+        setOrders(Array.isArray(res) ? res : []);
+      } catch (err) {
+        console.error("Failed to fetch admin orders:", err);
+      }
+    })();
+  }, []);
 
   const chartConfig = {
     revenue: {
@@ -19,6 +32,24 @@ const AdminDashboard = () => {
       color: "hsl(142, 25%, 35%)",
     },
   };
+
+  // Fallback/static chart data (will be replaced by analytics endpoints later)
+  const revenueData = [
+    { month: "Jun", revenue: 45000 },
+    { month: "Jul", revenue: 52000 },
+    { month: "Aug", revenue: 48000 },
+    { month: "Sep", revenue: 61000 },
+    { month: "Oct", revenue: 58000 },
+    { month: "Nov", revenue: 72000 },
+  ];
+
+  const orderStatusData = [
+    { name: "Delivered", value: 245, fill: "hsl(142, 25%, 35%)" },
+    { name: "Preparing", value: 42, fill: "hsl(45, 80%, 55%)" },
+    { name: "Pending", value: 18, fill: "hsl(15, 60%, 55%)" },
+  ];
+
+  const topSellingItems = [];
 
   return (
     <div className="space-y-8 animate-fade-in">

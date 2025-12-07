@@ -1,11 +1,18 @@
 import { Search, Mail, ShoppingBag } from "lucide-react";
-import { useState } from "react";
-import { demoUsers } from "@/data/adminData";
+import { useState, useEffect } from "react";
+import { AdminUser } from "@/data/adminData";
 
 const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState<AdminUser[]>([]);
 
-  const filteredUsers = demoUsers.filter(
+  useEffect(() => {
+    // Backend does not expose a public admin users list endpoint currently.
+    // Keep users empty and show helpful message until a users API is added.
+    setUsers([]);
+  }, []);
+
+  const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())

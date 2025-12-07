@@ -4,8 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,8 +27,6 @@ import com.spring.util.CurrencyUtil;
 @RequestMapping("/api/orders")
 public class OrderController {
 
-    private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
-
     private final OrderService orderService;
 
     public OrderController(OrderService orderService) {
@@ -48,116 +44,23 @@ public class OrderController {
                     .body(Map.of("error", validationError));
         }
         
-        // Place order
-        Order order = orderService.placeOrderWithAddressAndPhone(userId, orderRequest.getAddress(), orderRequest.getPhoneNumber());
+        // Place order with optional coupon code
+        Order order = orderService.placeOrderWithAddressAndPhoneAndCoupon(
+            userId, 
+            orderRequest.getAddress(), 
+            orderRequest.getPhoneNumber(),
+            orderRequest.getCouponCode()
+        );
         
-        // Create Razorpay order for payment
-        try {
-            Map<String, Object> paymentResponse = orderService.createRazorpayOrder(order);
-            Map<String, Object> response = new HashMap<>();
-            response.put("order", order);
-            response.put("payment", paymentResponse);
-            response.put("currency", CurrencyUtil.getCurrencyInfo());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            // If payment creation fails, still return order but with error message
-            Map<String, Object> response = new HashMap<>();
-            response.put("order", order);
-            response.put("currency", CurrencyUtil.getCurrencyInfo());
-            response.put("payment_error", "Failed to initialize payment: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT).body(response);
+        Map<String, Object> response = new HashMap<>();
+        response.put("order", order);
+        response.put("currency", CurrencyUtil.getCurrencyInfo());
+        response.put("message", "Order placed successfully");
+        if (order.getCouponCode() != null) {
+            response.put("couponApplied", order.getCouponCode());
+            response.put("discountAmount", order.getDiscountAmount());
         }
-    }
-
-    @PostMapping("/create-razorpay-order")
-    public ResponseEntity<?> createRazorpayOrder(@RequestBody OrderRequest orderRequest) {
-        try {
-            Long userId = getCurrentUserId();
-            
-            logger.info("Creating Razorpay order request received for user: {}", userId);
-            
-            // Validate required fields
-            String validationError = validateOrderRequest(orderRequest);
-            if (validationError != null) {
-                logger.warn("Validation failed for order request: {}", validationError);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", validationError, "details", "Please check address and phone number fields"));
-            }
-            
-            // Place order
-            Order order = orderService.placeOrderWithAddressAndPhone(userId, orderRequest.getAddress(), orderRequest.getPhoneNumber());
-            logger.info("Order created successfully - Order ID: {}", order.getId());
-            
-            // Create Razorpay order for payment
-            Map<String, Object> paymentResponse = orderService.createRazorpayOrder(order);
-            Map<String, Object> response = new HashMap<>();
-            response.put("order", order);
-            response.put("payment", paymentResponse);
-            response.put("currency", CurrencyUtil.getCurrencyInfo());
-            
-            logger.info("Razorpay order created successfully for Order ID: {}", order.getId());
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            logger.error("Failed to create Razorpay order: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage(), "type", "RUNTIME_ERROR"));
-        } catch (Exception e) {
-            logger.error("Unexpected error creating Razorpay order", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to initialize payment: " + e.getMessage(), "type", "INTERNAL_ERROR"));
-        }
-    }
-
-    @PostMapping("/verify-payment")
-    public ResponseEntity<?> verifyPayment(@RequestBody Map<String, String> paymentData) {
-        try {
-            String razorpayOrderId = paymentData.get("razorpay_order_id");
-            String razorpayPaymentId = paymentData.get("razorpay_payment_id");
-            String razorpaySignature = paymentData.get("razorpay_signature");
-            String orderIdStr = paymentData.get("order_id");
-
-            logger.info("Verifying payment - Order ID: {}, Payment ID: {}", orderIdStr, razorpayPaymentId);
-
-            if (razorpayOrderId == null || razorpayPaymentId == null || razorpaySignature == null || orderIdStr == null) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("error", "Missing payment verification data"));
-            }
-
-            Long orderId = Long.parseLong(orderIdStr);
-            Long userId = getCurrentUserId();
-            Order order = orderService.getOrderById(orderId);
-            
-            // Verify order belongs to user
-            if (!order.getUser().getId().equals(userId)) {
-                logger.warn("User {} attempted to verify payment for order {} belonging to user {}", 
-                        userId, orderId, order.getUser().getId());
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Access denied"));
-            }
-
-            Order verifiedOrder = orderService.verifyPayment(orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature);
-            
-            logger.info("Payment verified successfully - Order ID: {}", orderId);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("order_id", verifiedOrder.getId());
-            response.put("status", verifiedOrder.getStatus().toString());
-            response.put("payment_status", verifiedOrder.getPaymentStatus().toString());
-            response.put("amount", verifiedOrder.getTotalPrice());
-            response.put("currency", "INR");
-            response.put("currency_code", CurrencyUtil.CURRENCY_CODE);
-            response.put("currency_symbol", CurrencyUtil.CURRENCY_SYMBOL);
-            response.put("currency_name", CurrencyUtil.CURRENCY_NAME);
-            response.put("amount_formatted", CurrencyUtil.formatAmount(verifiedOrder.getTotalPrice()));
-            response.put("message", "Payment verified successfully");
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Error verifying payment", e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Payment verification failed", "message", e.getMessage()));
-        }
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/history")

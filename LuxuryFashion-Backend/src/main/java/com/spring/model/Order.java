@@ -42,35 +42,20 @@ public class Order {
     @Builder.Default
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
-    @Column(name = "razorpay_order_id", unique = true)
-    private String razorpayOrderId;
-
-    @Column(name = "razorpay_payment_id", unique = true)
-    private String razorpayPaymentId;
-
-    @Column(name = "razorpay_signature")
-    private String razorpaySignature;
-
     @Column(name = "payment_method", length = 50)
     private String paymentMethod;
-
-    @Column(name = "payment_bank", length = 100)
-    private String paymentBank;
-
-    @Column(name = "payment_wallet", length = 100)
-    private String paymentWallet;
-
-    @Column(name = "payment_vpa", length = 50)
-    private String paymentVpa; // Virtual Payment Address for UPI
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    @Column(name = "payment_failure_reason", columnDefinition = "TEXT")
-    private String paymentFailureReason;
+    @Column(name = "coupon_code", length = 50)
+    private String couponCode;
 
-    @Column(name = "razorpay_response", columnDefinition = "TEXT")
-    private String razorpayResponse; // Store full Razorpay response as JSON
+    @Column(name = "discount_amount")
+    private Double discountAmount;
+
+    @Column(name = "subtotal")
+    private Double subtotal; // Order total before discount
 
     public enum OrderStatus {
         PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED

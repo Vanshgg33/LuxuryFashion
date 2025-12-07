@@ -2,12 +2,27 @@ import { Link } from "react-router-dom";
 import { ArrowRight, TrendingUp, Sparkles, Star } from "lucide-react";
 import { HeroBanner } from "@/components/HeroBanner";
 import { ProductCard } from "@/components/ProductCard";
-import { foodItems, categories } from "@/data/foodData";
+import { useEffect, useState } from "react";
+import { fetchProducts, categories } from "@/data/foodData";
+import type { FoodItem } from "@/data/foodData";
 
 const Index = () => {
-  const trendingItems = foodItems.filter((item) => item.isTrending).slice(0, 4);
-  const specialItems = foodItems.filter((item) => item.isSpecial).slice(0, 4);
-  const topRatedItems = [...foodItems]
+  const [products, setProducts] = useState<FoodItem[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const prods = await fetchProducts();
+        setProducts(prods);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+      }
+    })();
+  }, []);
+
+  const trendingItems = products.filter((item) => item.isTrending).slice(0, 4);
+  const specialItems = products.filter((item) => item.isSpecial).slice(0, 4);
+  const topRatedItems = [...products]
     .sort((a, b) => b.rating - a.rating)
     .slice(0, 4);
 

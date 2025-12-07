@@ -130,7 +130,7 @@ public class UserServiceImpl implements UserService {
 
     private void sendWelcomeEmail(User user) {
         try {
-            String subject = "Welcome to LuxuryFashion! 🎉";
+            String subject = "Welcome to Food Ordering! 🎉";
             String content = EmailTemplate.getWelcomeTemplate(user.getName(), user.getEmail());
             emailService.sendNotification(user.getEmail(), null, subject, content);
         } catch (Exception e) {

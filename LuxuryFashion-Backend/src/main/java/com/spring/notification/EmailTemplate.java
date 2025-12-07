@@ -22,7 +22,7 @@ public class EmailTemplate {
                         </div>
                     </div>
                     <div style="padding-top: 20px;">
-                        <p style="margin: 0 0 8px; color: #999; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;">&copy; %d LuxuryFashion. All Rights Reserved.</p>
+                        <p style="margin: 0 0 8px; color: #999; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;">&copy; %d Food Ordering. All Rights Reserved.</p>
                         <p style="margin: 0; color: #999; font-size: 11px; letter-spacing: 0.3px;">This is an automated email. Please do not reply directly to this message.</p>
                     </div>
                 </td>
@@ -40,7 +40,7 @@ public class EmailTemplate {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Password Reset - LuxuryFashion</title>
+                <title>Password Reset - Food Ordering</title>
             </head>
             <body style="margin:0; padding:0; background: linear-gradient(135deg, #f5f7fa 0%%, #e8e8e8 50%%, #d4d4d4 100%%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
                 <table style="width:100%%; max-width:620px; margin:50px auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);">
@@ -50,7 +50,7 @@ public class EmailTemplate {
                             <div style="display: inline-block; padding: 15px 25px; background: rgba(255,255,255,0.15); border-radius: 50px; backdrop-filter: blur(10px); margin-bottom: 20px;">
                                 <h1 style="margin:0; font-size:32px; color:#ffffff; font-weight:700; letter-spacing: 1px; text-shadow: 0 2px 10px rgba(0,0,0,0.2);">🔐 Password Reset</h1>
                             </div>
-                            <p style="margin:15px 0 0; font-size:16px; color:#f0f0f0; letter-spacing: 0.5px; font-weight: 400;">LuxuryFashion</p>
+                            <p style="margin:15px 0 0; font-size:16px; color:#f0f0f0; letter-spacing: 0.5px; font-weight: 400;">Food Ordering</p>
                         </td>
                     </tr>
                     <tr>
@@ -87,7 +87,7 @@ public class EmailTemplate {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to LuxuryFashion</title>
+        <title>Welcome to Food Ordering</title>
     </head>
     <body style="margin:0; padding:0; background: linear-gradient(135deg, #f5f7fa 0%%, #e8e8e8 50%%, #d4d4d4 100%%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
         <table style="width:100%%; max-width:620px; margin:50px auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);">
@@ -95,7 +95,7 @@ public class EmailTemplate {
                 <td style="background: linear-gradient(135deg, #d4af37 0%%, #ffd700 50%%, #ffed4e 100%%); padding:50px 40px; text-align:center; position:relative;">
                     <div style="position:absolute; top:0; left:0; right:0; height:5px; background: linear-gradient(90deg, #1a1a1a 0%%, #2c2c2c 50%%, #1a1a1a 100%%);"></div>
                     <div style="display: inline-block; padding: 20px 30px; background: rgba(255,255,255,0.2); border-radius: 50px; backdrop-filter: blur(10px); margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                        <h1 style="margin:0; font-size:36px; color:#2c2c2c; font-weight:800; text-shadow: 0 2px 8px rgba(255,255,255,0.5); letter-spacing: 1px;">✨ Welcome to LuxuryFashion</h1>
+                        <h1 style="margin:0; font-size:36px; color:#2c2c2c; font-weight:800; text-shadow: 0 2px 8px rgba(255,255,255,0.5); letter-spacing: 1px;">✨ Welcome to Food Ordering</h1>
                     </div>
                     <p style="margin:18px 0 0; font-size:20px; color:#2c2c2c; font-weight:600; letter-spacing: 0.5px; text-shadow: 0 1px 3px rgba(255,255,255,0.3);">Your luxury journey begins now 👑</p>
                 </td>
@@ -103,7 +103,7 @@ public class EmailTemplate {
             <tr>
                 <td style="padding:50px 40px; background: linear-gradient(180deg, #ffffff 0%%, #fafafa 100%%);">
                     <p style="font-size:22px; margin:0 0 25px; color:#2c2c2c; font-weight:700; letter-spacing: 0.5px; line-height: 1.4;">Hello, %s 👋</p>
-                    <p style="font-size:17px; line-height:1.9; color:#555; margin:0 0 30px; font-weight: 400; letter-spacing: 0.2px;">Thank you for joining LuxuryFashion! We're thrilled to have you as part of our exclusive community of fashion enthusiasts.</p>
+                    <p style="font-size:17px; line-height:1.9; color:#555; margin:0 0 30px; font-weight: 400; letter-spacing: 0.2px;">Thank you for joining Food Ordering! We're thrilled to have you as part of our exclusive community of fashion enthusiasts.</p>
                     
                     <div style="background: linear-gradient(135deg, #f8f9fa 0%%, #ffffff 50%%, #f0f0f0 100%%); padding:30px; border-radius:12px; margin:30px 0; border-left:5px solid #d4af37; box-shadow: 0 4px 15px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5); border: 1px solid #e8e8e8;">
                         <p style="font-size:14px; margin:0 0 12px; color:#666; font-weight:600; letter-spacing: 1px; text-transform: uppercase;">Your Account</p>
@@ -154,7 +154,7 @@ public class EmailTemplate {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to LuxuryFashion</title>
+        <title>Welcome to Food Ordering</title>
     </head>
     <body style="margin:0; padding:0; background: linear-gradient(135deg, #f5f7fa 0%%, #e8e8e8 50%%, #d4d4d4 100%%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
         <table style="width:100%%; max-width:620px; margin:50px auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);">
@@ -162,7 +162,7 @@ public class EmailTemplate {
                 <td style="background: linear-gradient(135deg, #d4af37 0%%, #ffd700 50%%, #ffed4e 100%%); padding:50px 40px; text-align:center; position:relative;">
                     <div style="position:absolute; top:0; left:0; right:0; height:5px; background: linear-gradient(90deg, #1a1a1a 0%%, #2c2c2c 50%%, #1a1a1a 100%%);"></div>
                     <div style="display: inline-block; padding: 20px 30px; background: rgba(255,255,255,0.2); border-radius: 50px; backdrop-filter: blur(10px); margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                        <h1 style="margin:0; font-size:36px; color:#2c2c2c; font-weight:800; text-shadow: 0 2px 8px rgba(255,255,255,0.5); letter-spacing: 1px;">✨ Welcome to LuxuryFashion</h1>
+                        <h1 style="margin:0; font-size:36px; color:#2c2c2c; font-weight:800; text-shadow: 0 2px 8px rgba(255,255,255,0.5); letter-spacing: 1px;">✨ Welcome to Food Ordering</h1>
                     </div>
                     <p style="margin:18px 0 0; font-size:20px; color:#2c2c2c; font-weight:600; letter-spacing: 0.5px; text-shadow: 0 1px 3px rgba(255,255,255,0.3);">Your luxury journey begins now 👑</p>
                 </td>
@@ -170,7 +170,7 @@ public class EmailTemplate {
             <tr>
                 <td style="padding:50px 40px; background: linear-gradient(180deg, #ffffff 0%%, #fafafa 100%%);">
                     <p style="font-size:22px; margin:0 0 25px; color:#2c2c2c; font-weight:700; letter-spacing: 0.5px; line-height: 1.4;">Hello, %s 👋</p>
-                    <p style="font-size:17px; line-height:1.9; color:#555; margin:0 0 30px; font-weight: 400; letter-spacing: 0.2px;">Thank you for joining LuxuryFashion through Google! We're thrilled to have you as part of our exclusive community of fashion connoisseurs.</p>
+                    <p style="font-size:17px; line-height:1.9; color:#555; margin:0 0 30px; font-weight: 400; letter-spacing: 0.2px;">Thank you for joining Food Ordering through Google! We're thrilled to have you as part of our exclusive community of fashion connoisseurs.</p>
                     
                     <div style="background: linear-gradient(135deg, #f8f9fa 0%%, #ffffff 50%%, #f0f0f0 100%%); padding:35px; border-radius:12px; margin:30px 0; border-left:5px solid #d4af37; box-shadow: 0 4px 15px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5); border: 1px solid #e8e8e8;">
                         <p style="font-size:14px; margin:0 0 20px; color:#666; font-weight:600; letter-spacing: 1px; text-transform: uppercase;">Your Account Details</p>
@@ -231,7 +231,7 @@ public class EmailTemplate {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Order Confirmation - LuxuryFashion</title>
+        <title>Order Confirmation - Food Ordering</title>
     </head>
     <body style="margin:0; padding:0; background: linear-gradient(135deg, #f5f7fa 0%%, #e8e8e8 50%%, #d4d4d4 100%%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
         <table style="width:100%%; max-width:620px; margin:50px auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);">
@@ -290,7 +290,7 @@ public class EmailTemplate {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Order Update - LuxuryFashion</title>
+        <title>Order Update - Food Ordering</title>
     </head>
     <body style="margin:0; padding:0; background: linear-gradient(135deg, #f5f7fa 0%%, #e8e8e8 50%%, #d4d4d4 100%%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
         <table style="width:100%%; max-width:620px; margin:50px auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);">
@@ -300,7 +300,7 @@ public class EmailTemplate {
                     <div style="display: inline-block; padding: 20px 30px; background: rgba(255,255,255,0.2); border-radius: 50px; backdrop-filter: blur(10px); margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
                         <h1 style="margin:0; font-size:36px; color:#2c2c2c; font-weight:800; text-shadow: 0 2px 8px rgba(255,255,255,0.5); letter-spacing: 1px;">%s Order Update</h1>
                     </div>
-                    <p style="margin:18px 0 0; font-size:20px; color:#2c2c2c; font-weight:600; letter-spacing: 0.5px; text-shadow: 0 1px 3px rgba(255,255,255,0.3);">LuxuryFashion</p>
+                    <p style="margin:18px 0 0; font-size:20px; color:#2c2c2c; font-weight:600; letter-spacing: 0.5px; text-shadow: 0 1px 3px rgba(255,255,255,0.3);">Food Ordering</p>
                 </td>
             </tr>
             <tr>
