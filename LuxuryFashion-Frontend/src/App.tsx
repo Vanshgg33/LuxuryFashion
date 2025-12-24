@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,8 +7,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { client } from "@/lib/appwrite";
 import { Layout } from "@/components/Layout";
-import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminLayout } from "@/components/Admin/AdminLayout";
 import Index from "./pages/Index";
 import Menu from "./pages/Menu";
 import Offers from "./pages/Offers";
@@ -37,7 +39,15 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  // Ping Appwrite server on app initialization to verify setup
+  useEffect(() => {
+    client.ping()
+      .then(() => console.log("Appwrite connection successful"))
+      .catch((error) => console.error("Appwrite connection failed:", error));
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
@@ -180,6 +190,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
