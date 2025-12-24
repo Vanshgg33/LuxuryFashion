@@ -24,8 +24,15 @@ async function bootstrap() {
   );
   app.use(cookieParser());
   app.enableCors({
-    origin: process.env.APP_URL?.split(',') || ['http://localhost:5173'],
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://localhost:5173',
+      ...(process.env.APP_URL?.split(',') || []),
+    ].filter(Boolean),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
   const port = process.env.PORT || 8080;
   await app.listen(port);
