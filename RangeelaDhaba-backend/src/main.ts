@@ -12,6 +12,9 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://localhost:5173',
+  'https://luxury-fashion-sjmv.vercel.app',
+  'https://luxury-fashion-sjmv-git-main-vanshs-projects-3fb5c63f.vercel.app',
+  'https://luxury-fashion-sjmv-hxszm4b90-vanshs-projects-3fb5c63f.vercel.app',
   ...(process.env.APP_URL?.split(',') || []),
 ].filter(Boolean);
 
@@ -19,9 +22,11 @@ const allowedOrigins = [
 function corsMiddleware(req: any, res: any, next: any) {
   const origin = req.headers.origin;
 
-  // Allow all origins in production for now, or check against allowedOrigins
-  if (origin) {
+  // Check if origin is in allowedOrigins list
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
   } else {
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
@@ -75,7 +80,12 @@ let cachedServer: any;
 export default async function handler(req: any, res: any) {
   // Handle CORS preflight immediately
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    }
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
@@ -112,6 +122,9 @@ async function bootstrap() {
       'http://localhost:5173',
       'http://localhost:3000',
       'https://localhost:5173',
+      'https://luxury-fashion-sjmv.vercel.app',
+      'https://luxury-fashion-sjmv-git-main-vanshs-projects-3fb5c63f.vercel.app',
+      'https://luxury-fashion-sjmv-hxszm4b90-vanshs-projects-3fb5c63f.vercel.app',
       ...(process.env.APP_URL?.split(',') || []),
     ].filter(Boolean),
     credentials: true,
