@@ -157,9 +157,16 @@ The frontend is now fully integrated with the backend. All cart operations, orde
 
 Make sure to set:
 ```env
-VITE_API_BASE=http://localhost:8081
+VITE_API_BASE=http://localhost:8080
 ```
 
 Or the backend URL where your API is hosted.
+
+**Default Ports:**
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8080`
+
+
+
 
 
