@@ -1,61 +1,148 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Notification } from "@/data/adminData";
-import { toast } from "sonner";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import {
+  getNotifications,
+  getUnreadCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  clearAllNotifications,
+} from "@/lib/api";
+import { useAuth } from "./AuthContext";
+
+export interface Notification {
+  _id?: string;
+  id?: string;
+  message: string;
+  type: "order" | "user" | "system" | "promotion";
+  read: boolean;
+  timestamp?: string;
+  createdAt?: string;
+  metadata?: Record<string, any>;
+  link?: string;
+}
 
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (message: string, type: Notification["type"]) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  clearNotifications: () => void;
+  loading: boolean;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  clearNotifications: () => Promise<void>;
+  refreshNotifications: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const initialNotifications: Notification[] = [
-  { id: "1", message: "New order #ORD-1007 received from Arjun Reddy", type: "order", read: false, timestamp: "2 min ago" },
-  { id: "2", message: "Order #ORD-1005 is being prepared", type: "order", read: false, timestamp: "15 min ago" },
-  { id: "3", message: "New user Meera Nair signed up", type: "user", read: true, timestamp: "1 hour ago" },
-  { id: "4", message: "Order #ORD-1004 has been delivered", type: "order", read: true, timestamp: "2 hours ago" },
-];
-
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const formatTimestamp = (date: string | Date) => {
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-  const addNotification = (message: string, type: Notification["type"]) => {
-    const newNotification: Notification = {
-      id: Date.now().toString(),
-      message,
-      type,
-      read: false,
-      timestamp: "Just now",
-    };
-    setNotifications((prev) => [newNotification, ...prev]);
-    toast.success(message, {
-      description: "New notification received",
-    });
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    return d.toLocaleDateString();
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-  };
+  const loadNotifications = useCallback(async () => {
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
+    try {
+      const [notifs, count] = await Promise.all([
+        getNotifications().catch(() => []),
+        getUnreadCount().catch(() => ({ count: 0 })),
+      ]);
 
-  const clearNotifications = () => {
-    setNotifications([]);
-  };
+      const formatted = (Array.isArray(notifs) ? notifs : []).map((n: Notification) => ({
+        ...n,
+        id: n._id || n.id,
+        timestamp: n.createdAt ? formatTimestamp(n.createdAt) : "Recently",
+      }));
+
+      setNotifications(formatted);
+      setUnreadCount(typeof count === "number" ? count : count.count || 0);
+    } catch (err: any) {
+      console.error("Failed to load notifications", err);
+      setNotifications([]);
+      setUnreadCount(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadNotifications();
+
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(() => {
+      if (user) {
+        loadNotifications();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [loadNotifications, user]);
+
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      await markNotificationRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => {
+          const nId = n._id || n.id;
+          return nId === id ? { ...n, read: true } : n;
+        })
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (err: any) {
+      console.error("Failed to mark notification as read", err);
+    }
+  }, []);
+
+  const markAllAsRead = useCallback(async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err: any) {
+      console.error("Failed to mark all as read", err);
+    }
+  }, []);
+
+  const clearNotifications = useCallback(async () => {
+    try {
+      await clearAllNotifications();
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err: any) {
+      console.error("Failed to clear notifications", err);
+    }
+  }, []);
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, addNotification, markAsRead, markAllAsRead, clearNotifications }}
+      value={{
+        notifications,
+        unreadCount,
+        loading,
+        markAsRead,
+        markAllAsRead,
+        clearNotifications,
+        refreshNotifications: loadNotifications,
+      }}
     >
       {children}
     </NotificationContext.Provider>

@@ -1,18 +1,42 @@
 import { User, Mail, Phone, MapPin, CreditCard, Bell, LogOut, ChevronRight, Package, Heart, Settings, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCartContext } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { getFavorites, getAddresses } from "@/lib/api";
 
 const Profile = () => {
   const { orders } = useCartContext();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [addressesCount, setAddressesCount] = useState(0);
+
+  useEffect(() => {
+    const loadCounts = async () => {
+      try {
+        const [favorites, addresses] = await Promise.all([
+          getFavorites().catch(() => []),
+          getAddresses().catch(() => []),
+        ]);
+        setFavoritesCount(Array.isArray(favorites) ? favorites.length : 0);
+        setAddressesCount(Array.isArray(addresses) ? addresses.length : 0);
+      } catch (err) {
+        console.error("Failed to load counts", err);
+      }
+    };
+    if (user) loadCounts();
+  }, [user]);
+
+  const totalSpent = orders.reduce((sum, o) => sum + (o.totalAmount || o.totalPrice || o.total || 0), 0);
 
   const menuItems = [
     { icon: Package, label: "My Orders", path: "/orders", count: orders.length },
-    { icon: Heart, label: "Favorites", path: "#", count: 5 },
-    { icon: MapPin, label: "Saved Addresses", path: "#", count: 2 },
-    { icon: CreditCard, label: "Payment Methods", path: "#", count: 1 },
-    { icon: Bell, label: "Notifications", path: "#" },
-    { icon: Settings, label: "Settings", path: "#" },
+    { icon: Heart, label: "Favorites", path: "/favorites", count: favoritesCount },
+    { icon: MapPin, label: "Saved Addresses", path: "/addresses", count: addressesCount },
+    { icon: CreditCard, label: "Payment Methods", path: "/payment-methods", count: 0 },
+    { icon: Bell, label: "Notifications", path: "/notifications" },
+    { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
   return (
@@ -28,31 +52,42 @@ const Profile = () => {
           {/* Info */}
           <div className="text-center md:text-left flex-1">
             <h1 className="text-2xl font-display font-bold text-foreground mb-1">
-              John Doe
+              {user?.name || "User"}
             </h1>
-            <p className="text-muted-foreground mb-4">Premium Member</p>
+            <p className="text-muted-foreground mb-4">
+              {user?.role === "admin" ? "Administrator" : "Premium Member"}
+            </p>
             <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary" />
-                john.doe@email.com
+                {user?.email || "No email"}
               </span>
-              <span className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-primary" />
-                +91 98765 43210
-              </span>
+              {user?.phone && (
+                <span className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-primary" />
+                  {user.phone}
+                </span>
+              )}
             </div>
           </div>
 
           {/* Buttons */}
           <div className="flex flex-col gap-2">
-            <button className="btn-outline">Edit Profile</button>
-            <button
-              onClick={() => navigate("/admin")}
-              className="btn-primary flex items-center gap-2"
+            <button 
+              onClick={() => navigate("/settings")}
+              className="btn-outline"
             >
-              <Shield className="w-4 h-4" />
-              Admin Dashboard
+              Edit Profile
             </button>
+            {user?.role === "admin" && (
+              <button
+                onClick={() => navigate("/admin")}
+                className="btn-primary flex items-center gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                Admin Dashboard
+              </button>
+            )}
           </div>
         </div>
 
@@ -63,11 +98,11 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground">Total Orders</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">₹{orders.reduce((sum, o) => sum + o.total, 0)}</p>
+            <p className="text-2xl font-bold text-foreground">₹{totalSpent.toLocaleString()}</p>
             <p className="text-sm text-muted-foreground">Total Spent</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">150</p>
+            <p className="text-2xl font-bold text-foreground">{Math.floor(totalSpent / 100)}</p>
             <p className="text-sm text-muted-foreground">Reward Points</p>
           </div>
         </div>
@@ -103,7 +138,10 @@ const Profile = () => {
       </div>
 
       {/* Logout */}
-      <button className="w-full mt-6 flex items-center justify-center gap-2 p-4 bg-destructive/10 text-destructive rounded-2xl font-medium hover:bg-destructive/20 transition-colors duration-300">
+      <button 
+        onClick={logout}
+        className="w-full mt-6 flex items-center justify-center gap-2 p-4 bg-destructive/10 text-destructive rounded-2xl font-medium hover:bg-destructive/20 transition-colors duration-300"
+      >
         <LogOut className="w-5 h-5" />
         Log Out
       </button>
@@ -123,32 +161,41 @@ const Profile = () => {
             </Link>
           </div>
           <div className="space-y-3">
-            {orders.slice(0, 3).map((order) => (
-              <div
-                key={order.id}
-                className="flex items-center justify-between p-4 bg-card rounded-xl border border-border"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden">
-                    <img
-                      src={order.items[0]?.image}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
+            {orders.slice(0, 3).map((order) => {
+              const orderId = order.id || order._id || "";
+              const shortOrderId = `#${orderId.slice(-8).toUpperCase()}`;
+              return (
+                <Link
+                  key={orderId}
+                  to={`/order/${orderId}`}
+                  className="flex items-center justify-between p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
+                      {order.items?.[0]?.image ? (
+                        <img
+                          src={order.items[0].image}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Package className="w-6 h-6 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground font-mono">{shortOrderId}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {order.items?.length || 0} items • {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : order.date || "N/A"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-foreground">{order.id}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {order.items.length} items • {order.date}
-                    </p>
+                  <div className="text-right">
+                    <p className="font-semibold text-foreground">₹{order.totalAmount || order.totalPrice || order.total || 0}</p>
+                    <p className="text-sm text-primary capitalize">{order.status || "placed"}</p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-foreground">₹{order.total}</p>
-                  <p className="text-sm text-primary">{order.status}</p>
-                </div>
-              </div>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

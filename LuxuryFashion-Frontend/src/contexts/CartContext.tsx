@@ -6,7 +6,7 @@ interface CartContextType {
   cartItems: BackendCartItem[];
   cartCount: number;
   cartTotal: number;
-  addToCart: (item: FoodItem | number, quantity?: number, size?: string) => Promise<void>;
+  addToCart: (item: FoodItem | number | string, quantity?: number, size?: string) => Promise<void>;
   removeFromCart: (id: number | string) => Promise<void>;
   updateQuantity: (id: number | string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -19,9 +19,12 @@ interface CartContextType {
       zipCode: string;
       country: string;
       phoneNumber?: string;
+      lat?: number;
+      lng?: number;
     },
     phoneNumber: string,
-    couponCode?: string
+    couponCode?: string,
+    orderType?: "delivery" | "takeaway"
   ) => Promise<number | undefined>;
   loading: boolean;
   error: string | null;
@@ -33,40 +36,31 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const cart = useCartBackend();
 
-  // Wrapper to handle both FoodItem and productId
+  // Wrapper to handle FoodItem, number ID, or string ID
   const addToCartWrapper = async (
-    item: FoodItem | number,
+    item: FoodItem | number | string,
     quantity: number = 1,
     size?: string
   ) => {
-    if (typeof item === "number") {
-      await cart.addToCart(item, quantity, size);
+    let dishId: string | number;
+    if (typeof item === "number" || typeof item === "string") {
+      // If it's already an ID (number or string), use it directly
+      dishId = item;
     } else {
-      // Convert FoodItem to productId - assuming FoodItem.id is the product ID
-      const productId = parseInt(item.id);
-      if (isNaN(productId)) {
-        throw new Error("Invalid product ID");
-      }
-      await cart.addToCart(productId, quantity, size);
+      // If it's a FoodItem, extract the ID
+      dishId = item.id;
     }
+    await cart.addToCart(dishId, quantity, size);
   };
 
   // Wrapper to handle both number and string IDs
   const removeFromCartWrapper = async (id: number | string) => {
-    const cartItemId = typeof id === "string" ? parseInt(id) : id;
-    if (isNaN(cartItemId)) {
-      throw new Error("Invalid cart item ID");
-    }
-    await cart.removeFromCart(cartItemId);
+    await cart.removeFromCart(id as any);
   };
 
   // Wrapper to handle both number and string IDs
   const updateQuantityWrapper = async (id: number | string, quantity: number) => {
-    const cartItemId = typeof id === "string" ? parseInt(id) : id;
-    if (isNaN(cartItemId)) {
-      throw new Error("Invalid cart item ID");
-    }
-    await cart.updateQuantity(cartItemId, quantity);
+    await cart.updateQuantity(id as any, quantity);
   };
 
   const contextValue: CartContextType = {

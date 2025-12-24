@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   getCart,
-  getCartItems,
-  getCartCount,
-  getCartTotal,
   addToCart as apiAddToCart,
   updateCartItem as apiUpdateCartItem,
   removeFromCart as apiRemoveFromCart,
@@ -11,39 +8,41 @@ import {
   placeOrder as apiPlaceOrder,
   fetchOrderHistory,
 } from "@/lib/api";
-import { toast } from "sonner";
 
 export interface BackendCartItem {
-  id: number;
-  product: {
-    prod_id: number;
-    prod_name: string;
-    prod_description?: string;
-    prod_price: number;
-    selling_price: number;
-    imagenames?: string[];
-    prod_category?: string;
+  id: string;
+  dish: {
+    _id: string;
+    name: string;
+    price: number;
+    imageUrl?: string;
+    category?: string;
+    inStock?: boolean;
   };
   quantity: number;
   price: number;
-  size?: string;
 }
 
 export interface BackendCart {
-  id: number;
+  id: string;
   cartItems: BackendCartItem[];
   totalPrice: number;
 }
 
 export interface BackendOrder {
-  id: number;
+  id: string;
+  _id?: string;
   items: any[];
-  totalPrice: number;
-  orderDate: string;
+  totalPrice?: number;
+  totalAmount?: number;
+  orderDate?: string;
+  createdAt?: string;
   status: string;
   couponCode?: string;
   discountAmount?: number;
   subtotal?: number;
+  orderType?: "delivery" | "takeaway";
+  address?: any;
 }
 
 export function useCartBackend() {
@@ -73,8 +72,6 @@ export function useCartBackend() {
         setCartItems([]);
         setCartTotal(0);
         setCartCount(0);
-      } else {
-        toast.error("Failed to load cart");
       }
     } finally {
       setLoading(false);
@@ -88,14 +85,8 @@ export function useCartBackend() {
       setOrders(orderList || []);
     } catch (err: any) {
       console.error("Error loading orders:", err);
-      // Don't show error for unauthenticated users
-      if (!err.message.includes("401") && !err.message.includes("Unauthorized") && 
-          !err.message.includes("not authenticated")) {
-        toast.error("Failed to load orders");
-      } else {
-        // Set empty orders for unauthenticated users
-        setOrders([]);
-      }
+      // Set empty orders for unauthenticated users
+      setOrders([]);
     }
   }, []);
 
@@ -107,20 +98,18 @@ export function useCartBackend() {
 
   // Add item to cart
   const addToCart = useCallback(
-    async (productId: number, quantity: number = 1, size?: string) => {
+    async (productId: number | string, quantity: number = 1) => {
       try {
         setError(null);
-        const cart = await apiAddToCart(productId, quantity, size);
+        const cart = await apiAddToCart(productId, quantity);
         setCartItems(cart.cartItems || []);
         setCartTotal(cart.totalPrice || 0);
         setCartCount(
           cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
         );
-        toast.success("Item added to cart");
       } catch (err: any) {
         console.error("Error adding to cart:", err);
         setError(err.message);
-        toast.error(err.message || "Failed to add item to cart");
         throw err;
       }
     },
@@ -128,7 +117,7 @@ export function useCartBackend() {
   );
 
   // Update cart item quantity
-  const updateQuantity = useCallback(async (cartItemId: number, quantity: number) => {
+  const updateQuantity = useCallback(async (cartItemId: number | string, quantity: number) => {
     if (quantity <= 0) {
       await removeFromCart(cartItemId);
       return;
@@ -144,13 +133,12 @@ export function useCartBackend() {
     } catch (err: any) {
       console.error("Error updating cart:", err);
       setError(err.message);
-      toast.error(err.message || "Failed to update cart");
       throw err;
     }
   }, []);
 
   // Remove item from cart
-  const removeFromCart = useCallback(async (cartItemId: number) => {
+  const removeFromCart = useCallback(async (cartItemId: number | string) => {
     try {
       setError(null);
       const cart = await apiRemoveFromCart(cartItemId);
@@ -159,11 +147,9 @@ export function useCartBackend() {
       setCartCount(
         cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
       );
-      toast.success("Item removed from cart");
     } catch (err: any) {
       console.error("Error removing from cart:", err);
       setError(err.message);
-      toast.error(err.message || "Failed to remove item");
       throw err;
     }
   }, []);
@@ -176,11 +162,9 @@ export function useCartBackend() {
       setCartItems([]);
       setCartTotal(0);
       setCartCount(0);
-      toast.success("Cart cleared");
     } catch (err: any) {
       console.error("Error clearing cart:", err);
       setError(err.message);
-      toast.error(err.message || "Failed to clear cart");
       throw err;
     }
   }, []);
@@ -195,27 +179,29 @@ export function useCartBackend() {
         zipCode: string;
         country: string;
         phoneNumber?: string;
+        lat?: number;
+        lng?: number;
       },
       phoneNumber: string,
-      couponCode?: string
+      couponCode?: string,
+      orderType: "delivery" | "takeaway" = "delivery"
     ) => {
       try {
         setError(null);
         const response = await apiPlaceOrder({
-          address,
-          phoneNumber,
+          address: {
+            ...address,
+            phoneNumber: phoneNumber || address.phoneNumber,
+          },
           couponCode,
+          orderType,
         });
         await clearCart();
         await loadOrders(); // Reload orders after placing
-        toast.success(response.message || "Order placed successfully!", {
-          description: `Order ID: ${response.order?.id}`,
-        });
         return response.order?.id;
       } catch (err: any) {
         console.error("Error placing order:", err);
         setError(err.message);
-        toast.error(err.message || "Failed to place order");
         throw err;
       }
     },
@@ -238,4 +224,3 @@ export function useCartBackend() {
     loadOrders,
   };
 }
-

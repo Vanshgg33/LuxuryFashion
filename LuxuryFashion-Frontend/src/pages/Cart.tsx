@@ -1,10 +1,29 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingBag, ArrowRight, Trash2, Check, X, MapPin, Phone } from "lucide-react";
+import {
+  ShoppingBag,
+  ArrowRight,
+  Trash2,
+  Check,
+  X,
+  MapPin,
+  Phone,
+  Tag,
+  Truck,
+  ChevronDown,
+  Navigation
+} from "lucide-react";
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
-import { toast } from "sonner";
-import { useState } from "react";
-import { validateCoupon } from "@/lib/api";
+import { useState, useEffect, useMemo } from "react";
+import { validateCoupon, fetchSettings } from "@/lib/api";
+import { reverseGeocode } from "@/lib/geocode";
+import { MapPicker } from "@/components/MapPicker";
+import { cn } from "@/lib/utils";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KOLKATA KITCHEN — CART PAGE
+   Simple, warm checkout experience
+═══════════════════════════════════════════════════════════════════════════ */
 
 interface CouponResult {
   valid: boolean;
@@ -23,11 +42,43 @@ interface AddressForm {
   zipCode: string;
   country: string;
   phoneNumber: string;
+  lat?: number;
+  lng?: number;
 }
 
 const Cart = () => {
-  const { cartItems, cartTotal, clearCart, placeOrder, loading: cartLoading } = useCartContext();
+  const { cartItems, clearCart, placeOrder, loading: cartLoading, loadCart } = useCartContext();
   const navigate = useNavigate();
+
+  // Deduplicate cart items by dish ID
+  const uniqueCartItems = useMemo(() => {
+    const itemMap = new Map<string, typeof cartItems[0]>();
+    cartItems.forEach((item) => {
+      let dishIdStr: string;
+      if (item.dish?._id) {
+        dishIdStr = typeof item.dish._id === 'string' ? item.dish._id : item.dish._id.toString();
+      } else if (item.dish?.id) {
+        dishIdStr = typeof item.dish.id === 'string' ? item.dish.id : item.dish.id.toString();
+      } else if (item.dish) {
+        dishIdStr = typeof item.dish === 'string' ? item.dish : item.dish.toString();
+      } else {
+        dishIdStr = item.id || `item-${Math.random()}`;
+      }
+
+      if (itemMap.has(dishIdStr)) {
+        const existing = itemMap.get(dishIdStr)!;
+        itemMap.set(dishIdStr, { ...existing, quantity: existing.quantity + item.quantity });
+      } else {
+        itemMap.set(dishIdStr, { ...item });
+      }
+    });
+    return Array.from(itemMap.values());
+  }, [cartItems]);
+
+  useEffect(() => {
+    loadCart();
+  }, [loadCart]);
+
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<CouponResult | null>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
@@ -41,35 +92,81 @@ const Cart = () => {
     country: "India",
     phoneNumber: "",
   });
+  const [settings, setSettings] = useState<{ lat?: number; lng?: number }>({});
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [showCouponInput, setShowCouponInput] = useState(false);
 
-  const deliveryFee = cartTotal > 299 ? 0 : 40;
-  const taxes = Math.round(cartTotal * 0.05);
-  const subtotal = cartTotal + deliveryFee + taxes;
+  // Calculate totals
+  const uniqueCartTotal = useMemo(() => {
+    return uniqueCartItems.reduce((sum, item) => {
+      const price = item.dish?.price || item.price || 0;
+      return sum + price * item.quantity;
+    }, 0);
+  }, [uniqueCartItems]);
+
+  const deliveryFee = uniqueCartTotal > 299 ? 0 : 40;
+  const taxes = Math.round(uniqueCartTotal * 0.05);
   const discount = appliedCoupon?.valid ? (appliedCoupon.discount || 0) : 0;
-  const grandTotal = subtotal - discount;
+  const grandTotal = uniqueCartTotal + deliveryFee + taxes - discount;
+  const freeDeliveryProgress = Math.min((uniqueCartTotal / 299) * 100, 100);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchSettings();
+        setSettings({ lat: data.lat, lng: data.lng });
+      } catch (err) {
+        console.error("Failed to fetch settings", err);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (address.lat && address.lng && settings.lat && settings.lng) {
+      const dist = haversine(settings.lat, settings.lng, address.lat, address.lng);
+      setDistanceKm(dist);
+    }
+  }, [address.lat, address.lng, settings.lat, settings.lng]);
+
+  const haversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setAddress((prev) => ({ ...prev, lat, lng }));
+        try {
+          const geo = await reverseGeocode(lat, lng);
+          setAddress((prev) => ({ ...prev, ...geo, lat, lng }));
+        } catch { /* ignore */ }
+      },
+      () => console.error("Unable to get location"),
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  };
 
   const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) {
-      toast.error("Please enter a coupon code");
-      return;
-    }
-
+    if (!couponCode.trim()) return;
     setIsValidatingCoupon(true);
     try {
-      const result = await validateCoupon(couponCode.trim(), subtotal);
+      const result = await validateCoupon(couponCode.trim(), uniqueCartTotal);
       if (result.valid) {
         setAppliedCoupon(result);
-        toast.success(result.message || "Coupon applied successfully!", {
-          description: `You saved ${result.discountFormatted || `₹${result.discount}`}`,
-        });
       } else {
         setAppliedCoupon(null);
-        toast.error(result.message || "Invalid coupon code");
       }
     } catch (error: any) {
       setAppliedCoupon(null);
-      const errorMessage = error.message || "Failed to validate coupon";
-      toast.error(errorMessage.includes("Invalid") ? errorMessage : "Invalid coupon code");
+      console.error("Failed to validate coupon:", error);
     } finally {
       setIsValidatingCoupon(false);
     }
@@ -78,41 +175,49 @@ const Cart = () => {
   const handleRemoveCoupon = () => {
     setCouponCode("");
     setAppliedCoupon(null);
-    toast.info("Coupon removed");
   };
 
   const handlePlaceOrder = async () => {
-    // Validate address
-    if (!address.street.trim() || !address.city.trim() || !address.state.trim() || 
+    if (!address.street.trim() || !address.city.trim() || !address.state.trim() ||
         !address.zipCode.trim() || !address.phoneNumber.trim()) {
-      toast.error("Please fill in all address fields");
+      setShowAddressForm(true);
+      return;
+    }
+    if (!address.lat || !address.lng) {
       setShowAddressForm(true);
       return;
     }
 
+    let finalCouponCode: string | undefined;
+    if (appliedCoupon?.valid && couponCode.trim()) {
+      try {
+        const revalidation = await validateCoupon(couponCode.trim(), uniqueCartTotal);
+        if (!revalidation.valid) {
+          setAppliedCoupon(null);
+          return;
+        }
+        finalCouponCode = couponCode.trim();
+      } catch {
+        setAppliedCoupon(null);
+        return;
+      }
+    }
+
     setIsPlacingOrder(true);
+    const orderType = distanceKm !== null && distanceKm > 5 ? "takeaway" : "delivery";
+
     try {
       const orderId = await placeOrder(
-        {
-          street: address.street,
-          city: address.city,
-          state: address.state,
-          zipCode: address.zipCode,
-          country: address.country,
-          phoneNumber: address.phoneNumber,
-        },
+        { ...address },
         address.phoneNumber,
-        appliedCoupon?.valid ? couponCode.trim() : undefined
+        finalCouponCode,
+        orderType
       );
-      
       if (orderId) {
-        toast.success("Order placed successfully!", {
-          description: `Order ID: ${orderId}`,
-        });
-        navigate("/orders");
+        navigate("/order-confirmation", { state: { orderId, orderType, address } });
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to place order");
+      console.error("Failed to place order:", error);
     } finally {
       setIsPlacingOrder(false);
     }
@@ -121,37 +226,40 @@ const Cart = () => {
   const handleClearCart = async () => {
     try {
       await clearCart();
-      toast.info("Cart cleared");
     } catch (error: any) {
-      toast.error(error.message || "Failed to clear cart");
+      console.error("Failed to clear cart:", error);
     }
   };
 
+  // Loading State
   if (cartLoading && cartItems.length === 0) {
     return (
-      <main className="container mx-auto px-4 py-16 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-        <p className="mt-4 text-muted-foreground">Loading cart...</p>
+      <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-terracotta/30 border-t-terracotta rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-muted-foreground">Loading your cart...</p>
+        </div>
       </main>
     );
   }
 
+  // Empty Cart
   if (cartItems.length === 0) {
     return (
-      <main className="container mx-auto px-4 py-16 text-center">
-        <div className="max-w-md mx-auto">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-secondary flex items-center justify-center">
-            <ShoppingBag className="w-12 h-12 text-muted-foreground" />
+      <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm animate-fade-in-up">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-cream flex items-center justify-center">
+            <ShoppingBag className="w-8 h-8 text-terracotta" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-foreground mb-2">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
             Your cart is empty
           </h1>
-          <p className="text-muted-foreground mb-8">
-            Looks like you haven't added anything to your cart yet.
+          <p className="text-muted-foreground mb-6">
+            Add some delicious dishes from our menu to get started.
           </p>
-          <Link to="/menu" className="btn-primary inline-flex items-center gap-2">
+          <Link to="/menu" className="btn-primary">
             Browse Menu
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </main>
@@ -159,223 +267,289 @@ const Cart = () => {
   }
 
   return (
-    <main className="container mx-auto px-4 py-6 md:py-8">
+    <main className="min-h-screen bg-background">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-            Your Cart
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            {cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in cart
-          </p>
-        </div>
-        <button
-          onClick={handleClearCart}
-          disabled={cartLoading}
-          className="flex items-center gap-2 px-4 py-2 text-sm md:text-base text-destructive hover:bg-destructive/10 rounded-xl transition-colors duration-300 disabled:opacity-50"
-        >
-          <Trash2 className="w-4 h-4" />
-          Clear Cart
-        </button>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
-        {/* Cart Items */}
-        <div className="lg:col-span-2 space-y-4">
-          {cartItems.map((item, index) => (
-            <div
-              key={item.id}
-              className="animate-fade-in"
-              style={{ animationDelay: `${index * 50}ms` }}
+      <section className="bg-cream/50 border-b border-border/50">
+        <div className="container-wide py-6 md:py-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                Your Cart
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {uniqueCartItems.length} {uniqueCartItems.length === 1 ? 'item' : 'items'}
+              </p>
+            </div>
+            <button
+              onClick={handleClearCart}
+              disabled={cartLoading}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
             >
-              <CartItem item={item} />
-            </div>
-          ))}
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Clear</span>
+            </button>
+          </div>
         </div>
+      </section>
 
-        {/* Bill Summary */}
-        <div className="lg:col-span-1">
-          <div className="bg-card rounded-2xl border border-border p-5 md:p-6 sticky top-20 md:top-24">
-            <h2 className="text-lg md:text-xl font-display font-semibold text-foreground mb-5 md:mb-6">
-              Bill Summary
-            </h2>
+      {/* Content */}
+      <div className="container-wide py-6 md:py-8">
+        <div className="grid lg:grid-cols-5 gap-6 lg:gap-10">
+          {/* Cart Items */}
+          <div className="lg:col-span-3 space-y-3">
+            {uniqueCartItems.map((item, index) => (
+              <div
+                key={item.id || `${item.dish?._id || item.dish?.id || index}`}
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${index * 80}ms` }}
+              >
+                <CartItem item={item} />
+              </div>
+            ))}
 
-            <div className="space-y-4">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Subtotal</span>
-                <span>₹{cartTotal}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Delivery Fee</span>
-                <span className={deliveryFee === 0 ? "text-green-600" : ""}>
-                  {deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}
-                </span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Taxes (5%)</span>
-                <span>₹{taxes}</span>
-              </div>
-              {appliedCoupon?.valid && discount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span className="flex items-center gap-1">
-                    <Check className="w-4 h-4" />
-                    Discount ({appliedCoupon.coupon?.code})
-                  </span>
-                  <span className="font-semibold">-₹{discount.toFixed(2)}</span>
-                </div>
-              )}
+            <Link
+              to="/menu"
+              className="inline-flex items-center gap-2 text-sm text-terracotta hover:text-terracotta-dark transition-colors mt-4"
+            >
+              <ArrowRight className="w-4 h-4 rotate-180" />
+              Add more items
+            </Link>
+          </div>
+
+          {/* Order Summary */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl border border-border/50 p-5 md:p-6 sticky top-24 shadow-soft">
+              <h2 className="text-lg font-bold text-foreground mb-5">
+                Order Summary
+              </h2>
+
+              {/* Free Delivery Progress */}
               {deliveryFee > 0 && (
-                <p className="text-sm text-accent">
-                  Add ₹{299 - cartTotal} more for free delivery!
-                </p>
+                <div className="mb-5 p-3 bg-mustard/10 rounded-lg">
+                  <p className="text-sm text-foreground mb-2">
+                    Add ₹{(299 - uniqueCartTotal).toFixed(0)} more for free delivery
+                  </p>
+                  <div className="h-1.5 bg-mustard/20 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-mustard transition-all duration-500 rounded-full"
+                      style={{ width: `${freeDeliveryProgress}%` }}
+                    />
+                  </div>
+                </div>
               )}
-              <div className="pt-4 border-t border-border">
+
+              {/* Price Breakdown */}
+              <div className="space-y-3 pb-4 border-b border-border/50 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-lg font-semibold text-foreground">
-                    Grand Total
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium">₹{uniqueCartTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5" /> Delivery
                   </span>
-                  <span className="text-xl font-bold text-foreground">
-                    ₹{grandTotal.toFixed(2)}
+                  <span className={cn("font-medium", deliveryFee === 0 && "text-bengali-green")}>
+                    {deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}
                   </span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Taxes (5%)</span>
+                  <span className="font-medium">₹{taxes.toFixed(2)}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-bengali-green">
+                    <span className="flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5" /> Discount
+                    </span>
+                    <span className="font-semibold">-₹{discount.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Coupon Code */}
-            <div className="mt-6">
-              {appliedCoupon?.valid ? (
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    <div>
-                      <p className="text-sm font-medium text-green-900 dark:text-green-100">
-                        {appliedCoupon.coupon?.code}
-                      </p>
-                      <p className="text-xs text-green-700 dark:text-green-300">
-                        {appliedCoupon.discountFormatted} off
-                      </p>
+              {/* Total */}
+              <div className="flex justify-between py-4 border-b border-border/50">
+                <span className="font-semibold">Total</span>
+                <span className="text-xl font-bold text-foreground">₹{grandTotal.toFixed(2)}</span>
+              </div>
+
+              {/* Coupon */}
+              <div className="py-4 border-b border-border/50">
+                {appliedCoupon?.valid ? (
+                  <div className="flex items-center justify-between p-3 bg-bengali-green/10 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-bengali-green" />
+                      <span className="font-medium text-bengali-green">
+                        {appliedCoupon.coupon?.code} applied
+                      </span>
+                    </div>
+                    <button onClick={handleRemoveCoupon} className="p-1 hover:bg-bengali-green/20 rounded">
+                      <X className="w-4 h-4 text-bengali-green" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      onClick={() => setShowCouponInput(!showCouponInput)}
+                      className="flex items-center justify-between w-full text-left text-sm"
+                    >
+                      <span className="flex items-center gap-2 font-medium">
+                        <Tag className="w-4 h-4 text-terracotta" />
+                        Have a coupon?
+                      </span>
+                      <ChevronDown className={cn("w-4 h-4 transition-transform", showCouponInput && "rotate-180")} />
+                    </button>
+                    <div className={cn(
+                      "overflow-hidden transition-all",
+                      showCouponInput ? "max-h-16 mt-3" : "max-h-0"
+                    )}>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Enter code"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          onKeyPress={(e) => e.key === "Enter" && handleApplyCoupon()}
+                          className="flex-1 px-3 py-2 bg-cream border border-border/50 rounded-lg text-sm focus:outline-none focus:border-terracotta/50"
+                        />
+                        <button
+                          onClick={handleApplyCoupon}
+                          disabled={isValidatingCoupon}
+                          className="px-4 py-2 bg-terracotta text-white text-sm font-medium rounded-lg hover:bg-terracotta-dark transition-colors disabled:opacity-50"
+                        >
+                          {isValidatingCoupon ? "..." : "Apply"}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <button
-                    onClick={handleRemoveCoupon}
-                    className="p-1 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-lg transition-colors"
-                    aria-label="Remove coupon"
-                  >
-                    <X className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter coupon code"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    onKeyPress={(e) => e.key === "Enter" && handleApplyCoupon()}
-                    disabled={isValidatingCoupon}
-                    className="flex-1 px-4 py-3 bg-secondary/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  <button
-                    onClick={handleApplyCoupon}
-                    disabled={isValidatingCoupon || !couponCode.trim()}
-                    className="px-4 py-3 bg-secondary text-secondary-foreground rounded-xl font-medium hover:bg-secondary/80 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isValidatingCoupon ? "..." : "Apply"}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Address Form */}
-            {showAddressForm && (
-              <div className="mt-6 p-4 md:p-5 bg-secondary/50 rounded-xl border border-border space-y-3 md:space-y-4">
-                <div className="flex items-center gap-2 mb-3 md:mb-4">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-sm md:text-base text-foreground">Delivery Address</h3>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Street Address"
-                  value={address.street}
-                  onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                  className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    placeholder="City"
-                    value={address.city}
-                    onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                    className="px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                  <input
-                    type="text"
-                    placeholder="State"
-                    value={address.state}
-                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
-                    className="px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    placeholder="Zip Code"
-                    value={address.zipCode}
-                    onChange={(e) => setAddress({ ...address, zipCode: e.target.value })}
-                    className="px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Country"
-                    value={address.country}
-                    onChange={(e) => setAddress({ ...address, country: e.target.value })}
-                    className="px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="tel"
-                    placeholder="Phone Number"
-                    value={address.phoneNumber}
-                    onChange={(e) => setAddress({ ...address, phoneNumber: e.target.value })}
-                    className="flex-1 px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <button
-                  onClick={() => setShowAddressForm(false)}
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  Cancel
-                </button>
+                )}
               </div>
-            )}
 
-            {/* Checkout Button */}
-            <button
-              onClick={showAddressForm ? handlePlaceOrder : () => setShowAddressForm(true)}
-              disabled={isPlacingOrder || cartLoading}
-              className="w-full mt-6 btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isPlacingOrder ? (
-                "Placing Order..."
-              ) : showAddressForm ? (
-                <>
-                  Place Order
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              ) : (
-                <>
-                  Proceed to Checkout
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
+              {/* Address */}
+              <div className="py-4">
+                <button
+                  onClick={() => setShowAddressForm(!showAddressForm)}
+                  className="flex items-center justify-between w-full text-left text-sm"
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <MapPin className="w-4 h-4 text-terracotta" />
+                    {address.street ? "Delivery Address" : "Add Address"}
+                  </span>
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", showAddressForm && "rotate-180")} />
+                </button>
 
-            <p className="text-sm text-muted-foreground text-center mt-4">
-              🛡️ Secure checkout • 🚚 Fast delivery
-            </p>
+                <div className={cn(
+                  "overflow-hidden transition-all",
+                  showAddressForm ? "max-h-[600px] mt-4" : "max-h-0"
+                )}>
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={useMyLocation}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-terracotta/10 text-terracotta text-sm font-medium rounded-lg hover:bg-terracotta/20 transition-colors"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      Use My Location
+                    </button>
+
+                    {distanceKm !== null && (
+                      <div className={cn(
+                        "p-2.5 rounded-lg text-xs",
+                        distanceKm > 5
+                          ? "bg-mustard/20 text-mustard-dark"
+                          : "bg-bengali-green/10 text-bengali-green"
+                      )}>
+                        {distanceKm > 5 ? `Takeaway only (${distanceKm.toFixed(1)} km)` : `Delivery available (${distanceKm.toFixed(1)} km)`}
+                      </div>
+                    )}
+
+                    <input
+                      type="text"
+                      placeholder="Street Address"
+                      value={address.street}
+                      onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                      className="input-field"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="City"
+                        value={address.city}
+                        onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                        className="input-field"
+                      />
+                      <input
+                        type="text"
+                        placeholder="State"
+                        value={address.state}
+                        onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                        className="input-field"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Zip Code"
+                        value={address.zipCode}
+                        onChange={(e) => setAddress({ ...address, zipCode: e.target.value })}
+                        className="input-field"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Country"
+                        value={address.country}
+                        onChange={(e) => setAddress({ ...address, country: e.target.value })}
+                        className="input-field"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="tel"
+                        placeholder="Phone Number"
+                        value={address.phoneNumber}
+                        onChange={(e) => setAddress({ ...address, phoneNumber: e.target.value })}
+                        className="input-field pl-10"
+                      />
+                    </div>
+
+                    <div className="rounded-lg overflow-hidden border border-border/50">
+                      <MapPicker
+                        lat={address.lat || settings.lat || 22.5726}
+                        lng={address.lng || settings.lng || 88.3639}
+                        onChange={async (lat, lng) => {
+                          setAddress((prev) => ({ ...prev, lat, lng }));
+                          try {
+                            const geo = await reverseGeocode(lat, lng);
+                            setAddress((prev) => ({ ...prev, ...geo, lat, lng }));
+                          } catch { /* ignore */ }
+                        }}
+                        height="160px"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Checkout Button */}
+              <button
+                onClick={showAddressForm ? handlePlaceOrder : () => setShowAddressForm(true)}
+                disabled={isPlacingOrder || cartLoading}
+                className="w-full btn-primary justify-center mt-4"
+              >
+                {isPlacingOrder ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    {showAddressForm ? "Place Order" : "Proceed to Checkout"}
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+
+              <p className="text-center text-xs text-muted-foreground mt-4">
+                Secure checkout • Fast delivery
+              </p>
+            </div>
           </div>
         </div>
       </div>

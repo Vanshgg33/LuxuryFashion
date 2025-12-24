@@ -46,8 +46,8 @@ This document outlines the production-ready improvements made to the Luxury Fash
 Create a `.env` file in the root directory:
 
 ```env
-VITE_API_URL=http://localhost:8081
-VITE_OAUTH_LOGIN_URL=http://localhost:8081/oauth2/authorization/google
+VITE_API_BASE=http://localhost:8080
+VITE_OAUTH_LOGIN_URL=http://localhost:8080/auth/google
 VITE_APP_NAME=Luxury Fashion
 ```
 

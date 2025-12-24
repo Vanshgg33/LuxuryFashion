@@ -10,6 +10,7 @@ export interface FoodItem {
   ingredients?: string[];
   isSpecial?: boolean;
   isTrending?: boolean;
+  inStock?: boolean;
 }
 
 export const categories = [
@@ -49,8 +50,33 @@ import { fetchProducts as _fetchProducts, fetchGallery } from "@/lib/api";
 export async function fetchProducts(): Promise<FoodItem[]> {
   try {
     const data = await _fetchProducts();
-    // If backend returns Product objects with different keys, adapt here if needed
-    return data as FoodItem[];
+    return (data || []).map((d: any, idx: number) => {
+      // Extract ID - handle both _id (ObjectId or string) and id fields
+      let dishId: string;
+      if (d._id) {
+        // If _id is an object with toString method (MongoDB ObjectId), convert it
+        dishId = typeof d._id === 'string' ? d._id : (d._id.toString ? d._id.toString() : String(d._id));
+      } else if (d.id) {
+        dishId = typeof d.id === 'string' ? d.id : String(d.id);
+      } else {
+        console.warn(`Dish at index ${idx} has no ID, skipping`);
+        return null;
+      }
+      
+      return {
+        id: dishId,
+        name: d.name,
+        price: d.price,
+        category: d.category || d.dishCategory || "Chef's Picks",
+        rating: d.rating || 4.6,
+        isVeg: d.isVeg ?? (d.foodCategory === 'Veg'),
+        image: d.imageUrl || d.image || "/placeholder.svg",
+        description: d.description || "Delicious signature from RangeelaDhaba",
+        isSpecial: d.isSpecial,
+        isTrending: d.isTrending,
+        inStock: d.inStock !== undefined ? d.inStock : true,
+      };
+    }).filter((item): item is FoodItem => item !== null);
   } catch (err) {
     console.error("Failed to fetch products:", err);
     return [];

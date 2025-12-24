@@ -1,15 +1,31 @@
 import { Search, Mail, ShoppingBag } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AdminUser } from "@/data/adminData";
+import { fetchUsers } from "@/lib/api";
+import { updateUserRole } from "@/lib/api";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingRole, setPendingRole] = useState<{ id: string; role: "user" | "admin" } | null>(null);
 
   useEffect(() => {
-    // Backend does not expose a public admin users list endpoint currently.
-    // Keep users empty and show helpful message until a users API is added.
-    setUsers([]);
+    (async () => {
+      try {
+        const data = await fetchUsers();
+        setUsers(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to fetch users", err);
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const filteredUsers = users.filter(
@@ -17,6 +33,13 @@ const AdminUsers = () => {
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const paged = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+
+  const handleRoleChange = async (userId: string, role: "user" | "admin") => {
+    setPendingRole({ id: userId, role });
+    setConfirmOpen(true);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -50,16 +73,27 @@ const AdminUsers = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="border-t border-border hover:bg-secondary/30 transition-colors">
+              {loading ? (
+                <tr>
+                  <td className="py-12 text-center text-muted-foreground" colSpan={5}>Loading...</td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td className="py-12 text-center text-muted-foreground" colSpan={5}>
+                    No users found matching your search.
+                  </td>
+                </tr>
+              ) : (
+              paged.map((user) => (
+                <tr key={user._id || user.id} className="border-t border-border hover:bg-secondary/30 transition-colors">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-olive flex items-center justify-center text-primary-foreground font-semibold">
-                        {user.name.charAt(0)}
+                        {user.name?.charAt(0)}
                       </div>
                       <div>
                         <p className="font-medium text-foreground">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.id}</p>
+                        <p className="text-xs text-muted-foreground">{user._id || user.id}</p>
                       </div>
                     </div>
                   </td>
@@ -72,26 +106,89 @@ const AdminUsers = () => {
                   <td className="py-4 px-6 text-center">
                     <div className="flex items-center justify-center gap-1">
                       <ShoppingBag className="w-4 h-4 text-primary" />
-                      <span className="font-medium text-foreground">{user.orderCount}</span>
+                      <span className="font-medium text-foreground">{user.orderCount || 0}</span>
                     </div>
                   </td>
                   <td className="py-4 px-6 text-right font-semibold text-primary">
-                    ₹{user.totalSpent.toLocaleString()}
+                    ₹{(user.totalSpent || 0).toLocaleString()}
                   </td>
                   <td className="py-4 px-6 text-right text-sm text-muted-foreground">
-                    {user.joinedDate}
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-IN") : ""}
+                  </td>
+                  <td className="py-4 px-6 text-right">
+                    <select
+                      value={user.role || "user"}
+                      onChange={(e) => handleRoleChange(user._id || user.id, e.target.value as "user" | "admin")}
+                      className="input-styled text-sm"
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>
-        {filteredUsers.length === 0 && (
-          <div className="py-12 text-center text-muted-foreground">
-            No users found matching your search.
+        <div className="flex items-center justify-between px-6 py-4 text-sm text-muted-foreground">
+          <span>
+            Page {page} of {totalPages}
+          </span>
+          <div className="flex gap-2">
+            <button
+              className="btn-secondary text-xs"
+              disabled={page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Prev
+            </button>
+            <button
+              className="btn-secondary text-xs"
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
           </div>
-        )}
+        </div>
       </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm role change</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Change user {pendingRole?.id} to role "{pendingRole?.role}"?
+          </p>
+          <DialogFooter className="mt-4">
+            <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!pendingRole) return;
+                try {
+                  await updateUserRole(pendingRole.id, pendingRole.role);
+                  setUsers((prev) =>
+                    prev.map((u) =>
+                      u._id === pendingRole.id || u.id === pendingRole.id ? { ...u, role: pendingRole.role } : u
+                    )
+                  );
+                  
+                } catch (err: any) {
+                  
+                } finally {
+                  setConfirmOpen(false);
+                  setPendingRole(null);
+                }
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

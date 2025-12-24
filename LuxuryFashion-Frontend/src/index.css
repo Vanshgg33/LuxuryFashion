@@ -2,247 +2,814 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   RANGEELA DHABA — PREMIUM BENGALI RESTAURANT
+   Philosophy: "Elegant, Authentic, Sophisticated"
+
+   Inspired by:
+   - Kolkata's heritage restaurants
+   - Bengali food culture
+   - Premium dining experiences
+   - Warm, inviting ambiance
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Google Fonts - Playfair Display for elegant serif */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
+
 @layer base {
   :root {
-    /* Warm cream/beige base palette */
-    --background: 40 33% 97%;
-    --foreground: 25 30% 15%;
+    /* ─────────────────────────────────────────────────────────────────────
+       LIGHT MODE — Elegant Golden & White Theme
+    ───────────────────────────────────────────────────────────────────── */
 
-    --card: 40 30% 99%;
-    --card-foreground: 25 30% 15%;
+    /* Background - Pure clean white */
+    --background: 0 0% 100%;
+    --foreground: 30 10% 15%;
 
-    --popover: 40 30% 99%;
-    --popover-foreground: 25 30% 15%;
+    /* Card - White with subtle warmth */
+    --card: 0 0% 100%;
+    --card-foreground: 30 10% 15%;
 
-    /* Sage green primary */
-    --primary: 142 25% 35%;
-    --primary-foreground: 40 33% 97%;
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 10% 15%;
 
-    /* Warm beige secondary */
-    --secondary: 35 35% 90%;
-    --secondary-foreground: 25 30% 25%;
+    /* Primary - Rich Golden Yellow */
+    --primary: 43 96% 56%;
+    --primary-foreground: 30 10% 10%;
 
-    --muted: 35 20% 92%;
-    --muted-foreground: 25 15% 45%;
+    /* Secondary - Light warm gray */
+    --secondary: 40 20% 96%;
+    --secondary-foreground: 30 10% 20%;
 
-    /* Terracotta accent */
-    --accent: 15 60% 55%;
-    --accent-foreground: 40 33% 97%;
+    /* Muted - Soft gray */
+    --muted: 40 10% 94%;
+    --muted-foreground: 30 5% 45%;
 
-    --destructive: 0 84% 60%;
+    /* Accent - Deep Gold */
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive */
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 35 25% 88%;
-    --input: 35 25% 88%;
-    --ring: 142 25% 35%;
+    /* Borders & Inputs */
+    --border: 40 15% 90%;
+    --input: 40 15% 90%;
+    --ring: 43 96% 56%;
 
+    /* Radius - Friendly, rounded */
     --radius: 0.75rem;
 
-    /* Custom food colors */
-    --cream: 40 33% 94%;
-    --sage: 142 25% 35%;
-    --sage-light: 142 20% 92%;
-    --terracotta: 15 60% 55%;
-    --terracotta-light: 15 50% 92%;
-    --olive: 75 30% 35%;
-    --brown: 25 35% 30%;
-    --gold: 45 80% 55%;
+    /* ─────────────────────────────────────────────────────────────────────
+       RANGEELA DHABA — GOLDEN BRAND COLORS
+    ───────────────────────────────────────────────────────────────────── */
 
-    --sidebar-background: 40 30% 99%;
-    --sidebar-foreground: 25 30% 15%;
-    --sidebar-primary: 142 25% 35%;
-    --sidebar-primary-foreground: 40 33% 97%;
-    --sidebar-accent: 35 35% 90%;
-    --sidebar-accent-foreground: 25 30% 25%;
-    --sidebar-border: 35 25% 88%;
-    --sidebar-ring: 142 25% 35%;
+    /* Golden Yellow - Primary brand color */
+    --terracotta: 43 96% 56%;
+    --terracotta-light: 45 100% 95%;
+    --terracotta-dark: 38 92% 45%;
+
+    /* Deep Gold - Accent */
+    --mustard: 38 92% 50%;
+    --mustard-light: 45 90% 92%;
+
+    /* Dark charcoal for contrast */
+    --bengali-green: 30 10% 15%;
+    --bengali-green-light: 40 20% 96%;
+
+    /* Warm Brown - Text color */
+    --warm-brown: 30 10% 20%;
+
+    /* Cream - Background variations */
+    --cream: 45 50% 98%;
+    --cream-dark: 40 25% 94%;
+
+    /* Spice Colors */
+    --chili-red: 0 72% 55%;
+    --turmeric: 43 96% 56%;
+
+    /* Veg/Non-Veg - Standard Indian markers */
+    --veg: 142 65% 35%;
+    --non-veg: 0 72% 50%;
+
+    /* Success/Warning */
+    --success: 142 65% 35%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 30 10% 10%;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 30 10% 15%;
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-primary-foreground: 30 10% 10%;
+    --sidebar-accent: 40 20% 96%;
+    --sidebar-accent-foreground: 30 10% 20%;
+    --sidebar-border: 40 15% 90%;
+    --sidebar-ring: 43 96% 56%;
   }
 
   .dark {
-    --background: 25 25% 10%;
-    --foreground: 40 20% 95%;
+    /* ─────────────────────────────────────────────────────────────────────
+       DARK MODE — Cozy Evening, Warm Atmosphere
+    ───────────────────────────────────────────────────────────────────── */
 
-    --card: 25 25% 12%;
-    --card-foreground: 40 20% 95%;
+    --background: 20 15% 8%;
+    --foreground: 35 20% 95%;
 
-    --popover: 25 25% 12%;
-    --popover-foreground: 40 20% 95%;
+    --card: 20 15% 12%;
+    --card-foreground: 35 20% 95%;
 
-    --primary: 142 30% 50%;
-    --primary-foreground: 25 25% 10%;
+    --popover: 20 15% 12%;
+    --popover-foreground: 35 20% 95%;
 
-    --secondary: 25 20% 18%;
-    --secondary-foreground: 40 20% 90%;
+    --primary: 14 60% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 25 20% 18%;
-    --muted-foreground: 35 15% 60%;
+    --secondary: 20 15% 18%;
+    --secondary-foreground: 35 20% 90%;
 
-    --accent: 15 55% 50%;
-    --accent-foreground: 40 20% 95%;
+    --muted: 20 12% 20%;
+    --muted-foreground: 30 10% 60%;
+
+    --accent: 42 80% 50%;
+    --accent-foreground: 20 25% 10%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 25 20% 20%;
-    --input: 25 20% 20%;
-    --ring: 142 30% 50%;
+    --border: 20 12% 22%;
+    --input: 20 12% 22%;
+    --ring: 14 60% 55%;
 
-    --cream: 25 20% 15%;
-    --sage: 142 30% 50%;
-    --sage-light: 142 20% 18%;
-    --terracotta: 15 55% 50%;
-    --terracotta-light: 15 40% 18%;
-    --olive: 75 25% 40%;
-    --brown: 25 30% 50%;
-    --gold: 45 70% 50%;
+    /* Custom Colors - Dark Mode */
+    --terracotta: 14 60% 55%;
+    --terracotta-light: 14 40% 20%;
+    --mustard: 42 80% 50%;
+    --mustard-light: 42 50% 15%;
+    --bengali-green: 150 35% 40%;
+    --bengali-green-light: 150 25% 15%;
+    --cream: 20 15% 12%;
+    --cream-dark: 20 15% 8%;
 
-    --sidebar-background: 25 25% 12%;
-    --sidebar-foreground: 40 20% 95%;
-    --sidebar-primary: 142 30% 50%;
-    --sidebar-primary-foreground: 25 25% 10%;
-    --sidebar-accent: 25 20% 18%;
-    --sidebar-accent-foreground: 40 20% 90%;
-    --sidebar-border: 25 20% 20%;
-    --sidebar-ring: 142 30% 50%;
+    /* Veg/Non-Veg */
+    --veg: 142 55% 45%;
+    --non-veg: 0 65% 55%;
+
+    --success: 142 55% 45%;
+    --warning: 42 80% 50%;
+
+    /* Sidebar */
+    --sidebar-background: 20 15% 10%;
+    --sidebar-foreground: 35 20% 95%;
+    --sidebar-primary: 14 60% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 15% 18%;
+    --sidebar-accent-foreground: 35 20% 90%;
+    --sidebar-border: 20 12% 22%;
+    --sidebar-ring: 14 60% 55%;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE STYLES — Warm & Readable
+═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   * {
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
+  html {
+    @apply scroll-smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3 {
-    @apply font-display;
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* Slightly warm text rendering */
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Friendly, Readable Typography */
+  h1 {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight;
+    color: hsl(var(--warm-brown));
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl font-bold tracking-tight;
+    color: hsl(var(--warm-brown));
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl font-semibold;
+  }
+
+  h4 {
+    @apply text-lg md:text-xl font-semibold;
+  }
+
+  h5 {
+    @apply text-base md:text-lg font-medium;
+  }
+
+  h6 {
+    @apply text-sm md:text-base font-medium;
+  }
+
+  p {
+    @apply leading-relaxed;
+  }
+
+  /* Focus states */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Selection - Warm terracotta tint */
+  ::selection {
+    background: hsl(var(--terracotta-light));
+    color: hsl(var(--warm-brown));
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITIES — Simple & Functional
+═══════════════════════════════════════════════════════════════════════════ */
+
 @layer utilities {
-  .gradient-primary {
-    @apply bg-gradient-to-r from-primary to-olive;
-  }
-  
-  .gradient-warm {
-    @apply bg-gradient-to-br from-cream via-background to-sage-light;
+  /* Warm Background Gradients */
+  .bg-warm-gradient {
+    background: linear-gradient(180deg, hsl(var(--cream)) 0%, hsl(var(--background)) 100%);
   }
 
-  .gradient-accent {
-    @apply bg-gradient-to-r from-terracotta to-gold;
+  .bg-cream {
+    background: hsl(var(--cream));
   }
 
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary via-olive to-sage bg-clip-text text-transparent;
+  /* Shadows - Soft & Inviting */
+  .shadow-soft {
+    box-shadow: 0 2px 8px -2px rgba(60, 40, 30, 0.08),
+                0 4px 12px -4px rgba(60, 40, 30, 0.12);
   }
 
-  .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  .shadow-card {
+    box-shadow: 0 1px 3px rgba(60, 40, 30, 0.06),
+                0 4px 12px rgba(60, 40, 30, 0.08);
   }
 
-  .hover-scale {
-    @apply transition-transform duration-300 hover:scale-105;
+  .shadow-elevated {
+    box-shadow: 0 4px 16px -4px rgba(60, 40, 30, 0.1),
+                0 8px 24px -8px rgba(60, 40, 30, 0.15);
   }
 
-  .glass {
-    @apply bg-card/80 backdrop-blur-md;
-  }
-
+  /* Veg/Non-Veg Badges - Standard Indian Style */
   .veg-badge {
-    @apply inline-flex items-center justify-center w-5 h-5 border-2 border-green-600 rounded-sm;
+    @apply inline-flex items-center justify-center w-4 h-4 border-2 border-green-600 rounded-sm bg-white;
+  }
+
+  .veg-badge::after {
+    content: '';
+    @apply w-2 h-2 rounded-full bg-green-600;
   }
 
   .non-veg-badge {
-    @apply inline-flex items-center justify-center w-5 h-5 border-2 border-red-600 rounded-sm;
+    @apply inline-flex items-center justify-center w-4 h-4 border-2 border-red-600 rounded-sm bg-white;
+  }
+
+  .non-veg-badge::after {
+    content: '';
+    @apply w-2 h-2 rounded-full bg-red-600;
+  }
+
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Price styling */
+  .price {
+    @apply font-bold tabular-nums;
+    color: hsl(var(--warm-brown));
+  }
+
+  .price-strike {
+    @apply line-through text-muted-foreground text-sm;
+  }
+
+  /* Food category label */
+  .category-label {
+    @apply text-xs font-medium uppercase tracking-wider;
+    color: hsl(var(--terracotta));
+  }
+
+  /* Section padding */
+  .section-padding {
+    @apply py-12 md:py-16 lg:py-20;
+  }
+
+  .section-padding-sm {
+    @apply py-8 md:py-10 lg:py-12;
+  }
+
+  .section-padding-xs {
+    @apply py-6 md:py-8;
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS — Restaurant-Focused
+═══════════════════════════════════════════════════════════════════════════ */
+
 @layer components {
-  .card-food {
-    @apply bg-card rounded-2xl overflow-hidden shadow-sm border border-border/50 hover-lift;
-  }
+  /* ─────────────────────────────────────────────────────────────────────
+     BUTTONS — Clear & Inviting
+  ───────────────────────────────────────────────────────────────────── */
 
+  /* Primary Button - Order / Add to Cart */
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:shadow-md;
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-6 py-3;
+    @apply font-semibold text-base;
+    @apply rounded-xl;
+    @apply transition-all duration-200 ease-out;
+    @apply active:scale-[0.98];
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    background: hsl(var(--terracotta));
+    color: white;
   }
 
-  .btn-accent {
-    @apply bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:shadow-md;
+  .btn-primary:hover:not(:disabled) {
+    background: hsl(var(--terracotta-dark));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -2px hsla(var(--terracotta), 0.3);
   }
 
+  /* Secondary Button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-6 py-3;
+    @apply bg-secondary text-secondary-foreground;
+    @apply font-semibold text-base;
+    @apply rounded-xl;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:bg-secondary/80;
+    @apply active:scale-[0.98];
+  }
+
+  /* Ghost Button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-4 py-2;
+    @apply bg-transparent text-foreground;
+    @apply font-medium text-sm;
+    @apply rounded-lg;
+    @apply transition-all duration-200;
+    @apply hover:bg-secondary;
+  }
+
+  /* Outline Button */
   .btn-outline {
-    @apply border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-xl px-6 py-3 font-semibold transition-all duration-300;
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-6 py-3;
+    @apply bg-transparent;
+    @apply font-semibold text-base;
+    @apply rounded-xl;
+    @apply border-2;
+    @apply transition-all duration-200 ease-out;
+    @apply active:scale-[0.98];
+    border-color: hsl(var(--terracotta));
+    color: hsl(var(--terracotta));
   }
+
+  .btn-outline:hover {
+    background: hsl(var(--terracotta));
+    color: white;
+  }
+
+  /* Add Button - Small, for food items */
+  .btn-add {
+    @apply inline-flex items-center justify-center;
+    @apply px-5 py-2;
+    @apply font-bold text-sm uppercase tracking-wide;
+    @apply rounded-lg;
+    @apply transition-all duration-200;
+    @apply border-2;
+    border-color: hsl(var(--bengali-green));
+    color: hsl(var(--bengali-green));
+    background: white;
+  }
+
+  .btn-add:hover {
+    background: hsl(var(--bengali-green));
+    color: white;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     CARDS — Food-First Design
+  ───────────────────────────────────────────────────────────────────── */
+
+  /* Food Card */
+  .food-card {
+    @apply bg-card rounded-2xl overflow-hidden;
+    @apply border border-border/50;
+    @apply transition-all duration-200;
+    box-shadow: 0 1px 3px rgba(60, 40, 30, 0.04);
+  }
+
+  .food-card:hover {
+    @apply border-border;
+    box-shadow: 0 4px 16px -4px rgba(60, 40, 30, 0.1);
+    transform: translateY(-2px);
+  }
+
+  /* Menu Card - For list view */
+  .menu-card {
+    @apply bg-card rounded-xl p-4;
+    @apply border border-border/30;
+    @apply transition-all duration-200;
+  }
+
+  .menu-card:hover {
+    @apply bg-secondary/30;
+  }
+
+  /* Premium Card */
+  .card-premium {
+    @apply bg-card rounded-2xl;
+    @apply border border-border/50;
+    @apply overflow-hidden;
+    box-shadow: 0 1px 3px rgba(60, 40, 30, 0.04);
+  }
+
+  /* Interactive Card */
+  .card-interactive {
+    @apply bg-card rounded-2xl;
+    @apply border border-border/50;
+    @apply overflow-hidden cursor-pointer;
+    @apply transition-all duration-200 ease-out;
+    box-shadow: 0 1px 3px rgba(60, 40, 30, 0.04);
+  }
+
+  .card-interactive:hover {
+    @apply border-border;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px -4px rgba(60, 40, 30, 0.1);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     INPUTS — Simple & Clear
+  ───────────────────────────────────────────────────────────────────── */
 
   .input-styled {
-    @apply bg-secondary/50 border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-300;
+    @apply w-full px-4 py-3;
+    @apply bg-white border border-border;
+    @apply text-foreground placeholder:text-muted-foreground;
+    @apply rounded-xl;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary;
   }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     NAVIGATION — Clear & Simple
+  ───────────────────────────────────────────────────────────────────── */
 
   .nav-link {
-    @apply relative text-muted-foreground hover:text-foreground font-medium transition-colors duration-300;
-  }
-
-  .nav-link::after {
-    @apply content-[''] absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300;
-  }
-
-  .nav-link:hover::after,
-  .nav-link.active::after {
-    @apply w-full;
+    @apply relative px-1 py-2;
+    @apply text-muted-foreground font-medium;
+    @apply transition-colors duration-200;
+    @apply hover:text-foreground;
   }
 
   .nav-link.active {
-    @apply text-primary;
+    color: hsl(var(--terracotta));
   }
 
+  /* ─────────────────────────────────────────────────────────────────────
+     BADGES — Restaurant Style
+  ───────────────────────────────────────────────────────────────────── */
+
+  .badge {
+    @apply inline-flex items-center gap-1;
+    @apply px-2.5 py-1;
+    @apply text-xs font-semibold;
+    @apply rounded-full;
+    @apply bg-secondary text-secondary-foreground;
+  }
+
+  .badge-bestseller {
+    @apply bg-amber-100 text-amber-800;
+  }
+
+  .badge-new {
+    @apply text-white;
+    background: hsl(var(--bengali-green));
+  }
+
+  .badge-spicy {
+    @apply bg-red-100 text-red-700;
+  }
+
+  .badge-offer {
+    background: hsl(var(--mustard-light));
+    color: hsl(var(--warm-brown));
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     SECTION STYLES
+  ───────────────────────────────────────────────────────────────────── */
+
   .section-title {
-    @apply text-3xl md:text-4xl font-display font-bold text-foreground;
+    @apply text-2xl md:text-3xl font-bold;
+    color: hsl(var(--warm-brown));
   }
 
   .section-subtitle {
-    @apply text-muted-foreground text-lg;
+    @apply text-muted-foreground text-base md:text-lg;
+  }
+
+  /* Container utilities */
+  .container-tight {
+    @apply max-w-4xl mx-auto px-4;
+  }
+
+  .container-wide {
+    @apply max-w-6xl mx-auto px-4 md:px-6;
+  }
+
+  /* Divider */
+  .divider {
+    @apply w-full h-px bg-border;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     CATEGORY PILLS — For Menu Filtering
+  ───────────────────────────────────────────────────────────────────── */
+
+  .category-pill {
+    @apply inline-flex items-center justify-center;
+    @apply px-4 py-2;
+    @apply text-sm font-medium;
+    @apply rounded-full;
+    @apply whitespace-nowrap;
+    @apply transition-all duration-200;
+    @apply border border-border/50;
+    @apply bg-white text-muted-foreground;
+    @apply hover:border-terracotta/50 hover:text-terracotta;
+    @apply active:scale-[0.98];
+  }
+
+  .category-pill.active {
+    @apply bg-terracotta text-white border-terracotta;
+    @apply shadow-soft;
+  }
+
+  .category-pill.active:hover {
+    @apply bg-terracotta-dark border-terracotta-dark;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     INPUT FIELDS — Simple, Clean Forms
+  ───────────────────────────────────────────────────────────────────── */
+
+  .input-field {
+    @apply w-full px-4 py-3;
+    @apply bg-cream border border-border/50;
+    @apply text-foreground placeholder:text-muted-foreground;
+    @apply rounded-xl;
+    @apply text-sm;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-terracotta/20 focus:border-terracotta/50;
+  }
+
+  .input-field:hover:not(:focus) {
+    @apply border-border;
   }
 }
 
-/* Custom scrollbar */
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS — Subtle & Natural
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Simple fade in */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Fade in up - for staggered content */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+/* Scale in - for modals/popovers */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
+}
+
+/* Slide up - for bottom sheets */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+
+/* Shimmer - for loading skeletons */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--cream)) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Stagger children */
+.stagger-children > * {
+  opacity: 0;
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCROLLBAR — Minimal
+═══════════════════════════════════════════════════════════════════════════ */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-secondary/30 rounded-full;
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary/30 rounded-full hover:bg-primary/50 transition-colors;
+  @apply bg-border rounded-full;
 }
 
-/* Animations */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE OPTIMIZATIONS
+═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Larger touch targets */
+  .btn-primary,
+  .btn-secondary,
+  .btn-add {
+    @apply py-3.5;
   }
-  50% {
-    transform: translateY(-10px);
+
+  /* Better text size for mobile reading */
+  body {
+    font-size: 16px;
+  }
+
+  /* Simpler shadows on mobile */
+  .food-card:hover,
+  .card-interactive:hover {
+    transform: none;
+    box-shadow: 0 2px 8px -2px rgba(60, 40, 30, 0.1);
   }
 }
 
-@keyframes pulse-soft {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRINT STYLES
+═══════════════════════════════════════════════════════════════════════════ */
+
+@media print {
+  .no-print {
+    display: none !important;
   }
 }
 
-@keyframes slide-up {
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREMIUM RESTAURANT STYLES — Elegant & Sophisticated
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Container Custom - Wider with better padding */
+.container-custom {
+  @apply w-full mx-auto px-4 sm:px-6 lg:px-8;
+  max-width: 1280px;
+}
+
+/* Section Title - Elegant serif */
+.section-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  @apply text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight;
+  color: hsl(var(--foreground));
+}
+
+.section-subtitle {
+  @apply text-muted-foreground text-base md:text-lg leading-relaxed;
+}
+
+/* Font Serif utility */
+.font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Hero Section Styles */
+.hero-gradient {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--foreground)) 0%,
+    hsl(20 20% 18%) 50%,
+    hsl(20 15% 25%) 100%
+  );
+}
+
+.hero-overlay {
+  background: linear-gradient(
+    to right,
+    hsla(var(--foreground), 0.85) 0%,
+    hsla(var(--foreground), 0.6) 50%,
+    transparent 100%
+  );
+}
+
+/* Premium Shadow Effects */
+.shadow-glow {
+  box-shadow: 0 0 20px -5px hsla(var(--primary), 0.4),
+              0 4px 12px -2px hsla(var(--primary), 0.2);
+}
+
+.shadow-glow:hover {
+  box-shadow: 0 0 30px -5px hsla(var(--primary), 0.5),
+              0 8px 20px -4px hsla(var(--primary), 0.3);
+}
+
+.shadow-glow-lg {
+  box-shadow: 0 0 40px -10px hsla(var(--primary), 0.5),
+              0 10px 30px -5px hsla(var(--primary), 0.3);
+}
+
+/* Fade Up Animation */
+@keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -250,45 +817,87 @@
   }
 }
 
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.animate-fade-up {
+  animation: fade-up 0.8s ease-out forwards;
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+/* Decorative Line */
+.decorative-line {
+  @apply h-0.5 bg-primary rounded-full;
+  width: 3rem;
 }
 
-.animate-pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
+/* Feature Card Hover */
+.feature-card {
+  @apply bg-card rounded-2xl p-6 border border-border/50;
+  @apply transition-all duration-300 ease-out;
 }
 
-.animate-slide-up {
-  animation: slide-up 0.5s ease-out forwards;
+.feature-card:hover {
+  @apply border-primary/30 shadow-medium;
+  transform: translateY(-8px);
 }
 
-.animate-slide-in-right {
-  animation: slide-in-right 0.5s ease-out forwards;
+/* Premium Button */
+.btn-premium {
+  @apply inline-flex items-center justify-center gap-2;
+  @apply px-8 py-4;
+  @apply font-semibold text-base;
+  @apply rounded-lg;
+  @apply transition-all duration-300 ease-out;
+  @apply shadow-glow;
+  background: hsl(var(--primary));
+  color: white;
 }
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.btn-premium:hover {
+  transform: translateY(-2px);
+  @apply shadow-glow-lg;
 }
 
-.animate-fade-in {
-  animation: fade-in 0.6s ease-out forwards;
-  opacity: 0;
+/* Wave Decoration */
+.wave-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+/* Info Card */
+.info-card {
+  @apply flex items-start gap-3 p-4 bg-card rounded-xl border border-border;
+  @apply transition-all duration-300;
+}
+
+.info-card:hover {
+  @apply border-primary/30 shadow-soft;
+}
+
+/* Image with Decoration */
+.image-decorated {
+  @apply relative;
+}
+
+.image-decorated::before {
+  content: '';
+  @apply absolute -top-4 -left-4 w-24 h-24 rounded-2xl -z-10;
+  background: hsla(var(--primary), 0.2);
+}
+
+.image-decorated::after {
+  content: '';
+  @apply absolute -bottom-4 -right-4 w-32 h-32 rounded-2xl -z-10;
+  background: hsla(var(--primary), 0.1);
+}
+
+/* Floating Card */
+.floating-card {
+  @apply absolute bg-card rounded-xl shadow-medium p-4 z-20;
+  @apply border border-border/50;
+}
+
+/* Label Style */
+.label-premium {
+  @apply text-primary font-medium tracking-wider uppercase text-sm;
 }
