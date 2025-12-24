@@ -1,5 +1,5 @@
 import { Users, ShoppingBag, DollarSign, TrendingUp, Eye, EyeOff, Trash2, Image, Pencil, X, Check, Package, Plus, Upload } from "lucide-react";
-import { StatCard } from "@/components/admin/StatCard";
+import { StatCard } from "@/components/Admin/StatCard";
 import {
   fetchAnalyticsSummary,
   fetchAnalyticsStatus,
