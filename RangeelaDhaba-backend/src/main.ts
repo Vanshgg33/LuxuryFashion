@@ -8,6 +8,42 @@ import express from 'express';
 
 const expressApp = express();
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://localhost:5173',
+  ...(process.env.APP_URL?.split(',') || []),
+].filter(Boolean);
+
+// Manual CORS middleware for serverless
+function corsMiddleware(req: any, res: any, next: any) {
+  const origin = req.headers.origin;
+
+  // Allow all origins in production for now, or check against allowedOrigins
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+  res.setHeader('Access-Control-Max-Age', '86400');
+
+  // Handle preflight OPTIONS request immediately
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.end();
+    return;
+  }
+
+  next();
+}
+
+// Apply CORS middleware to express app
+expressApp.use(corsMiddleware);
+
 async function createNestServer(expressInstance: express.Express) {
   const app = await NestFactory.create(
     AppModule,
@@ -28,17 +64,6 @@ async function createNestServer(expressInstance: express.Express) {
     }),
   );
   app.use(cookieParser());
-  app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://localhost:5173',
-      ...(process.env.APP_URL?.split(',') || []),
-    ].filter(Boolean),
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  });
 
   await app.init();
   return app;
@@ -48,6 +73,16 @@ async function createNestServer(expressInstance: express.Express) {
 let cachedServer: any;
 
 export default async function handler(req: any, res: any) {
+  // Handle CORS preflight immediately
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+    res.statusCode = 204;
+    return res.end();
+  }
+
   if (!cachedServer) {
     await createNestServer(expressApp);
     cachedServer = expressApp;
