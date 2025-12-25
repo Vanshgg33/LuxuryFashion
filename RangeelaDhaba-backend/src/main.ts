@@ -12,9 +12,15 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://localhost:5173',
+  // Frontend: luxury-fashion-sjmv
   'https://luxury-fashion-sjmv.vercel.app',
   'https://luxury-fashion-sjmv-git-main-vanshs-projects-3fb5c63f.vercel.app',
   'https://luxury-fashion-sjmv-hxszm4b90-vanshs-projects-3fb5c63f.vercel.app',
+  'https://luxury-fashion-sjmv-rizein2mm-vanshs-projects-3fb5c63f.vercel.app',
+  // Frontend: luxury-fashion-roqh
+  'https://luxury-fashion-roqh.vercel.app',
+  'https://luxury-fashion-roqh-git-main-vanshs-projects-3fb5c63f.vercel.app',
+  'https://luxury-fashion-roqh-a7gdadm17-vanshs-projects-3fb5c63f.vercel.app',
   ...(process.env.APP_URL?.split(',') || []),
 ].filter(Boolean);
 
@@ -25,8 +31,8 @@ function isOriginAllowed(origin: string | undefined): boolean {
   // Check exact match
   if (allowedOrigins.includes(origin)) return true;
   
-  // Check if it's a Vercel preview URL for this project
-  if (origin.includes('luxury-fashion-sjmv') && origin.includes('.vercel.app')) {
+  // Check if it's a Vercel preview URL for luxury-fashion projects
+  if ((origin.includes('luxury-fashion-sjmv') || origin.includes('luxury-fashion-roqh')) && origin.includes('.vercel.app')) {
     return true;
   }
   

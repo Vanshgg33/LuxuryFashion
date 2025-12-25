@@ -1,4 +1,33 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
+// Determine API base URL based on environment
+const getApiBase = () => {
+  // If explicitly set via environment variable, use it
+  if (import.meta.env.VITE_API_BASE) {
+    return import.meta.env.VITE_API_BASE;
+  }
+  
+  // In production, VITE_API_BASE MUST be set
+  if (import.meta.env.PROD) {
+    const errorMsg = 
+      "❌ CRITICAL: VITE_API_BASE environment variable is not set!\n" +
+      "The frontend cannot connect to the backend API.\n\n" +
+      "To fix this:\n" +
+      "1. Go to your Vercel project settings\n" +
+      "2. Navigate to Environment Variables\n" +
+      "3. Add: VITE_API_BASE = https://your-backend-project.vercel.app\n" +
+      "4. Redeploy your frontend\n\n" +
+      "Without this, all API calls will fail.";
+    
+    console.error(errorMsg);
+    // Return empty string to prevent calls to undefined URL
+    // This will cause API calls to fail with clear errors
+    return "";
+  }
+  
+  // Development: use localhost
+  return "http://localhost:8080";
+};
+
+const API_BASE = getApiBase();
 
 const getStorage = () => (sessionStorage.getItem("rd_use_session") ? sessionStorage : localStorage);
 const getToken = () => {
@@ -28,6 +57,19 @@ export const clearTokens = () => {
 };
 
 async function request(path: string, options: RequestInit = {}) {
+  if (!API_BASE) {
+    const error = new Error(
+      "API_BASE is not configured. Please set VITE_API_BASE environment variable in Vercel project settings."
+    ) as any;
+    error.status = 500;
+    error.response = { 
+      data: { 
+        message: "Backend API URL is not configured. Please contact the administrator." 
+      } 
+    };
+    throw error;
+  }
+  
   const headers: Record<string, string> = { ...(options.headers as any) };
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
