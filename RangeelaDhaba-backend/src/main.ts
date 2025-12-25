@@ -18,20 +18,40 @@ const allowedOrigins = [
   ...(process.env.APP_URL?.split(',') || []),
 ].filter(Boolean);
 
+// Function to check if origin is allowed (including Vercel preview URLs)
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return false;
+  
+  // Check exact match
+  if (allowedOrigins.includes(origin)) return true;
+  
+  // Check if it's a Vercel preview URL for this project
+  if (origin.includes('luxury-fashion-sjmv') && origin.includes('.vercel.app')) {
+    return true;
+  }
+  
+  return false;
+}
+
 // Manual CORS middleware for serverless
 function corsMiddleware(req: any, res: any, next: any) {
   const origin = req.headers.origin;
 
-  // Check if origin is in allowedOrigins list
-  if (origin && allowedOrigins.includes(origin)) {
+  // Check if origin is allowed (including Vercel preview URLs)
+  // When credentials are true, we MUST use a specific origin, not '*'
+  if (origin && isOriginAllowed(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
   } else if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Origin not allowed - allow it but without credentials
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
   } else {
+    // No origin header (e.g., same-origin request)
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
   }
 
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
   res.setHeader('Access-Control-Max-Age', '86400');
@@ -81,12 +101,16 @@ export default async function handler(req: any, res: any) {
   // Handle CORS preflight immediately
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
+    if (origin && isOriginAllowed(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'false');
     } else {
-      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'false');
     }
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
     res.statusCode = 204;

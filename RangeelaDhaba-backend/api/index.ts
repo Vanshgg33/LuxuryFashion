@@ -17,6 +17,21 @@ const allowedOrigins = [
   ...(process.env.APP_URL?.split(',') || []),
 ].filter(Boolean);
 
+// Function to check if origin is allowed (including Vercel preview URLs)
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return false;
+  
+  // Check exact match
+  if (allowedOrigins.includes(origin)) return true;
+  
+  // Check if it's a Vercel preview URL for this project
+  if (origin.includes('luxury-fashion-sjmv') && origin.includes('.vercel.app')) {
+    return true;
+  }
+  
+  return false;
+}
+
 let cachedApp: any;
 
 async function createNestServer() {
@@ -47,12 +62,20 @@ async function createNestServer() {
 export default async function handler(req: Request, res: Response) {
   // Handle CORS
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
+  
+  if (origin && isOriginAllowed(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else if (origin) {
+    // Allow the origin but without credentials for unknown origins
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
   } else {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    // No origin header (same-origin request)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
   }
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
 
