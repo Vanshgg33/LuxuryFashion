@@ -1,9 +1,12 @@
 // Determine API base URL from environment variable
 // VITE_API_BASE must be set in all environments (development and production)
 const getApiBase = () => {
-  const apiBase = import.meta.env.VITE_API_BASE;
+  const rawValue = import.meta.env.VITE_API_BASE;
   
-  if (!apiBase) {
+  // Debug: Log what we're reading from environment (helpful for troubleshooting)
+  console.log('🔍 VITE_API_BASE from env:', rawValue ? `"${rawValue}"` : 'NOT SET');
+  
+  if (!rawValue) {
     const errorMsg = 
       "❌ CRITICAL: VITE_API_BASE environment variable is not set!\n" +
       "The frontend cannot connect to the backend API.\n\n" +
@@ -15,6 +18,7 @@ const getApiBase = () => {
       "   - Go to your Vercel project settings\n" +
       "   - Navigate to Environment Variables\n" +
       "   - Add: VITE_API_BASE = https://your-backend-project.vercel.app\n" +
+      "   - Make sure it's set for Production, Preview, and Development\n" +
       "   - Redeploy your frontend\n\n" +
       "Without this, all API calls will fail.";
     
@@ -23,6 +27,28 @@ const getApiBase = () => {
     // This will cause API calls to fail with clear errors
     return "";
   }
+  
+  // Trim whitespace
+  let apiBase = rawValue.trim();
+  
+  // Remove trailing slash if present
+  apiBase = apiBase.replace(/\/+$/, '');
+  
+  // Validate that it's an absolute URL (starts with http:// or https://)
+  if (!apiBase.startsWith('http://') && !apiBase.startsWith('https://')) {
+    const errorMsg = 
+      `❌ ERROR: VITE_API_BASE must be a full URL starting with http:// or https://\n` +
+      `Current value: "${apiBase}"\n` +
+      `This looks like a relative path. It should be a full URL like:\n` +
+      `  - https://your-backend-project.vercel.app\n` +
+      `  - http://localhost:8080\n` +
+      `\nPlease check your Vercel environment variables.`;
+    console.error(errorMsg);
+    return "";
+  }
+  
+  // Log the final API base URL for debugging
+  console.log('✅ Using API Base URL:', apiBase);
   
   return apiBase;
 };
@@ -70,10 +96,21 @@ async function request(path: string, options: RequestInit = {}) {
     throw error;
   }
   
+  // Ensure path starts with /
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  
+  // Construct full URL
+  const fullUrl = `${API_BASE}${normalizedPath}`;
+  
+  // Log in development for debugging
+  if (import.meta.env.DEV) {
+    console.log('🌐 API Request:', fullUrl);
+  }
+  
   const headers: Record<string, string> = { ...(options.headers as any) };
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(fullUrl, {
     ...options,
     headers,
   });
