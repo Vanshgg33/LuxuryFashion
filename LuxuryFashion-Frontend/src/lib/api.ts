@@ -34,14 +34,28 @@ const getApiBase = () => {
   // Remove trailing slash if present
   apiBase = apiBase.replace(/\/+$/, '');
   
-  // Validate that it's an absolute URL (starts with http:// or https://)
+  // Auto-fix: If protocol is missing, prepend https://
+  // This handles cases where VITE_API_BASE is set without the protocol
   if (!apiBase.startsWith('http://') && !apiBase.startsWith('https://')) {
-    const errorMsg = 
-      `❌ ERROR: VITE_API_BASE must be a full URL starting with http:// or https://\n` +
+    console.warn(
+      `⚠️ WARNING: VITE_API_BASE is missing protocol (http:// or https://)\n` +
       `Current value: "${apiBase}"\n` +
-      `This looks like a relative path. It should be a full URL like:\n` +
-      `  - https://your-backend-project.vercel.app\n` +
-      `  - http://localhost:8080\n` +
+      `Auto-fixing by prepending https://\n` +
+      `Please update your Vercel environment variable to include the full URL: https://${apiBase}`
+    );
+    // Auto-prepend https:// for convenience
+    apiBase = `https://${apiBase}`;
+  }
+  
+  // Validate that it's now a proper URL
+  try {
+    new URL(apiBase);
+  } catch (e) {
+    const errorMsg = 
+      `❌ ERROR: VITE_API_BASE is not a valid URL\n` +
+      `Current value: "${rawValue}"\n` +
+      `After processing: "${apiBase}"\n` +
+      `Expected format: "https://your-backend-project.vercel.app" or "http://localhost:8080"\n` +
       `\nPlease check your Vercel environment variables.`;
     console.error(errorMsg);
     return "";

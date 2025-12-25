@@ -44,6 +44,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { FOOD_CATEGORY_OPTIONS, DISH_CATEGORY_OPTIONS } from "@/constants/dishCategories";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const AdminDashboard = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -284,13 +285,20 @@ const AdminDashboard = () => {
 
   const handleSettingsSave = async () => {
     try {
+      if (!settingsForm.lat || !settingsForm.lng) {
+        toast.error("Please set the restaurant location on the map");
+        return;
+      }
+      
       await updateSettings({
         lat: settingsForm.lat,
         lng: settingsForm.lng,
         address: settingsForm.address,
       });
+      toast.success("Restaurant location updated successfully");
     } catch (err: any) {
       console.error("Failed to save settings:", err);
+      toast.error(err.message || "Failed to save restaurant location");
     }
   };
 

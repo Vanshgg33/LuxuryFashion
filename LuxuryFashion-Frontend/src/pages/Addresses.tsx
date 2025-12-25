@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { getAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress } from "@/lib/api";
-import { MapPin, Plus, Edit, Trash2, Check } from "lucide-react";
+import { MapPin, Plus, Edit, Trash2, Check, Navigation } from "lucide-react";
 import { MapPicker } from "@/components/MapPicker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { reverseGeocode } from "@/lib/geocode";
+import { toast } from "sonner";
 
 interface Address {
   _id?: string;
@@ -54,19 +56,66 @@ export default function Addresses() {
 
   const handleSave = async () => {
     try {
+      // Validate required fields
+      if (!form.label?.trim() || !form.street?.trim() || !form.city?.trim() || !form.state?.trim() || !form.zipCode?.trim()) {
+        toast.error("Please fill in all required address fields");
+        return;
+      }
+
       if (editing) {
         await updateAddress(editing._id || editing.id || "", form);
-        
+        toast.success("Address updated successfully");
       } else {
         await createAddress(form);
-        
+        toast.success("Address added successfully");
       }
       setDialogOpen(false);
       setEditing(null);
-      setForm({ label: "", street: "", city: "", state: "", zipCode: "", country: "India", phoneNumber: "" });
+      setForm({ label: "", street: "", city: "", state: "", zipCode: "", country: "India", phoneNumber: "", lat: undefined, lng: undefined });
       loadAddresses();
     } catch (err: any) {
-      
+      toast.error(err.message || "Failed to save address");
+      console.error("Failed to save address:", err);
+    }
+  };
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setForm((prev) => ({ ...prev, lat: latitude, lng: longitude }));
+        
+        try {
+          const geo = await reverseGeocode(latitude, longitude);
+          setForm((prev) => ({ ...prev, ...geo, lat: latitude, lng: longitude }));
+          toast.success("Location set successfully");
+        } catch (err) {
+          console.error("Failed to reverse geocode:", err);
+          toast.error("Location set, but failed to fetch address details");
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        toast.error("Unable to get your location. Please allow location access or select on map.");
+      }
+    );
+  };
+
+  const handleMapChange = async (lat: number, lng: number) => {
+    setForm((prev) => ({ ...prev, lat, lng }));
+    
+    // Auto-fill address fields from coordinates
+    try {
+      const geo = await reverseGeocode(lat, lng);
+      setForm((prev) => ({ ...prev, ...geo, lat, lng }));
+    } catch (err) {
+      console.error("Failed to reverse geocode:", err);
+      // Still update lat/lng even if reverse geocode fails
     }
   };
 
@@ -145,7 +194,11 @@ export default function Addresses() {
                 <button
                   onClick={() => {
                     setEditing(addr);
-                    setForm(addr);
+                    setForm({
+                      ...addr,
+                      lat: addr.lat || 19.076,
+                      lng: addr.lng || 72.8777,
+                    });
                     setDialogOpen(true);
                   }}
                   className="btn-secondary text-xs flex items-center gap-1"
@@ -218,14 +271,34 @@ export default function Addresses() {
                 className="input-styled"
               />
             </div>
-            {form.lat && form.lng && (
+            
+            {/* Location Section */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">Location (Click on map to set)</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={useMyLocation}
+                  className="flex items-center gap-2"
+                >
+                  <Navigation className="w-4 h-4" />
+                  Use My Location
+                </Button>
+              </div>
               <MapPicker
-                lat={form.lat}
-                lng={form.lng}
-                onChange={(lat, lng) => setForm({ ...form, lat, lng })}
+                lat={form.lat || 19.076}
+                lng={form.lng || 72.8777}
+                onChange={handleMapChange}
                 height="200px"
               />
-            )}
+              {form.lat && form.lng && (
+                <p className="text-xs text-muted-foreground">
+                  Coordinates: {form.lat.toFixed(6)}, {form.lng.toFixed(6)}
+                </p>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
