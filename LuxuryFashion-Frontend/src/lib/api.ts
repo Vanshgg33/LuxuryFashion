@@ -1,20 +1,21 @@
-// Determine API base URL based on environment
+// Determine API base URL from environment variable
+// VITE_API_BASE must be set in all environments (development and production)
 const getApiBase = () => {
-  // If explicitly set via environment variable, use it
-  if (import.meta.env.VITE_API_BASE) {
-    return import.meta.env.VITE_API_BASE;
-  }
+  const apiBase = import.meta.env.VITE_API_BASE;
   
-  // In production, VITE_API_BASE MUST be set
-  if (import.meta.env.PROD) {
+  if (!apiBase) {
     const errorMsg = 
       "❌ CRITICAL: VITE_API_BASE environment variable is not set!\n" +
       "The frontend cannot connect to the backend API.\n\n" +
       "To fix this:\n" +
-      "1. Go to your Vercel project settings\n" +
-      "2. Navigate to Environment Variables\n" +
-      "3. Add: VITE_API_BASE = https://your-backend-project.vercel.app\n" +
-      "4. Redeploy your frontend\n\n" +
+      "1. Create a .env file in the frontend root directory\n" +
+      "2. Add: VITE_API_BASE=http://localhost:8080 (for development)\n" +
+      "   Or: VITE_API_BASE=https://your-backend-project.vercel.app (for production)\n" +
+      "3. For Vercel deployment:\n" +
+      "   - Go to your Vercel project settings\n" +
+      "   - Navigate to Environment Variables\n" +
+      "   - Add: VITE_API_BASE = https://your-backend-project.vercel.app\n" +
+      "   - Redeploy your frontend\n\n" +
       "Without this, all API calls will fail.";
     
     console.error(errorMsg);
@@ -23,8 +24,7 @@ const getApiBase = () => {
     return "";
   }
   
-  // Development: use localhost
-  return "http://localhost:8080";
+  return apiBase;
 };
 
 const API_BASE = getApiBase();
