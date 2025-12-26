@@ -1,19 +1,13 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
 import { ShieldOff } from "lucide-react";
 
 const AdminRoute = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && (!user || user.role !== "admin")) {
-      
-    }
-  }, [loading, user]);
+  const location = useLocation();
 
   if (loading) return null;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   if (user.role !== "admin")
     return (
       <main className="container mx-auto px-4 py-16 text-center">
@@ -23,9 +17,9 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">Access denied</h1>
           <p className="text-muted-foreground">Admin privileges are required to view this page.</p>
-          <a className="btn-primary inline-flex items-center justify-center gap-2" href="/">
+          <Link to="/" className="btn-primary inline-flex items-center justify-center gap-2">
             Go Home
-          </a>
+          </Link>
         </div>
       </main>
     );

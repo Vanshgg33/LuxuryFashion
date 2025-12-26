@@ -1,16 +1,10 @@
-import { Navigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
 import { ShieldAlert } from "lucide-react";
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      
-    }
-  }, [loading, user]);
+  const location = useLocation();
 
   if (loading) return null;
   if (!user)
@@ -22,9 +16,13 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">Login required</h1>
           <p className="text-muted-foreground">Please sign in to continue.</p>
-          <a className="btn-primary inline-flex items-center justify-center gap-2" href="/auth">
+          <Link
+            to="/login"
+            state={{ from: location.pathname }}
+            className="btn-primary inline-flex items-center justify-center gap-2"
+          >
             Go to Login
-          </a>
+          </Link>
         </div>
       </main>
     );
