@@ -5,13 +5,19 @@ import { MapPicker } from "@/components/MapPicker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { reverseGeocode } from "@/lib/geocode";
+import { getAccurateLocation } from "@/lib/geolocation";
 import { toast } from "sonner";
 
 interface Address {
   _id?: string;
   id?: string;
   label: string;
+  houseNumber?: string;
+  apartment?: string;
+  floor?: string;
   street: string;
+  area?: string;
+  landmark?: string;
   city: string;
   state: string;
   zipCode: string;
@@ -27,9 +33,15 @@ export default function Addresses() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [form, setForm] = useState<Partial<Address>>({
     label: "",
+    houseNumber: "",
+    apartment: "",
+    floor: "",
     street: "",
+    area: "",
+    landmark: "",
     city: "",
     state: "",
     zipCode: "",
@@ -71,7 +83,22 @@ export default function Addresses() {
       }
       setDialogOpen(false);
       setEditing(null);
-      setForm({ label: "", street: "", city: "", state: "", zipCode: "", country: "India", phoneNumber: "", lat: undefined, lng: undefined });
+      setForm({ 
+        label: "", 
+        houseNumber: "", 
+        apartment: "", 
+        floor: "", 
+        street: "", 
+        area: "", 
+        landmark: "", 
+        city: "", 
+        state: "", 
+        zipCode: "", 
+        country: "India", 
+        phoneNumber: "", 
+        lat: undefined, 
+        lng: undefined 
+      });
       loadAddresses();
     } catch (err: any) {
       toast.error(err.message || "Failed to save address");
@@ -79,31 +106,39 @@ export default function Addresses() {
     }
   };
 
-  const useMyLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser");
-      return;
-    }
-    
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setForm((prev) => ({ ...prev, lat: latitude, lng: longitude }));
-        
-        try {
-          const geo = await reverseGeocode(latitude, longitude);
-          setForm((prev) => ({ ...prev, ...geo, lat: latitude, lng: longitude }));
-          toast.success("Location set successfully");
-        } catch (err) {
-          console.error("Failed to reverse geocode:", err);
-          toast.error("Location set, but failed to fetch address details");
-        }
-      },
-      (error) => {
-        console.error("Geolocation error:", error);
-        toast.error("Unable to get your location. Please allow location access or select on map.");
+  const useMyLocation = async () => {
+    setIsGettingLocation(true);
+    try {
+      const location = await getAccurateLocation({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+        retries: 3,
+      });
+
+      const { latitude, longitude, accuracy } = location;
+      
+      // Update form with coordinates
+      setForm((prev) => ({ ...prev, lat: latitude, lng: longitude }));
+
+      // Show accuracy info
+      const accuracyText = accuracy < 10 ? "very accurate" : accuracy < 50 ? "accurate" : "approximate";
+      toast.success(`Location found (${accuracyText}, ±${Math.round(accuracy)}m)`);
+
+      // Reverse geocode to get address
+      try {
+        const geo = await reverseGeocode(latitude, longitude);
+        setForm((prev) => ({ ...prev, ...geo, lat: latitude, lng: longitude }));
+      } catch (err) {
+        console.error("Failed to reverse geocode:", err);
+        toast.warning("Location set, but address details couldn't be fetched automatically");
       }
-    );
+    } catch (err: any) {
+      console.error("Geolocation error:", err);
+      toast.error(err.message || "Unable to get your location. Please allow location access or select on map.");
+    } finally {
+      setIsGettingLocation(false);
+    }
   };
 
   const handleMapChange = async (lat: number, lng: number) => {
@@ -176,11 +211,18 @@ export default function Addresses() {
                 </span>
               )}
               <h3 className="font-semibold text-foreground mb-2">{addr.label}</h3>
-              <p className="text-muted-foreground mb-4">
-                {addr.street}, {addr.city}, {addr.state} {addr.zipCode}
+              <p className="text-muted-foreground mb-4 text-sm">
+                {addr.houseNumber && <>{addr.houseNumber}, </>}
+                {addr.apartment && <>{addr.apartment}, </>}
+                {addr.floor && <>Floor {addr.floor}, </>}
+                {addr.street}
+                {addr.area && <>, {addr.area}</>}
+                {addr.landmark && <><br />Near {addr.landmark}</>}
+                <br />
+                {addr.city}, {addr.state} {addr.zipCode}
                 <br />
                 {addr.country}
-                {addr.phoneNumber && <><br />{addr.phoneNumber}</>}
+                {addr.phoneNumber && <><br />📞 {addr.phoneNumber}</>}
               </p>
               <div className="flex gap-2">
                 {!addr.isDefault && (
@@ -231,37 +273,86 @@ export default function Addresses() {
               value={form.label || ""}
               onChange={(e) => setForm({ ...form, label: e.target.value })}
               className="input-styled"
+              required
             />
-            <input
-              type="text"
-              placeholder="Street Address"
-              value={form.street || ""}
-              onChange={(e) => setForm({ ...form, street: e.target.value })}
-              className="input-styled"
-            />
-            <div className="grid grid-cols-2 gap-4">
+            
+            {/* Building Details */}
+            <div className="grid grid-cols-3 gap-4">
               <input
                 type="text"
-                placeholder="City"
-                value={form.city || ""}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                placeholder="House/Building No."
+                value={form.houseNumber || ""}
+                onChange={(e) => setForm({ ...form, houseNumber: e.target.value })}
                 className="input-styled"
               />
               <input
                 type="text"
-                placeholder="State"
+                placeholder="Apartment/Flat No."
+                value={form.apartment || ""}
+                onChange={(e) => setForm({ ...form, apartment: e.target.value })}
+                className="input-styled"
+              />
+              <input
+                type="text"
+                placeholder="Floor (optional)"
+                value={form.floor || ""}
+                onChange={(e) => setForm({ ...form, floor: e.target.value })}
+                className="input-styled"
+              />
+            </div>
+
+            <input
+              type="text"
+              placeholder="Street Address *"
+              value={form.street || ""}
+              onChange={(e) => setForm({ ...form, street: e.target.value })}
+              className="input-styled"
+              required
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Area/Locality"
+                value={form.area || ""}
+                onChange={(e) => setForm({ ...form, area: e.target.value })}
+                className="input-styled"
+              />
+              <input
+                type="text"
+                placeholder="Landmark (optional)"
+                value={form.landmark || ""}
+                onChange={(e) => setForm({ ...form, landmark: e.target.value })}
+                className="input-styled"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="City *"
+                value={form.city || ""}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                className="input-styled"
+                required
+              />
+              <input
+                type="text"
+                placeholder="State *"
                 value={form.state || ""}
                 onChange={(e) => setForm({ ...form, state: e.target.value })}
                 className="input-styled"
+                required
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <input
                 type="text"
-                placeholder="ZIP Code"
+                placeholder="ZIP Code *"
                 value={form.zipCode || ""}
                 onChange={(e) => setForm({ ...form, zipCode: e.target.value })}
                 className="input-styled"
+                required
               />
               <input
                 type="text"
@@ -281,10 +372,11 @@ export default function Addresses() {
                   variant="outline"
                   size="sm"
                   onClick={useMyLocation}
+                  disabled={isGettingLocation}
                   className="flex items-center gap-2"
                 >
-                  <Navigation className="w-4 h-4" />
-                  Use My Location
+                  <Navigation className={`w-4 h-4 ${isGettingLocation ? 'animate-spin' : ''}`} />
+                  {isGettingLocation ? "Getting Location..." : "Use My Location"}
                 </Button>
               </div>
               <MapPicker
@@ -315,7 +407,20 @@ export default function Addresses() {
               <Button variant="secondary" onClick={() => {
                 setDialogOpen(false);
                 setEditing(null);
-                setForm({ label: "", street: "", city: "", state: "", zipCode: "", country: "India", phoneNumber: "" });
+                setForm({ 
+                  label: "", 
+                  houseNumber: "", 
+                  apartment: "", 
+                  floor: "", 
+                  street: "", 
+                  area: "", 
+                  landmark: "", 
+                  city: "", 
+                  state: "", 
+                  zipCode: "", 
+                  country: "India", 
+                  phoneNumber: "" 
+                });
               }}>
                 Cancel
               </Button>

@@ -29,6 +29,44 @@ export class CouponsService {
     return this.couponModel.find().sort({ createdAt: -1 }).exec();
   }
 
+  async findActiveCoupons() {
+    const now = new Date();
+    const query: any = {
+      isActive: true,
+    };
+
+    // Valid from: either doesn't exist or is in the past
+    query.$and = [
+      {
+        $or: [
+          { validFrom: { $exists: false } },
+          { validFrom: null },
+          { validFrom: { $lte: now } },
+        ],
+      },
+      {
+        $or: [
+          { validUntil: { $exists: false } },
+          { validUntil: null },
+          { validUntil: { $gte: now } },
+        ],
+      },
+    ];
+
+    // Usage limit: either doesn't exist, is 0 (unlimited), or not reached
+    const coupons = await this.couponModel
+      .find(query)
+      .select('code discountType discountValue minOrderAmount maxDiscountAmount description validFrom validUntil usageLimit usedCount')
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // Filter by usage limit in memory (MongoDB $expr can be slow)
+    return coupons.filter((coupon) => {
+      if (!coupon.usageLimit || coupon.usageLimit === 0) return true;
+      return coupon.usedCount < coupon.usageLimit;
+    });
+  }
+
   async findOne(id: string) {
     const coupon = await this.couponModel.findById(id);
     if (!coupon) throw new NotFoundException('Coupon not found');

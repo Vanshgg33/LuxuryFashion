@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Dish, DishSchema } from './schemas/dish.schema';
 import { DishesService } from './dishes.service';
@@ -6,6 +6,7 @@ import { DishesController } from './dishes.controller';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { memoryStorage } from 'multer';
       },
     }),
     CloudinaryModule,
+    SettingsModule,
   ],
   providers: [DishesService],
   controllers: [DishesController],

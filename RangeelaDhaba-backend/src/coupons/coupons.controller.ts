@@ -18,6 +18,11 @@ export class CouponsController {
     });
   }
 
+  @Get('active')
+  async getActiveCoupons() {
+    return this.couponsService.findActiveCoupons();
+  }
+
   @Get(':code')
   async getByCode(@Param('code') code: string) {
     return this.couponsService.findByCode(code);

@@ -5,7 +5,27 @@ export class CreateAddressDto {
   label: string;
 
   @IsString()
+  @IsOptional()
+  houseNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  apartment?: string;
+
+  @IsString()
+  @IsOptional()
+  floor?: string;
+
+  @IsString()
   street: string;
+
+  @IsString()
+  @IsOptional()
+  area?: string;
+
+  @IsString()
+  @IsOptional()
+  landmark?: string;
 
   @IsString()
   city: string;

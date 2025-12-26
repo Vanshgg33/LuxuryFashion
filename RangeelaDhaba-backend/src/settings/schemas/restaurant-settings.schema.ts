@@ -19,6 +19,27 @@ export class RestaurantSettings {
 
   @Prop({ default: '+91 89812 60291' })
   supportPhone?: string;
+
+  @Prop({ default: true })
+  isDeliveryEnabled: boolean;
+
+  @Prop({ default: 40 })
+  deliveryFee: number;
+
+  @Prop({ default: '09:00' })
+  openingTime: string;
+
+  @Prop({ default: '22:00' })
+  closingTime: string;
+
+  @Prop({ default: true })
+  isOpen: boolean;
+
+  @Prop()
+  closureReason?: string;
+
+  @Prop({ type: Object, default: {} })
+  categoryTimeRestrictions: Record<string, { availableFrom: string; availableTo: string; isEnabled: boolean }>;
 }
 
 export const RestaurantSettingsSchema = SchemaFactory.createForClass(RestaurantSettings);

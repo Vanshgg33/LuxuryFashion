@@ -25,6 +25,7 @@ import { FoodCategory } from './enums/food-category.enum';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { SettingsService } from '../settings/settings.service';
 
 // Custom pipe that skips validation - bypasses ValidationPipe for this route
 @Injectable()
@@ -37,7 +38,11 @@ class SkipValidationPipe implements PipeTransform {
 
 @Controller('dishes')
 export class DishesController {
-  constructor(private dishesService: DishesService, private cloudinary: CloudinaryService) {}
+  constructor(
+    private dishesService: DishesService,
+    private cloudinary: CloudinaryService,
+    private settingsService: SettingsService,
+  ) {}
 
   @Get()
   async list(@Query('category') category?: string, @Query('inStock') inStock?: string) {
@@ -45,14 +50,25 @@ export class DishesController {
     if (category) filter.category = category;
     if (inStock) filter.inStock = inStock === 'true';
     const dishes = await this.dishesService.findAll(filter);
-    // Transform to ensure _id is available as both _id and id (as strings)
+
+    // Get category restrictions from settings
+    const settings = await this.settingsService.getSettings();
+    const categoryRestrictions = settings.categoryTimeRestrictions || {};
+
+    // Transform to ensure _id is available and add availability info
     return dishes.map((dish: any) => {
       const dishObj = dish.toObject ? dish.toObject() : dish;
       const dishId = dishObj._id?.toString() || dishObj.id?.toString() || dishObj._id || dishObj.id;
+
+      // Check time-based availability
+      const availability = this.dishesService.isDishAvailableNow(dishObj, categoryRestrictions);
+
       return {
         ...dishObj,
         _id: dishId,
         id: dishId,
+        isAvailableNow: availability.isAvailable,
+        availabilityReason: availability.reason,
       };
     });
   }
@@ -126,12 +142,25 @@ export class DishesController {
     if (body.description?.trim()) dishData.description = body.description.trim();
     if (inStock !== undefined) dishData.inStock = inStock;
 
+    // Handle time restriction fields
+    if (body.hasTimeRestriction !== undefined) {
+      dishData.hasTimeRestriction = typeof body.hasTimeRestriction === 'string'
+        ? body.hasTimeRestriction.toLowerCase() === 'true' || body.hasTimeRestriction === '1'
+        : Boolean(body.hasTimeRestriction);
+    }
+    if (body.availableFrom !== undefined) {
+      dishData.availableFrom = body.availableFrom || undefined;
+    }
+    if (body.availableTo !== undefined) {
+      dishData.availableTo = body.availableTo || undefined;
+    }
+
     // Upload image if provided
     if (file) {
       const uploaded = await this.cloudinary.uploadBuffer(file, 'dishes');
       dishData.imageUrl = uploaded.secure_url;
     }
-    
+
     return this.dishesService.create(dishData as CreateDishDto);
   }
 
@@ -178,9 +207,22 @@ export class DishesController {
     }
     if (body.description !== undefined) dto.description = body.description.trim();
     if (body.inStock !== undefined) {
-      dto.inStock = typeof body.inStock === 'string' 
+      dto.inStock = typeof body.inStock === 'string'
         ? body.inStock.toLowerCase() === 'true' || body.inStock === '1'
         : Boolean(body.inStock);
+    }
+
+    // Handle time restriction fields
+    if (body.hasTimeRestriction !== undefined) {
+      dto.hasTimeRestriction = typeof body.hasTimeRestriction === 'string'
+        ? body.hasTimeRestriction.toLowerCase() === 'true' || body.hasTimeRestriction === '1'
+        : Boolean(body.hasTimeRestriction);
+    }
+    if (body.availableFrom !== undefined) {
+      dto.availableFrom = body.availableFrom || undefined;
+    }
+    if (body.availableTo !== undefined) {
+      dto.availableTo = body.availableTo || undefined;
     }
 
     if (file) {
@@ -194,6 +236,21 @@ export class DishesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.dishesService.remove(id);
+  }
+
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Patch('category/:category/stock')
+  updateCategoryStock(
+    @Param('category') category: string,
+    @Body('inStock') inStock: boolean,
+  ) {
+    return this.dishesService.updateCategoryStock(category, inStock);
+  }
+
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Get('category/stock-status')
+  getCategoryStockStatus() {
+    return this.dishesService.getCategoryStockStatus();
   }
 }
 

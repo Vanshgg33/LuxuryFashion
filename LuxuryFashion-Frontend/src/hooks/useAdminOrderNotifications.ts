@@ -2,6 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { fetchAdminOrders, getUnreadCount } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Continuous notification sound manager
+let continuousSoundInterval: NodeJS.Timeout | null = null;
+let audioContextRef: AudioContext | null = null;
+
 // Restaurant bell/ring notification sound using Web Audio API
 const playNotificationSound = () => {
   try {
@@ -49,8 +53,30 @@ const playNotificationSound = () => {
   }
 };
 
+// Start continuous ringing sound
+const startContinuousSound = () => {
+  // Stop any existing continuous sound first
+  stopContinuousSound();
+
+  // Play immediately
+  playNotificationSound();
+
+  // Then play every 2.5 seconds (sound duration is ~1.8s, so 2.5s gives a brief pause between rings)
+  continuousSoundInterval = setInterval(() => {
+    playNotificationSound();
+  }, 2500);
+};
+
+// Stop continuous ringing sound
+const stopContinuousSound = () => {
+  if (continuousSoundInterval) {
+    clearInterval(continuousSoundInterval);
+    continuousSoundInterval = null;
+  }
+};
+
 // Export for external use
-export { playNotificationSound };
+export { playNotificationSound, startContinuousSound, stopContinuousSound };
 
 export interface AdminOrderNotification {
   orderId: string;
@@ -119,9 +145,9 @@ export function useAdminOrderNotifications() {
         setHasNewOrder(true);
         setNewOrdersCount((prev) => prev + newOrderIds.length);
 
-        // Play notification sound
+        // Start continuous notification sound until order is accepted
         if (soundEnabledRef.current) {
-          playNotificationSound();
+          startContinuousSound();
         }
       }
 
@@ -158,18 +184,33 @@ export function useAdminOrderNotifications() {
     return () => clearInterval(interval);
   }, [user, checkForNewOrders]);
 
+  // Cleanup continuous sound on unmount
+  useEffect(() => {
+    return () => {
+      stopContinuousSound();
+    };
+  }, []);
+
   const clearNewOrdersIndicator = useCallback(() => {
     setHasNewOrder(false);
     setNewOrdersCount(0);
+    // Stop the continuous ringing sound
+    stopContinuousSound();
   }, []);
 
   const dismissNewOrders = useCallback(() => {
     setNewOrders([]);
     setHasNewOrder(false);
+    // Stop the continuous ringing sound when order is accepted/dismissed
+    stopContinuousSound();
   }, []);
 
   const toggleSound = useCallback(() => {
     soundEnabledRef.current = !soundEnabledRef.current;
+    // If sound is disabled, stop any continuous ringing
+    if (!soundEnabledRef.current) {
+      stopContinuousSound();
+    }
     return soundEnabledRef.current;
   }, []);
 
@@ -187,9 +228,12 @@ export function useAdminOrderNotifications() {
     dismissNewOrders,
     toggleSound,
     isSoundEnabled,
+    stopSound: stopContinuousSound,
     refreshOrders: checkForNewOrders,
   };
 }
+
+
 
 
 

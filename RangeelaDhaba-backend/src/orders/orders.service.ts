@@ -56,6 +56,20 @@ export class OrdersService {
       throw new NotFoundException('User not found');
     }
 
+    // Check if restaurant is open
+    const { isOpen, openingTime, closingTime, isManuallyClosed, closureReason } = await this.settingsService.isRestaurantOpen();
+    if (!isOpen) {
+      if (isManuallyClosed) {
+        const reason = closureReason ? ` Reason: ${closureReason}` : '';
+        throw new BadRequestException(
+          `Sorry, we are temporarily closed.${reason} Please check back later.`
+        );
+      }
+      throw new BadRequestException(
+        `Sorry, we are currently closed. Our operating hours are ${openingTime} to ${closingTime}. Please try again during business hours.`
+      );
+    }
+
     const sourceItems = dto.items && dto.items.length ? dto.items : (await this.cartService.getCart(userId)).cartItems;
     if (!sourceItems || sourceItems.length === 0) {
       throw new BadRequestException('Cart is empty');
@@ -97,11 +111,20 @@ export class OrdersService {
 
     const totalAmount = subtotal - discountAmount;
 
-    // Distance check
+    // Distance check and delivery availability
     const lat = dto.address.lat ?? settings.lat;
     const lng = dto.address.lng ?? settings.lng;
     const distance = distanceInKm(settings.lat, settings.lng, lat, lng);
-    const orderType = distance <= 5 ? 'delivery' : 'takeaway';
+
+    // Determine order type based on distance and delivery availability
+    let orderType: 'delivery' | 'takeaway';
+    if (!settings.isDeliveryEnabled) {
+      // If delivery is disabled, force takeaway
+      orderType = 'takeaway';
+    } else {
+      // Normal distance-based logic
+      orderType = distance <= 5 ? 'delivery' : 'takeaway';
+    }
 
     const order = await this.orderModel.create({
       user: userId,

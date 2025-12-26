@@ -1,4 +1,4 @@
-import { Users, ShoppingBag, DollarSign, TrendingUp, Eye, EyeOff, Trash2, Image, Pencil, X, Check, Package, Plus, Upload } from "lucide-react";
+import { Users, ShoppingBag, DollarSign, TrendingUp, Eye, EyeOff, Trash2, Image, Pencil, X, Check, Package, Plus, Upload, Truck, Clock, Power, Search } from "lucide-react";
 import { StatCard } from "@/components/Admin/StatCard";
 import {
   fetchAnalyticsSummary,
@@ -12,11 +12,17 @@ import {
   deleteDish,
   fetchSettings,
   updateSettings,
+  toggleDelivery,
+  updateDeliveryFee,
+  updateOperatingHours,
+  toggleRestaurantOpen,
+  updateCategoryTimeRestrictions,
   fetchAdminBanners,
   fetchBannerLimit,
   toggleBannerActive,
   deleteBanner,
   fetchProducts,
+  updateCategoryStock,
 } from "@/lib/api";
 import { MapPicker } from "@/components/MapPicker";
 import { useState, useMemo, useEffect } from "react";
@@ -62,8 +68,19 @@ const AdminDashboard = () => {
     description: "",
     inStock: true,
     image: null as File | null,
+    hasTimeRestriction: false,
+    availableFrom: "",
+    availableTo: "",
   });
-  const [settingsForm, setSettingsForm] = useState<{ lat?: number; lng?: number; address?: string }>({});
+  const [settingsForm, setSettingsForm] = useState<{ lat?: number; lng?: number; address?: string; isDeliveryEnabled?: boolean; deliveryFee?: number; openingTime?: string; closingTime?: string; isOpen?: boolean; closureReason?: string }>({});
+  const [isTogglingDelivery, setIsTogglingDelivery] = useState(false);
+  const [isSavingDeliveryFee, setIsSavingDeliveryFee] = useState(false);
+  const [isSavingHours, setIsSavingHours] = useState(false);
+  const [isTogglingRestaurant, setIsTogglingRestaurant] = useState(false);
+  const [showClosureReason, setShowClosureReason] = useState(false);
+  const [tempClosureReason, setTempClosureReason] = useState('');
+  const [categoryRestrictions, setCategoryRestrictions] = useState<Record<string, { availableFrom: string; availableTo: string; isEnabled: boolean }>>({});
+  const [isSavingCategoryRestrictions, setIsSavingCategoryRestrictions] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [uploadingDish, setUploadingDish] = useState(false);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -71,6 +88,7 @@ const AdminDashboard = () => {
   const [banners, setBanners] = useState<any[]>([]);
   const [bannerLimit, setBannerLimit] = useState<{ current: number; max: number; canAdd: boolean } | null>(null);
   const [dishes, setDishes] = useState<any[]>([]);
+  const [dishSearchQuery, setDishSearchQuery] = useState('');
   const [editingDish, setEditingDish] = useState<any | null>(null);
   const [editDishForm, setEditDishForm] = useState<{
     name: string;
@@ -80,10 +98,25 @@ const AdminDashboard = () => {
     description: string;
     inStock: boolean;
     image: File | null;
-  }>({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null });
+    hasTimeRestriction: boolean;
+    availableFrom: string;
+    availableTo: string;
+  }>({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "" });
   const [editDishPreview, setEditDishPreview] = useState<string | null>(null);
   const [savingDish, setSavingDish] = useState(false);
   const [showAddDish, setShowAddDish] = useState(false);
+
+  // Filter dishes based on search query
+  const filteredDishes = useMemo(() => {
+    if (!dishSearchQuery.trim()) return dishes;
+    const query = dishSearchQuery.toLowerCase().trim();
+    return dishes.filter(dish =>
+      dish.name?.toLowerCase().includes(query) ||
+      dish.description?.toLowerCase().includes(query) ||
+      dish.foodCategory?.toLowerCase().includes(query) ||
+      dish.dishCategory?.toLowerCase().includes(query)
+    );
+  }, [dishes, dishSearchQuery]);
 
   const loadData = useMemo(() => async () => {
     try {
@@ -124,7 +157,14 @@ const AdminDashboard = () => {
         lat: settingsRes?.lat,
         lng: settingsRes?.lng,
         address: settingsRes?.address,
+        isDeliveryEnabled: settingsRes?.isDeliveryEnabled ?? true,
+        deliveryFee: settingsRes?.deliveryFee ?? 40,
+        openingTime: settingsRes?.openingTime ?? '09:00',
+        closingTime: settingsRes?.closingTime ?? '22:00',
+        isOpen: settingsRes?.isOpen ?? true,
+        closureReason: settingsRes?.closureReason ?? '',
       });
+      setCategoryRestrictions(settingsRes?.categoryTimeRestrictions || {});
       setBanners(Array.isArray(bannersRes) ? bannersRes : []);
       setBannerLimit(limitRes);
       setDishes(Array.isArray(dishesRes) ? dishesRes : []);
@@ -207,8 +247,11 @@ const AdminDashboard = () => {
         description: dishForm.description,
         inStock: dishForm.inStock,
         image: dishForm.image || undefined,
+        hasTimeRestriction: dishForm.hasTimeRestriction,
+        availableFrom: dishForm.hasTimeRestriction ? dishForm.availableFrom : undefined,
+        availableTo: dishForm.hasTimeRestriction ? dishForm.availableTo : undefined,
       });
-      setDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null });
+      setDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "" });
       setDishPreview(null);
       setShowAddDish(false);
       await loadData();
@@ -240,13 +283,16 @@ const AdminDashboard = () => {
       description: dish.description || "",
       inStock: dish.inStock !== false,
       image: null,
+      hasTimeRestriction: dish.hasTimeRestriction || false,
+      availableFrom: dish.availableFrom || "",
+      availableTo: dish.availableTo || "",
     });
     setEditDishPreview(dish.imageUrl || null);
   };
 
   const handleCloseEditDish = () => {
     setEditingDish(null);
-    setEditDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null });
+    setEditDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "" });
     setEditDishPreview(null);
   };
 
@@ -263,6 +309,9 @@ const AdminDashboard = () => {
         description: editDishForm.description || undefined,
         inStock: editDishForm.inStock,
         image: editDishForm.image || undefined,
+        hasTimeRestriction: editDishForm.hasTimeRestriction,
+        availableFrom: editDishForm.hasTimeRestriction ? editDishForm.availableFrom : undefined,
+        availableTo: editDishForm.hasTimeRestriction ? editDishForm.availableTo : undefined,
       });
       handleCloseEditDish();
       await loadData();
@@ -283,13 +332,55 @@ const AdminDashboard = () => {
     }
   };
 
+  // Get category stock status from dishes
+  const categoryStockStatus = useMemo(() => {
+    const status: Record<string, { total: number; inStock: number; allInStock: boolean }> = {};
+    dishes.forEach((dish) => {
+      const category = dish.dishCategory || 'Uncategorized';
+      if (!status[category]) {
+        status[category] = { total: 0, inStock: 0, allInStock: true };
+      }
+      status[category].total++;
+      if (dish.inStock) {
+        status[category].inStock++;
+      }
+    });
+    // Calculate allInStock after counting
+    Object.keys(status).forEach((cat) => {
+      status[cat].allInStock = status[cat].inStock === status[cat].total;
+    });
+    return status;
+  }, [dishes]);
+
+  const [togglingCategory, setTogglingCategory] = useState<string | null>(null);
+
+  const handleToggleCategoryStock = async (category: string, currentlyInStock: boolean) => {
+    setTogglingCategory(category);
+    try {
+      const newStockStatus = !currentlyInStock;
+      await updateCategoryStock(category, newStockStatus);
+      // Update local dishes state
+      setDishes((prev) =>
+        prev.map((d) =>
+          d.dishCategory === category ? { ...d, inStock: newStockStatus } : d
+        )
+      );
+      toast.success(`${category}: All items ${newStockStatus ? 'in stock' : 'out of stock'}`);
+    } catch (err: any) {
+      console.error("Failed to update category stock:", err);
+      toast.error(err.message || "Failed to update category stock");
+    } finally {
+      setTogglingCategory(null);
+    }
+  };
+
   const handleSettingsSave = async () => {
     try {
       if (!settingsForm.lat || !settingsForm.lng) {
         toast.error("Please set the restaurant location on the map");
         return;
       }
-      
+
       await updateSettings({
         lat: settingsForm.lat,
         lng: settingsForm.lng,
@@ -300,6 +391,104 @@ const AdminDashboard = () => {
       console.error("Failed to save settings:", err);
       toast.error(err.message || "Failed to save restaurant location");
     }
+  };
+
+  const handleToggleDelivery = async () => {
+    setIsTogglingDelivery(true);
+    try {
+      const newValue = !settingsForm.isDeliveryEnabled;
+      await toggleDelivery(newValue);
+      setSettingsForm({ ...settingsForm, isDeliveryEnabled: newValue });
+      toast.success(newValue ? "Delivery enabled" : "Delivery disabled - only takeaway orders will be accepted");
+    } catch (err: any) {
+      console.error("Failed to toggle delivery:", err);
+      toast.error(err.message || "Failed to update delivery status");
+    } finally {
+      setIsTogglingDelivery(false);
+    }
+  };
+
+  const handleSaveDeliveryFee = async () => {
+    if (settingsForm.deliveryFee === undefined || settingsForm.deliveryFee < 0) {
+      toast.error("Please enter a valid delivery fee");
+      return;
+    }
+    setIsSavingDeliveryFee(true);
+    try {
+      await updateDeliveryFee(settingsForm.deliveryFee);
+      toast.success(`Delivery fee updated to ₹${settingsForm.deliveryFee}`);
+    } catch (err: any) {
+      console.error("Failed to update delivery fee:", err);
+      toast.error(err.message || "Failed to update delivery fee");
+    } finally {
+      setIsSavingDeliveryFee(false);
+    }
+  };
+
+  const handleSaveOperatingHours = async () => {
+    if (!settingsForm.openingTime || !settingsForm.closingTime) {
+      toast.error("Please set both opening and closing times");
+      return;
+    }
+    setIsSavingHours(true);
+    try {
+      await updateOperatingHours(settingsForm.openingTime, settingsForm.closingTime);
+      toast.success(`Operating hours updated: ${settingsForm.openingTime} - ${settingsForm.closingTime}`);
+    } catch (err: any) {
+      console.error("Failed to update operating hours:", err);
+      toast.error(err.message || "Failed to update operating hours");
+    } finally {
+      setIsSavingHours(false);
+    }
+  };
+
+  const handleToggleRestaurant = async (turnOn: boolean) => {
+    if (!turnOn && !showClosureReason) {
+      // Show closure reason input first
+      setShowClosureReason(true);
+      return;
+    }
+
+    setIsTogglingRestaurant(true);
+    try {
+      await toggleRestaurantOpen(turnOn, turnOn ? '' : tempClosureReason);
+      setSettingsForm({ ...settingsForm, isOpen: turnOn, closureReason: turnOn ? '' : tempClosureReason });
+      setShowClosureReason(false);
+      setTempClosureReason('');
+      toast.success(turnOn ? "Restaurant is now OPEN for orders!" : "Restaurant is now CLOSED. No orders will be accepted.");
+    } catch (err: any) {
+      console.error("Failed to toggle restaurant:", err);
+      toast.error(err.message || "Failed to update restaurant status");
+    } finally {
+      setIsTogglingRestaurant(false);
+    }
+  };
+
+  const handleSaveCategoryRestrictions = async () => {
+    setIsSavingCategoryRestrictions(true);
+    try {
+      await updateCategoryTimeRestrictions(categoryRestrictions);
+      toast.success("Category time restrictions saved");
+      await loadData(); // Reload dishes with updated availability
+    } catch (err: any) {
+      console.error("Failed to save category restrictions:", err);
+      toast.error(err.message || "Failed to save category restrictions");
+    } finally {
+      setIsSavingCategoryRestrictions(false);
+    }
+  };
+
+  const updateCategoryRestriction = (category: string, field: string, value: any) => {
+    setCategoryRestrictions(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        availableFrom: prev[category]?.availableFrom || '09:00',
+        availableTo: prev[category]?.availableTo || '22:00',
+        isEnabled: prev[category]?.isEnabled || false,
+        [field]: value,
+      }
+    }));
   };
 
   return (
@@ -523,10 +712,69 @@ const AdminDashboard = () => {
             </span>
           </div>
 
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search dishes..."
+              value={dishSearchQuery}
+              onChange={(e) => setDishSearchQuery(e.target.value)}
+              className="input-styled w-full pl-9 text-sm"
+            />
+            {dishSearchQuery && (
+              <button
+                onClick={() => setDishSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-secondary rounded"
+              >
+                <X className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Results Count */}
+          {dishSearchQuery && (
+            <p className="text-xs text-muted-foreground">
+              Found {filteredDishes.length} {filteredDishes.length === 1 ? 'dish' : 'dishes'}
+            </p>
+          )}
+
+          {/* Category Stock Toggles */}
+          {Object.keys(categoryStockStatus).length > 0 && (
+            <div className="p-2 bg-secondary/50 rounded-lg">
+              <p className="text-xs font-medium text-foreground mb-2">Category Stock</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(categoryStockStatus).map(([category, status]) => (
+                  <button
+                    key={category}
+                    onClick={() => handleToggleCategoryStock(category, status.allInStock)}
+                    disabled={togglingCategory === category}
+                    className={cn(
+                      "px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1",
+                      status.allInStock
+                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                        : "bg-red-100 text-red-700 hover:bg-red-200",
+                      togglingCategory === category && "opacity-50"
+                    )}
+                  >
+                    {status.allInStock ? (
+                      <Eye className="w-3 h-3" />
+                    ) : (
+                      <EyeOff className="w-3 h-3" />
+                    )}
+                    {category}
+                    <span className="text-[10px] opacity-70">({status.inStock}/{status.total})</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">Click to toggle all items in a category</p>
+            </div>
+          )}
+
           {/* Existing Dishes */}
-          {dishes.length > 0 && (
+          {filteredDishes.length > 0 && (
             <div className="space-y-2 max-h-72 overflow-y-auto">
-              {dishes.map((dish) => (
+              {filteredDishes.map((dish) => (
                 <div
                   key={dish._id}
                   className={cn(
@@ -585,10 +833,20 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {dishes.length === 0 && !showAddDish && (
+          {filteredDishes.length === 0 && !showAddDish && (
             <div className="text-center py-4 text-muted-foreground">
               <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No dishes added yet</p>
+              <p className="text-sm">
+                {dishSearchQuery ? `No dishes found for "${dishSearchQuery}"` : "No dishes added yet"}
+              </p>
+              {dishSearchQuery && (
+                <button
+                  onClick={() => setDishSearchQuery('')}
+                  className="text-xs text-primary hover:underline mt-1"
+                >
+                  Clear search
+                </button>
+              )}
             </div>
           )}
 
@@ -667,6 +925,51 @@ const AdminDashboard = () => {
                 />
                 In Stock
               </label>
+
+              {/* Time Restriction for Add Dish */}
+              <div className="p-2 bg-secondary/50 rounded-lg space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Time Restriction
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDishForm({ ...dishForm, hasTimeRestriction: !dishForm.hasTimeRestriction })}
+                    className={cn(
+                      "relative w-9 h-5 rounded-full transition-colors",
+                      dishForm.hasTimeRestriction ? "bg-primary" : "bg-gray-300"
+                    )}
+                  >
+                    <span className={cn(
+                      "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                      dishForm.hasTimeRestriction ? "translate-x-4" : "translate-x-0.5"
+                    )} />
+                  </button>
+                </div>
+                {dishForm.hasTimeRestriction && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-0.5 block">From</label>
+                      <input
+                        type="time"
+                        value={dishForm.availableFrom}
+                        onChange={(e) => setDishForm({ ...dishForm, availableFrom: e.target.value })}
+                        className="input-styled w-full text-xs py-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-0.5 block">Until</label>
+                      <input
+                        type="time"
+                        value={dishForm.availableTo}
+                        onChange={(e) => setDishForm({ ...dishForm, availableTo: e.target.value })}
+                        className="input-styled w-full text-xs py-1"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <input
                 type="file"
                 accept="image/*"
@@ -690,14 +993,280 @@ const AdminDashboard = () => {
         </div>
 
         <div className="bg-card rounded-xl sm:rounded-2xl border border-border p-4 sm:p-6 space-y-3">
-          <h3 className="text-base sm:text-lg font-semibold text-foreground">Restaurant Location</h3>
-          <input
-            type="number"
-            placeholder="Latitude"
-            value={settingsForm.lat ?? ""}
-            onChange={(e) => setSettingsForm({ ...settingsForm, lat: parseFloat(e.target.value) })}
-            className="input-styled"
-          />
+          <h3 className="text-base sm:text-lg font-semibold text-foreground">Restaurant Settings</h3>
+
+          {/* Restaurant Open/Close Toggle */}
+          <div className={cn(
+            "p-3 rounded-xl border-2 transition-all",
+            settingsForm.isOpen
+              ? "border-emerald-300 bg-emerald-50/50"
+              : "border-red-300 bg-red-50/50"
+          )}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "p-2 rounded-lg",
+                  settingsForm.isOpen ? "bg-emerald-100" : "bg-red-100"
+                )}>
+                  <Power className={cn(
+                    "w-5 h-5",
+                    settingsForm.isOpen ? "text-emerald-600" : "text-red-600"
+                  )} />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">
+                    Restaurant {settingsForm.isOpen ? "OPEN" : "CLOSED"}
+                  </p>
+                  <p className={cn(
+                    "text-xs",
+                    settingsForm.isOpen ? "text-emerald-600" : "text-red-600"
+                  )}>
+                    {settingsForm.isOpen ? "Accepting orders" : settingsForm.closureReason || "Not accepting orders"}
+                  </p>
+                </div>
+              </div>
+              {!showClosureReason && (
+                <button
+                  onClick={() => handleToggleRestaurant(!settingsForm.isOpen)}
+                  disabled={isTogglingRestaurant}
+                  className={cn(
+                    "px-4 py-2 rounded-lg font-medium text-sm transition-all disabled:opacity-50",
+                    settingsForm.isOpen
+                      ? "bg-red-500 hover:bg-red-600 text-white"
+                      : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  )}
+                >
+                  {isTogglingRestaurant ? "..." : settingsForm.isOpen ? "Close Restaurant" : "Open Restaurant"}
+                </button>
+              )}
+            </div>
+
+            {/* Closure Reason Input */}
+            {showClosureReason && (
+              <div className="mt-3 pt-3 border-t border-red-200 space-y-2">
+                <p className="text-sm font-medium text-red-700">Why are you closing?</p>
+                <input
+                  type="text"
+                  placeholder="e.g., Festival holiday, Maintenance, etc. (optional)"
+                  value={tempClosureReason}
+                  onChange={(e) => setTempClosureReason(e.target.value)}
+                  className="input-styled w-full text-sm"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleToggleRestaurant(false)}
+                    disabled={isTogglingRestaurant}
+                    className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isTogglingRestaurant ? "Closing..." : "Confirm Close"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowClosureReason(false);
+                      setTempClosureReason('');
+                    }}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Operating Hours */}
+          <div className="p-3 rounded-xl border border-border bg-secondary/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4 text-primary" />
+              <p className="text-sm font-medium text-foreground">Operating Hours</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Opening Time</label>
+                <input
+                  type="time"
+                  value={settingsForm.openingTime ?? '09:00'}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, openingTime: e.target.value })}
+                  className="input-styled w-full text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Closing Time</label>
+                <input
+                  type="time"
+                  value={settingsForm.closingTime ?? '22:00'}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, closingTime: e.target.value })}
+                  className="input-styled w-full text-sm"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleSaveOperatingHours}
+              disabled={isSavingHours}
+              className="w-full px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {isSavingHours ? "Saving..." : "Save Hours"}
+            </button>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Orders can only be placed during these hours
+            </p>
+          </div>
+
+          {/* Category Time Restrictions */}
+          <div className="p-3 rounded-xl border border-border bg-secondary/30">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" />
+                <p className="text-sm font-medium text-foreground">Category Time Restrictions</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Set specific hours when each category is available
+            </p>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {DISH_CATEGORY_OPTIONS.map((category) => {
+                const restriction = categoryRestrictions[category.value] || { availableFrom: '09:00', availableTo: '22:00', isEnabled: false };
+                return (
+                  <div key={category.value} className={cn(
+                    "p-2 rounded-lg border transition-all",
+                    restriction.isEnabled ? "border-primary/50 bg-primary/5" : "border-border"
+                  )}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium">{category.label}</span>
+                      <button
+                        type="button"
+                        onClick={() => updateCategoryRestriction(category.value, 'isEnabled', !restriction.isEnabled)}
+                        className={cn(
+                          "relative w-9 h-5 rounded-full transition-colors",
+                          restriction.isEnabled ? "bg-primary" : "bg-gray-300"
+                        )}
+                      >
+                        <span className={cn(
+                          "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                          restriction.isEnabled ? "translate-x-4" : "translate-x-0.5"
+                        )} />
+                      </button>
+                    </div>
+                    {restriction.isEnabled && (
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          type="time"
+                          value={restriction.availableFrom}
+                          onChange={(e) => updateCategoryRestriction(category.value, 'availableFrom', e.target.value)}
+                          className="input-styled text-xs py-1 flex-1"
+                        />
+                        <span className="text-xs text-muted-foreground self-center">to</span>
+                        <input
+                          type="time"
+                          value={restriction.availableTo}
+                          onChange={(e) => updateCategoryRestriction(category.value, 'availableTo', e.target.value)}
+                          className="input-styled text-xs py-1 flex-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              onClick={handleSaveCategoryRestrictions}
+              disabled={isSavingCategoryRestrictions}
+              className="w-full mt-3 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {isSavingCategoryRestrictions ? "Saving..." : "Save Category Restrictions"}
+            </button>
+          </div>
+
+          {/* Delivery Toggle */}
+          <div className={cn(
+            "flex items-center justify-between p-3 rounded-xl border transition-all",
+            settingsForm.isDeliveryEnabled
+              ? "border-emerald-200 bg-emerald-50/50"
+              : "border-amber-200 bg-amber-50/50"
+          )}>
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-2 rounded-lg",
+                settingsForm.isDeliveryEnabled ? "bg-emerald-100" : "bg-amber-100"
+              )}>
+                <Truck className={cn(
+                  "w-5 h-5",
+                  settingsForm.isDeliveryEnabled ? "text-emerald-600" : "text-amber-600"
+                )} />
+              </div>
+              <div>
+                <p className="font-medium text-foreground text-sm">Delivery Service</p>
+                <p className={cn(
+                  "text-xs",
+                  settingsForm.isDeliveryEnabled ? "text-emerald-600" : "text-amber-600"
+                )}>
+                  {settingsForm.isDeliveryEnabled ? "Accepting delivery orders" : "Takeaway only"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleToggleDelivery}
+              disabled={isTogglingDelivery}
+              className={cn(
+                "relative w-12 h-6 rounded-full transition-colors disabled:opacity-50",
+                settingsForm.isDeliveryEnabled ? "bg-emerald-500" : "bg-gray-300"
+              )}
+            >
+              <span
+                className={cn(
+                  "absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                  settingsForm.isDeliveryEnabled ? "translate-x-7" : "translate-x-1"
+                )}
+              />
+            </button>
+          </div>
+
+          {!settingsForm.isDeliveryEnabled && (
+            <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">
+              Delivery is currently disabled. All orders will be processed as takeaway.
+            </p>
+          )}
+
+          {/* Delivery Fee Setting */}
+          {settingsForm.isDeliveryEnabled && (
+            <div className="p-3 rounded-xl border border-border bg-secondary/30">
+              <p className="text-sm font-medium text-foreground mb-2">Delivery Fee</p>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={settingsForm.deliveryFee ?? 40}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, deliveryFee: parseFloat(e.target.value) || 0 })}
+                    className="input-styled pl-7 w-full"
+                    placeholder="40"
+                  />
+                </div>
+                <button
+                  onClick={handleSaveDeliveryFee}
+                  disabled={isSavingDeliveryFee}
+                  className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {isSavingDeliveryFee ? "..." : "Save"}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                This fee will be applied to all delivery orders
+              </p>
+            </div>
+          )}
+
+          <div className="border-t border-border pt-3 mt-3">
+            <p className="text-sm font-medium text-foreground mb-3">Restaurant Location</p>
+            <input
+              type="number"
+              placeholder="Latitude"
+              value={settingsForm.lat ?? ""}
+              onChange={(e) => setSettingsForm({ ...settingsForm, lat: parseFloat(e.target.value) })}
+              className="input-styled"
+            />
+          </div>
           <input
             type="number"
             placeholder="Longitude"
@@ -713,7 +1282,7 @@ const AdminDashboard = () => {
             className="input-styled"
           />
           <button className="btn-primary w-full" onClick={handleSettingsSave}>
-            Save Settings
+            Save Location
           </button>
           <p className="text-xs text-muted-foreground">
             Used for the 5 km delivery rule. Ensure coordinates are accurate.
@@ -890,6 +1459,58 @@ const AdminDashboard = () => {
                   )}
                 />
               </button>
+            </div>
+
+            {/* Time Restriction */}
+            <div className="p-3 bg-secondary/50 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground text-sm flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" /> Time Restriction
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Make this dish available only during specific hours
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditDishForm({ ...editDishForm, hasTimeRestriction: !editDishForm.hasTimeRestriction })}
+                  className={cn(
+                    "relative w-12 h-6 rounded-full transition-colors",
+                    editDishForm.hasTimeRestriction ? "bg-primary" : "bg-gray-300"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                      editDishForm.hasTimeRestriction ? "translate-x-7" : "translate-x-1"
+                    )}
+                  />
+                </button>
+              </div>
+
+              {editDishForm.hasTimeRestriction && (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Available From</label>
+                    <input
+                      type="time"
+                      value={editDishForm.availableFrom}
+                      onChange={(e) => setEditDishForm({ ...editDishForm, availableFrom: e.target.value })}
+                      className="input-styled w-full text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Available Until</label>
+                    <input
+                      type="time"
+                      value={editDishForm.availableTo}
+                      onChange={(e) => setEditDishForm({ ...editDishForm, availableTo: e.target.value })}
+                      className="input-styled w-full text-sm"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {savingDish && <Progress value={60} className="h-2" />}

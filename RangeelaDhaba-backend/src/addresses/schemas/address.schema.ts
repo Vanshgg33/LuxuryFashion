@@ -11,8 +11,23 @@ export class Address {
   @Prop({ required: true })
   label: string; // Home, Work, etc.
 
+  @Prop()
+  houseNumber?: string; // House/Building number
+
+  @Prop()
+  apartment?: string; // Apartment/Flat number
+
+  @Prop()
+  floor?: string; // Floor number
+
   @Prop({ required: true })
   street: string;
+
+  @Prop()
+  area?: string; // Area/Locality
+
+  @Prop()
+  landmark?: string; // Nearby landmark
 
   @Prop({ required: true })
   city: string;

@@ -13,6 +13,11 @@ export class SettingsController {
     return this.settingsService.getSettings();
   }
 
+  @Get('is-open')
+  isOpen() {
+    return this.settingsService.isRestaurantOpen();
+  }
+
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Patch()
   update(@Body() body: UpdateSettingsDto) {

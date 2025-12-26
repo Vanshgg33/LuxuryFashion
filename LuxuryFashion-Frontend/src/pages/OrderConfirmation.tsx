@@ -1,5 +1,5 @@
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { CheckCircle, MapPin, ArrowLeft } from "lucide-react";
+import { CheckCircle, MapPin, ArrowLeft, Clock, Package } from "lucide-react";
 import { MapPicker } from "@/components/MapPicker";
 import { useEffect, useState } from "react";
 import { fetchOrderHistory } from "@/lib/api";
@@ -34,9 +34,31 @@ const OrderConfirmation = () => {
           <CheckCircle className="w-6 h-6" />
           <h1 className="text-2xl font-display font-bold text-foreground">Order Confirmed</h1>
         </div>
-        <p className="text-muted-foreground mb-6">
+        <p className="text-muted-foreground mb-4">
           Thank you for ordering from RangeelaDhaba! Your order is placed as <strong>{orderType.toUpperCase()}</strong>.
         </p>
+
+        {/* Estimated Wait Time */}
+        <div className={`flex items-center gap-3 p-4 rounded-xl mb-6 ${orderType === "delivery" ? "bg-blue-50 border border-blue-200" : "bg-amber-50 border border-amber-200"}`}>
+          <div className={`p-2 rounded-full ${orderType === "delivery" ? "bg-blue-100" : "bg-amber-100"}`}>
+            {orderType === "delivery" ? (
+              <Clock className="w-5 h-5 text-blue-600" />
+            ) : (
+              <Package className="w-5 h-5 text-amber-600" />
+            )}
+          </div>
+          <div>
+            <p className={`font-semibold ${orderType === "delivery" ? "text-blue-700" : "text-amber-700"}`}>
+              {orderType === "delivery" ? "Estimated Delivery Time" : "Ready for Pickup"}
+            </p>
+            <p className={`text-sm ${orderType === "delivery" ? "text-blue-600" : "text-amber-600"}`}>
+              {orderType === "delivery"
+                ? "Your order will arrive in approximately 1 hour"
+                : "Your order will be ready for pickup in 30-45 minutes"}
+            </p>
+          </div>
+        </div>
+
         {orderId && (
           <p className="text-sm font-mono text-muted-foreground mb-4">
             Order ID: {orderId}

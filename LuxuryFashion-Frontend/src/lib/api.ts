@@ -217,6 +217,7 @@ export const updateProfile = (body: { name?: string; phone?: string; address?: R
 export const validateCoupon = (code: string, subtotal: number) =>
   apiPost("/coupons/validate", { code, subtotal });
 export const getCoupon = (code: string) => apiGet(`/coupons/${code}`);
+export const getActiveCoupons = () => apiGet("/coupons/active");
 export const createCoupon = (body: any) => apiPost("/coupons", body);
 export const getAllCoupons = () => apiGet("/coupons");
 export const updateCoupon = (id: string, body: any) => apiPatch(`/coupons/${id}`, body);
@@ -224,8 +225,19 @@ export const deleteCoupon = (id: string) => apiDelete(`/coupons/${id}`);
 
 // Settings
 export const fetchSettings = () => apiGet("/settings");
-export const updateSettings = (body: { lat?: number; lng?: number; address?: string }) =>
+export const checkRestaurantOpen = () => apiGet("/settings/is-open");
+export const updateSettings = (body: { lat?: number; lng?: number; address?: string; isDeliveryEnabled?: boolean; deliveryFee?: number; openingTime?: string; closingTime?: string; isOpen?: boolean; closureReason?: string }) =>
   apiPatch("/settings", body);
+export const toggleDelivery = (isDeliveryEnabled: boolean) =>
+  apiPatch("/settings", { isDeliveryEnabled });
+export const updateDeliveryFee = (deliveryFee: number) =>
+  apiPatch("/settings", { deliveryFee });
+export const updateOperatingHours = (openingTime: string, closingTime: string) =>
+  apiPatch("/settings", { openingTime, closingTime });
+export const toggleRestaurantOpen = (isOpen: boolean, closureReason?: string) =>
+  apiPatch("/settings", { isOpen, closureReason: isOpen ? '' : closureReason });
+export const updateCategoryTimeRestrictions = (categoryTimeRestrictions: Record<string, { availableFrom: string; availableTo: string; isEnabled: boolean }>) =>
+  apiPatch("/settings", { categoryTimeRestrictions });
 
 // Uploads
 export const uploadBanner = async (file: File, title?: string) => {
@@ -243,6 +255,9 @@ export const createDish = async (data: {
   description?: string;
   inStock?: boolean;
   image?: File;
+  hasTimeRestriction?: boolean;
+  availableFrom?: string;
+  availableTo?: string;
 }) => {
   const form = new FormData();
   form.append("name", data.name);
@@ -252,6 +267,9 @@ export const createDish = async (data: {
   if (data.description) form.append("description", data.description);
   if (data.inStock !== undefined) form.append("inStock", String(data.inStock));
   if (data.image) form.append("image", data.image);
+  if (data.hasTimeRestriction !== undefined) form.append("hasTimeRestriction", String(data.hasTimeRestriction));
+  if (data.availableFrom) form.append("availableFrom", data.availableFrom);
+  if (data.availableTo) form.append("availableTo", data.availableTo);
   return request("/dishes", { method: "POST", body: form });
 };
 
@@ -263,6 +281,9 @@ export const updateDish = async (id: string, data: {
   description?: string;
   inStock?: boolean;
   image?: File;
+  hasTimeRestriction?: boolean;
+  availableFrom?: string;
+  availableTo?: string;
 }) => {
   const form = new FormData();
   if (data.name) form.append("name", data.name);
@@ -272,10 +293,18 @@ export const updateDish = async (id: string, data: {
   if (data.description) form.append("description", data.description);
   if (data.inStock !== undefined) form.append("inStock", String(data.inStock));
   if (data.image) form.append("image", data.image);
+  if (data.hasTimeRestriction !== undefined) form.append("hasTimeRestriction", String(data.hasTimeRestriction));
+  if (data.availableFrom) form.append("availableFrom", data.availableFrom);
+  if (data.availableTo) form.append("availableTo", data.availableTo);
   return request(`/dishes/${id}`, { method: "PATCH", body: form });
 };
 
 export const deleteDish = (id: string) => apiDelete(`/dishes/${id}`);
+
+// Category Stock Management
+export const updateCategoryStock = (category: string, inStock: boolean) =>
+  apiPatch(`/dishes/category/${encodeURIComponent(category)}/stock`, { inStock });
+export const getCategoryStockStatus = () => apiGet("/dishes/category/stock-status");
 
 // Addresses
 export const getAddresses = () => apiGet("/addresses");

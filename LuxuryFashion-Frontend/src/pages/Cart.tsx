@@ -10,15 +10,18 @@ import {
   Tag,
   Truck,
   ChevronDown,
-  Navigation
+  Navigation,
+  Clock
 } from "lucide-react";
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
 import { useState, useEffect, useMemo } from "react";
-import { validateCoupon, fetchSettings } from "@/lib/api";
+import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen } from "@/lib/api";
 import { reverseGeocode } from "@/lib/geocode";
+import { getAccurateLocation } from "@/lib/geolocation";
 import { MapPicker } from "@/components/MapPicker";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    KOLKATA KITCHEN — CART PAGE
@@ -84,6 +87,7 @@ const Cart = () => {
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [address, setAddress] = useState<AddressForm>({
     street: "",
     city: "",
@@ -92,9 +96,12 @@ const Cart = () => {
     country: "India",
     phoneNumber: "",
   });
-  const [settings, setSettings] = useState<{ lat?: number; lng?: number }>({});
+  const [settings, setSettings] = useState<{ lat?: number; lng?: number; isDeliveryEnabled?: boolean; deliveryFee?: number }>({});
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [showCouponInput, setShowCouponInput] = useState(false);
+  const [activeCoupons, setActiveCoupons] = useState<any[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+  const [restaurantStatus, setRestaurantStatus] = useState<{ isOpen: boolean; openingTime: string; closingTime: string; isManuallyClosed?: boolean; closureReason?: string } | null>(null);
 
   // Calculate totals
   const uniqueCartTotal = useMemo(() => {
@@ -104,17 +111,29 @@ const Cart = () => {
     }, 0);
   }, [uniqueCartItems]);
 
-  const deliveryFee = uniqueCartTotal > 299 ? 0 : 40;
-  const taxes = Math.round(uniqueCartTotal * 0.05);
+  // Determine if order will be takeaway (delivery disabled or distance > 5km)
+  const isTakeawayOnly = !settings.isDeliveryEnabled || (distanceKm !== null && distanceKm > 5);
+
+  // Use admin-configured delivery fee, no fee for takeaway orders
+  const adminDeliveryFee = settings.deliveryFee ?? 40;
+  const deliveryFee = isTakeawayOnly ? 0 : adminDeliveryFee;
   const discount = appliedCoupon?.valid ? (appliedCoupon.discount || 0) : 0;
-  const grandTotal = uniqueCartTotal + deliveryFee + taxes - discount;
-  const freeDeliveryProgress = Math.min((uniqueCartTotal / 299) * 100, 100);
+  const grandTotal = uniqueCartTotal + deliveryFee - discount;
 
   useEffect(() => {
     (async () => {
       try {
-        const data = await fetchSettings();
-        setSettings({ lat: data.lat, lng: data.lng });
+        const [settingsData, openStatus] = await Promise.all([
+          fetchSettings(),
+          checkRestaurantOpen(),
+        ]);
+        setSettings({
+          lat: settingsData.lat,
+          lng: settingsData.lng,
+          isDeliveryEnabled: settingsData.isDeliveryEnabled ?? true,
+          deliveryFee: settingsData.deliveryFee ?? 40,
+        });
+        setRestaurantStatus(openStatus);
       } catch (err) {
         console.error("Failed to fetch settings", err);
       }
@@ -137,35 +156,82 @@ const Cart = () => {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
-  const useMyLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setAddress((prev) => ({ ...prev, lat, lng }));
-        try {
-          const geo = await reverseGeocode(lat, lng);
-          setAddress((prev) => ({ ...prev, ...geo, lat, lng }));
-        } catch { /* ignore */ }
-      },
-      () => console.error("Unable to get location"),
-      { enableHighAccuracy: true, timeout: 5000 }
-    );
+  const useMyLocation = async () => {
+    setIsGettingLocation(true);
+    toast.info("Getting your precise location...", { duration: 2000 });
+
+    try {
+      const location = await getAccurateLocation({
+        enableHighAccuracy: true,
+        timeout: 30000, // 30 seconds total
+        maximumAge: 0, // Always fresh
+        desiredAccuracy: 20, // Target 20m accuracy (Google Maps level)
+        maxWaitTime: 15000, // Wait up to 15 seconds for best accuracy
+      });
+
+      const { latitude, longitude, accuracy } = location;
+
+      // Update address with coordinates
+      setAddress((prev) => ({ ...prev, lat: latitude, lng: longitude }));
+
+      // Show accuracy info
+      const accuracyText = accuracy <= 10 ? "Excellent" : accuracy <= 20 ? "Very accurate" : accuracy <= 50 ? "Good" : "Approximate";
+      toast.success(`${accuracyText} location found (±${Math.round(accuracy)}m)`);
+
+      // Reverse geocode to get address
+      try {
+        const geo = await reverseGeocode(latitude, longitude);
+        setAddress((prev) => ({ ...prev, ...geo, lat: latitude, lng: longitude }));
+      } catch (err) {
+        console.error("Failed to reverse geocode:", err);
+        toast.warning("Location set, but address details couldn't be fetched automatically");
+      }
+    } catch (err: any) {
+      console.error("Geolocation error:", err);
+      toast.error(err.message || "Unable to get your location. Please allow location access or select on map.");
+    } finally {
+      setIsGettingLocation(false);
+    }
   };
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
+  const loadActiveCoupons = async () => {
+    setLoadingCoupons(true);
+    try {
+      const coupons = await getActiveCoupons();
+      setActiveCoupons(Array.isArray(coupons) ? coupons : []);
+    } catch (err) {
+      console.error("Failed to load active coupons:", err);
+      setActiveCoupons([]);
+    } finally {
+      setLoadingCoupons(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showCouponInput) {
+      loadActiveCoupons();
+    }
+  }, [showCouponInput]);
+
+  const handleApplyCoupon = async (code?: string) => {
+    const codeToApply = code || couponCode.trim();
+    if (!codeToApply) return;
+    
     setIsValidatingCoupon(true);
     try {
-      const result = await validateCoupon(couponCode.trim(), uniqueCartTotal);
+      const result = await validateCoupon(codeToApply, uniqueCartTotal);
       if (result.valid) {
         setAppliedCoupon(result);
+        setCouponCode(codeToApply);
+        toast.success(`Coupon ${codeToApply} applied successfully!`);
       } else {
         setAppliedCoupon(null);
+        toast.error(result.message || "Invalid coupon code");
       }
     } catch (error: any) {
       setAppliedCoupon(null);
+      const errorMsg = error.message || error.response?.data?.message || "Failed to apply coupon";
+      toast.error(errorMsg);
       console.error("Failed to validate coupon:", error);
     } finally {
       setIsValidatingCoupon(false);
@@ -204,7 +270,8 @@ const Cart = () => {
     }
 
     setIsPlacingOrder(true);
-    const orderType = distanceKm !== null && distanceKm > 5 ? "takeaway" : "delivery";
+    // Determine order type based on delivery availability and distance
+    const orderType = isTakeawayOnly ? "takeaway" : "delivery";
 
     try {
       const orderId = await placeOrder(
@@ -323,21 +390,40 @@ const Cart = () => {
                 Order Summary
               </h2>
 
-              {/* Free Delivery Progress */}
-              {deliveryFee > 0 && (
-                <div className="mb-5 p-3 bg-mustard/10 rounded-lg">
-                  <p className="text-sm text-foreground mb-2">
-                    Add ₹{(299 - uniqueCartTotal).toFixed(0)} more for free delivery
-                  </p>
-                  <div className="h-1.5 bg-mustard/20 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-mustard transition-all duration-500 rounded-full"
-                      style={{ width: `${freeDeliveryProgress}%` }}
-                    />
+              {/* Restaurant Closed Notice */}
+              {restaurantStatus && !restaurantStatus.isOpen && (
+                <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-red-600" />
+                    <p className="text-sm font-medium text-red-700">
+                      {restaurantStatus.isManuallyClosed ? "We're Temporarily Closed" : "We're Currently Closed"}
+                    </p>
                   </div>
+                  <p className="text-xs text-red-600 mt-1">
+                    {restaurantStatus.isManuallyClosed
+                      ? (restaurantStatus.closureReason || "We are temporarily closed. Please check back later.")
+                      : `Our operating hours are ${restaurantStatus.openingTime} - ${restaurantStatus.closingTime}. Please come back during business hours.`
+                    }
+                  </p>
                 </div>
               )}
 
+              {/* Delivery Status Notice */}
+              {restaurantStatus?.isOpen && settings.isDeliveryEnabled === false && (
+                <div className="mb-5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-amber-600" />
+                    <p className="text-sm font-medium text-amber-700">
+                      Takeaway Only
+                    </p>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-1">
+                    Delivery is currently unavailable. Your order will be prepared for pickup.
+                  </p>
+                </div>
+              )}
+
+              
               {/* Price Breakdown */}
               <div className="space-y-3 pb-4 border-b border-border/50 text-sm">
                 <div className="flex justify-between">
@@ -346,15 +432,11 @@ const Cart = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5" /> Delivery
+                    <Truck className="w-3.5 h-3.5" /> {isTakeawayOnly ? "Pickup" : "Delivery"}
                   </span>
-                  <span className={cn("font-medium", deliveryFee === 0 && "text-bengali-green")}>
-                    {deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}
+                  <span className={cn("font-medium", (deliveryFee === 0 || isTakeawayOnly) && "text-bengali-green")}>
+                    {isTakeawayOnly ? "TAKEAWAY" : `₹${deliveryFee}`}
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Taxes (5%)</span>
-                  <span className="font-medium">₹{taxes.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-bengali-green">
@@ -400,24 +482,100 @@ const Cart = () => {
                     </button>
                     <div className={cn(
                       "overflow-hidden transition-all",
-                      showCouponInput ? "max-h-16 mt-3" : "max-h-0"
+                      showCouponInput ? "max-h-[500px] mt-3" : "max-h-0"
                     )}>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Enter code"
-                          value={couponCode}
-                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          onKeyPress={(e) => e.key === "Enter" && handleApplyCoupon()}
-                          className="flex-1 px-3 py-2 bg-cream border border-border/50 rounded-lg text-sm focus:outline-none focus:border-terracotta/50"
-                        />
-                        <button
-                          onClick={handleApplyCoupon}
-                          disabled={isValidatingCoupon}
-                          className="px-4 py-2 bg-terracotta text-white text-sm font-medium rounded-lg hover:bg-terracotta-dark transition-colors disabled:opacity-50"
-                        >
-                          {isValidatingCoupon ? "..." : "Apply"}
-                        </button>
+                      <div className="space-y-3">
+                        {/* Active Coupons List */}
+                        {loadingCoupons ? (
+                          <div className="text-center py-4">
+                            <div className="w-5 h-5 border-2 border-terracotta/30 border-t-terracotta rounded-full animate-spin mx-auto"></div>
+                            <p className="text-xs text-muted-foreground mt-2">Loading coupons...</p>
+                          </div>
+                        ) : activeCoupons.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Available Coupons:</p>
+                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                              {activeCoupons.map((coupon) => {
+                                const isEligible = !coupon.minOrderAmount || uniqueCartTotal >= coupon.minOrderAmount;
+                                const discountText = coupon.discountType === 'percentage'
+                                  ? `${coupon.discountValue}% OFF`
+                                  : `₹${coupon.discountValue} OFF`;
+
+                                return (
+                                  <div
+                                    key={coupon._id || coupon.code}
+                                    className={cn(
+                                      "p-3 rounded-lg border transition-all",
+                                      isEligible
+                                        ? "border-terracotta/30 bg-terracotta/5"
+                                        : "border-border/30 bg-secondary/30 opacity-60"
+                                    )}
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <span className="font-mono font-bold text-terracotta">{coupon.code}</span>
+                                          <span className="text-xs font-semibold text-bengali-green bg-bengali-green/10 px-2 py-0.5 rounded">
+                                            {discountText}
+                                          </span>
+                                        </div>
+                                        {coupon.description && (
+                                          <p className="text-xs text-muted-foreground mb-1">{coupon.description}</p>
+                                        )}
+                                        {coupon.minOrderAmount && (
+                                          <p className="text-xs text-muted-foreground">
+                                            Min. order: ₹{coupon.minOrderAmount}
+                                            {!isEligible && (
+                                              <span className="text-amber-600 ml-1">
+                                                (Add ₹{(coupon.minOrderAmount - uniqueCartTotal).toFixed(0)} more)
+                                              </span>
+                                            )}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <button
+                                        onClick={() => handleApplyCoupon(coupon.code)}
+                                        disabled={!isEligible || isValidatingCoupon}
+                                        className={cn(
+                                          "px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0",
+                                          isEligible
+                                            ? "bg-terracotta text-white hover:bg-terracotta-dark"
+                                            : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                        )}
+                                      >
+                                        {isValidatingCoupon ? "..." : "Apply"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground text-center py-2">No active coupons available</p>
+                        )}
+
+                        {/* Manual Code Input */}
+                        <div className="pt-2 border-t border-border/50">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Or enter coupon code:</p>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Enter code"
+                              value={couponCode}
+                              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                              onKeyPress={(e) => e.key === "Enter" && handleApplyCoupon()}
+                              className="flex-1 px-3 py-2 bg-cream border border-border/50 rounded-lg text-sm focus:outline-none focus:border-terracotta/50"
+                            />
+                            <button
+                              onClick={() => handleApplyCoupon()}
+                              disabled={isValidatingCoupon || !couponCode.trim()}
+                              className="px-4 py-2 bg-terracotta text-white text-sm font-medium rounded-lg hover:bg-terracotta-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isValidatingCoupon ? "..." : "Apply"}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -445,13 +603,18 @@ const Cart = () => {
                     <button
                       type="button"
                       onClick={useMyLocation}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-terracotta/10 text-terracotta text-sm font-medium rounded-lg hover:bg-terracotta/20 transition-colors"
+                      disabled={isGettingLocation}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-terracotta/10 text-terracotta text-sm font-medium rounded-lg hover:bg-terracotta/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Navigation className="w-4 h-4" />
-                      Use My Location
+                      <Navigation className={`w-4 h-4 ${isGettingLocation ? 'animate-spin' : ''}`} />
+                      {isGettingLocation ? "Getting Location..." : "Use My Location"}
                     </button>
 
-                    {distanceKm !== null && (
+                    {settings.isDeliveryEnabled === false ? (
+                      <div className="p-2.5 rounded-lg text-xs bg-amber-100 text-amber-700">
+                        Delivery is currently disabled. Order will be prepared for pickup.
+                      </div>
+                    ) : distanceKm !== null && (
                       <div className={cn(
                         "p-2.5 rounded-lg text-xs",
                         distanceKm > 5
@@ -533,11 +696,16 @@ const Cart = () => {
               {/* Checkout Button */}
               <button
                 onClick={showAddressForm ? handlePlaceOrder : () => setShowAddressForm(true)}
-                disabled={isPlacingOrder || cartLoading}
-                className="w-full btn-primary justify-center mt-4"
+                disabled={isPlacingOrder || cartLoading || (restaurantStatus && !restaurantStatus.isOpen)}
+                className="w-full btn-primary justify-center mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPlacingOrder ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : restaurantStatus && !restaurantStatus.isOpen ? (
+                  <>
+                    <Clock className="w-4 h-4" />
+                    Restaurant Closed
+                  </>
                 ) : (
                   <>
                     {showAddressForm ? "Place Order" : "Proceed to Checkout"}
@@ -547,7 +715,10 @@ const Cart = () => {
               </button>
 
               <p className="text-center text-xs text-muted-foreground mt-4">
-                Secure checkout • Fast delivery
+                {restaurantStatus && !restaurantStatus.isOpen
+                  ? (restaurantStatus.isManuallyClosed ? "Check back soon!" : `Opens at ${restaurantStatus.openingTime}`)
+                  : `Secure checkout ${!isTakeawayOnly ? "• Fast delivery" : ""}`
+                }
               </p>
             </div>
           </div>

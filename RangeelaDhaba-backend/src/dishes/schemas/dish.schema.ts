@@ -33,6 +33,15 @@ export class Dish {
 
   @Prop({ default: true })
   inStock: boolean;
+
+  @Prop()
+  availableFrom?: string; // Time in HH:mm format (e.g., "09:00")
+
+  @Prop()
+  availableTo?: string; // Time in HH:mm format (e.g., "22:00")
+
+  @Prop({ default: false })
+  hasTimeRestriction: boolean;
 }
 
 export const DishSchema = SchemaFactory.createForClass(Dish);

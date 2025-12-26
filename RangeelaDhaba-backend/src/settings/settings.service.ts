@@ -19,6 +19,13 @@ export class SettingsService {
       address: process.env.RESTAURANT_ADDRESS,
       supportEmail: process.env.SUPPORT_EMAIL || 'rangeela8981@gmail.com',
       supportPhone: process.env.SUPPORT_PHONE || '+91 89812 60291',
+      isDeliveryEnabled: true,
+      deliveryFee: 40,
+      openingTime: '09:00',
+      closingTime: '22:00',
+      isOpen: true,
+      closureReason: '',
+      categoryTimeRestrictions: {},
     });
   }
 
@@ -26,6 +33,68 @@ export class SettingsService {
     const settings = await this.getSettings();
     Object.assign(settings, data);
     return settings.save();
+  }
+
+  /**
+   * Check if restaurant is currently open based on manual toggle and operating hours
+   */
+  async isRestaurantOpen(): Promise<{
+    isOpen: boolean;
+    openingTime: string;
+    closingTime: string;
+    currentTime: string;
+    isManuallyClosed: boolean;
+    closureReason?: string;
+  }> {
+    const settings = await this.getSettings();
+    const openingTime = settings.openingTime || '09:00';
+    const closingTime = settings.closingTime || '22:00';
+
+    // Get current time in IST (Indian Standard Time)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    const istTime = new Date(now.getTime() + istOffset + now.getTimezoneOffset() * 60 * 1000);
+    const currentHours = istTime.getHours().toString().padStart(2, '0');
+    const currentMinutes = istTime.getMinutes().toString().padStart(2, '0');
+    const currentTime = `${currentHours}:${currentMinutes}`;
+
+    // Check if manually closed first
+    if (settings.isOpen === false) {
+      return {
+        isOpen: false,
+        openingTime,
+        closingTime,
+        currentTime,
+        isManuallyClosed: true,
+        closureReason: settings.closureReason,
+      };
+    }
+
+    // Parse times to compare
+    const [openHour, openMin] = openingTime.split(':').map(Number);
+    const [closeHour, closeMin] = closingTime.split(':').map(Number);
+    const [currHour, currMin] = [parseInt(currentHours), parseInt(currentMinutes)];
+
+    const openMinutes = openHour * 60 + openMin;
+    const closeMinutes = closeHour * 60 + closeMin;
+    const currentMinutesTotal = currHour * 60 + currMin;
+
+    let isOpen: boolean;
+    if (closeMinutes > openMinutes) {
+      // Normal case: e.g., 09:00 to 22:00
+      isOpen = currentMinutesTotal >= openMinutes && currentMinutesTotal < closeMinutes;
+    } else {
+      // Overnight case: e.g., 22:00 to 06:00
+      isOpen = currentMinutesTotal >= openMinutes || currentMinutesTotal < closeMinutes;
+    }
+
+    return {
+      isOpen,
+      openingTime,
+      closingTime,
+      currentTime,
+      isManuallyClosed: false,
+    };
   }
 }
 
