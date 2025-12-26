@@ -15,16 +15,19 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ item }: ProductCardProps) {
-  const { addToCart, cartItems } = useCartContext();
+  const { addToCart, cartItems, updateQuantity, removeFromCart } = useCartContext();
   const [isAdding, setIsAdding] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Check if item is already in cart (safely handle undefined)
   const cart = cartItems || [];
   const cartItem = cart.find((c) => {
-    const cartDishId = c.dish?._id || c.dish?.id || c.dishId;
+    const cartDishId = c.dish?._id || c.dish?.id || (c as any).dishId;
     return String(cartDishId) === String(item.id);
   });
   const quantityInCart = cartItem?.quantity || 0;
+  // Get the cart item ID for updates (could be the cart item id or the dish id for guest cart)
+  const cartItemId = cartItem?.id || cartItem?.dish?._id || cartItem?.dish?.id || String(item.id);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -38,6 +41,45 @@ export function ProductCard({ item }: ProductCardProps) {
       await addToCart(dishId, 1);
     } catch (error: any) {
       console.error("Failed to add item:", error);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleDecreaseQuantity = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isUpdating) return;
+
+    setIsUpdating(true);
+    try {
+      if (quantityInCart <= 1) {
+        // Remove item if quantity would go to 0
+        await removeFromCart(cartItemId);
+      } else {
+        // Decrease quantity
+        await updateQuantity(cartItemId, quantityInCart - 1);
+      }
+    } catch (error: any) {
+      console.error("Failed to decrease quantity:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleIncreaseQuantity = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isAdding) return;
+
+    setIsAdding(true);
+    try {
+      const dishId = String(item.id);
+      await addToCart(dishId, 1);
+    } catch (error: any) {
+      console.error("Failed to increase quantity:", error);
     } finally {
       setIsAdding(false);
     }
@@ -128,22 +170,19 @@ export function ProductCard({ item }: ProductCardProps) {
                 onClick={(e) => e.preventDefault()}
               >
                 <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // Decrease quantity logic would go here
-                  }}
-                  className="p-2.5 text-foreground hover:bg-black/10 transition-colors"
+                  onClick={handleDecreaseQuantity}
+                  disabled={isUpdating}
+                  className="p-2.5 text-foreground hover:bg-black/10 transition-colors disabled:opacity-50"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
                 <span className="text-foreground font-bold min-w-[2rem] text-center text-sm">
-                  {quantityInCart}
+                  {isUpdating ? "..." : quantityInCart}
                 </span>
                 <button
-                  onClick={handleAddToCart}
+                  onClick={handleIncreaseQuantity}
                   disabled={isAdding}
-                  className="p-2.5 text-foreground hover:bg-black/10 transition-colors"
+                  className="p-2.5 text-foreground hover:bg-black/10 transition-colors disabled:opacity-50"
                 >
                   <Plus className="w-4 h-4" />
                 </button>

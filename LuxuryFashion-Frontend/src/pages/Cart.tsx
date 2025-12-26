@@ -11,7 +11,8 @@ import {
   Truck,
   ChevronDown,
   Navigation,
-  Clock
+  Clock,
+  LogIn
 } from "lucide-react";
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
@@ -50,8 +51,9 @@ interface AddressForm {
 }
 
 const Cart = () => {
-  const { cartItems, clearCart, placeOrder, loading: cartLoading, loadCart } = useCartContext();
+  const { cartItems, clearCart, placeOrder, loading: cartLoading, loadCart, isLoggedIn } = useCartContext();
   const navigate = useNavigate();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   // Deduplicate cart items by dish ID
   const uniqueCartItems = useMemo(() => {
@@ -244,6 +246,12 @@ const Cart = () => {
   };
 
   const handlePlaceOrder = async () => {
+    // Check if user is logged in
+    if (!isLoggedIn) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
     if (!address.street.trim() || !address.city.trim() || !address.state.trim() ||
         !address.zipCode.trim() || !address.phoneNumber.trim()) {
       setShowAddressForm(true);
@@ -285,6 +293,11 @@ const Cart = () => {
       }
     } catch (error: any) {
       console.error("Failed to place order:", error);
+      if (error.message === "LOGIN_REQUIRED") {
+        setShowLoginPrompt(true);
+      } else {
+        toast.error(error.message || "Failed to place order");
+      }
     } finally {
       setIsPlacingOrder(false);
     }
@@ -695,7 +708,13 @@ const Cart = () => {
 
               {/* Checkout Button */}
               <button
-                onClick={showAddressForm ? handlePlaceOrder : () => setShowAddressForm(true)}
+                onClick={showAddressForm ? handlePlaceOrder : () => {
+                  if (!isLoggedIn) {
+                    setShowLoginPrompt(true);
+                  } else {
+                    setShowAddressForm(true);
+                  }
+                }}
                 disabled={isPlacingOrder || cartLoading || (restaurantStatus && !restaurantStatus.isOpen)}
                 className="w-full btn-primary justify-center mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -705,6 +724,11 @@ const Cart = () => {
                   <>
                     <Clock className="w-4 h-4" />
                     Restaurant Closed
+                  </>
+                ) : !isLoggedIn ? (
+                  <>
+                    <LogIn className="w-4 h-4" />
+                    Login to Checkout
                   </>
                 ) : (
                   <>
@@ -724,6 +748,48 @@ const Cart = () => {
           </div>
         </div>
       </div>
+
+      {/* Login Required Modal */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl animate-fade-in-up">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-terracotta/10 flex items-center justify-center">
+                <LogIn className="w-8 h-8 text-terracotta" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground mb-2">
+                Login Required
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Please log in or create an account to place your order. Your cart items will be saved!
+              </p>
+              <div className="flex flex-col gap-3">
+                <Link
+                  to="/login"
+                  state={{ from: "/cart" }}
+                  className="btn-primary justify-center"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Login to Continue
+                </Link>
+                <Link
+                  to="/register"
+                  state={{ from: "/cart" }}
+                  className="btn-secondary justify-center"
+                >
+                  Create Account
+                </Link>
+                <button
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
+                >
+                  Continue Browsing
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

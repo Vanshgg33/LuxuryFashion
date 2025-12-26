@@ -29,6 +29,7 @@ interface CartContextType {
   loading: boolean;
   error: string | null;
   loadCart: () => Promise<void>;
+  isLoggedIn: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
