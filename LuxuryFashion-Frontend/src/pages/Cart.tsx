@@ -12,7 +12,8 @@ import {
   ChevronDown,
   Navigation,
   Clock,
-  LogIn
+  LogIn,
+  MessageSquare
 } from "lucide-react";
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
@@ -104,6 +105,7 @@ const Cart = () => {
   const [activeCoupons, setActiveCoupons] = useState<any[]>([]);
   const [loadingCoupons, setLoadingCoupons] = useState(false);
   const [restaurantStatus, setRestaurantStatus] = useState<{ isOpen: boolean; openingTime: string; closingTime: string; isManuallyClosed?: boolean; closureReason?: string } | null>(null);
+  const [specialInstructions, setSpecialInstructions] = useState("");
 
   // Calculate totals
   const uniqueCartTotal = useMemo(() => {
@@ -286,7 +288,8 @@ const Cart = () => {
         { ...address },
         address.phoneNumber,
         finalCouponCode,
-        orderType
+        orderType,
+        specialInstructions.trim() || undefined
       );
       if (orderId) {
         navigate("/order-confirmation", { state: { orderId, orderType, address } });
@@ -445,10 +448,18 @@ const Cart = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5" /> {isTakeawayOnly ? "Pickup" : "Delivery"}
+                    {isTakeawayOnly ? (
+                      <>
+                        <ShoppingBag className="w-3.5 h-3.5" /> Takeaway
+                      </>
+                    ) : (
+                      <>
+                        <Truck className="w-3.5 h-3.5" /> Delivery
+                      </>
+                    )}
                   </span>
-                  <span className={cn("font-medium", (deliveryFee === 0 || isTakeawayOnly) && "text-bengali-green")}>
-                    {isTakeawayOnly ? "TAKEAWAY" : `₹${deliveryFee}`}
+                  <span className={cn("font-medium", isTakeawayOnly ? "text-bengali-green" : "")}>
+                    {isTakeawayOnly ? "FREE" : `₹${deliveryFee}`}
                   </span>
                 </div>
                 {discount > 0 && (
@@ -593,6 +604,25 @@ const Cart = () => {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Special Instructions */}
+              <div className="py-4 border-b border-border/50">
+                <label className="flex items-center gap-2 text-sm font-medium mb-3">
+                  <MessageSquare className="w-4 h-4 text-terracotta" />
+                  Special Cooking Request
+                </label>
+                <textarea
+                  placeholder="E.g., Less spicy, no onions, extra sauce..."
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                  maxLength={200}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-cream border border-border/50 rounded-lg text-sm focus:outline-none focus:border-terracotta/50 resize-none"
+                />
+                <p className="text-xs text-muted-foreground mt-1 text-right">
+                  {specialInstructions.length}/200
+                </p>
               </div>
 
               {/* Address */}
@@ -741,7 +771,7 @@ const Cart = () => {
               <p className="text-center text-xs text-muted-foreground mt-4">
                 {restaurantStatus && !restaurantStatus.isOpen
                   ? (restaurantStatus.isManuallyClosed ? "Check back soon!" : `Opens at ${restaurantStatus.openingTime}`)
-                  : `Secure checkout ${!isTakeawayOnly ? "• Fast delivery" : ""}`
+                  : `Secure checkout • ${isTakeawayOnly ? "Ready for pickup" : "Fast delivery"}`
                 }
               </p>
             </div>

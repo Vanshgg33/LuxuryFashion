@@ -45,6 +45,7 @@ export class OrdersService {
       orderType: order.orderType,
       address: order.address,
       createdAt: (order as any).createdAt,
+      specialInstructions: (order as any).specialInstructions,
     };
   }
 
@@ -136,6 +137,7 @@ export class OrdersService {
       orderType,
       address: dto.address,
       status: 'placed',
+      specialInstructions: dto.specialInstructions,
     });
     await this.cartService.clear(userId);
 

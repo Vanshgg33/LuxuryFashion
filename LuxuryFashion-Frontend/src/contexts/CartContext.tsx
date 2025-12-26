@@ -24,7 +24,8 @@ interface CartContextType {
     },
     phoneNumber: string,
     couponCode?: string,
-    orderType?: "delivery" | "takeaway"
+    orderType?: "delivery" | "takeaway",
+    specialInstructions?: string
   ) => Promise<number | undefined>;
   loading: boolean;
   error: string | null;

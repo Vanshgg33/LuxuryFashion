@@ -49,5 +49,9 @@ export class CreateOrderDto {
 
   @IsEnum(['delivery', 'takeaway'])
   orderType: 'delivery' | 'takeaway';
+
+  @IsOptional()
+  @IsString()
+  specialInstructions?: string;
 }
 

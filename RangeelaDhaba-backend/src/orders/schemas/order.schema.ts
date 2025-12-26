@@ -52,6 +52,9 @@ export class Order {
 
   @Prop({ default: 'pending', enum: ['pending', 'paid', 'failed', 'refunded'] })
   paymentStatus?: string;
+
+  @Prop()
+  specialInstructions?: string;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

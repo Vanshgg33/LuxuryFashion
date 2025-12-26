@@ -382,7 +382,8 @@ export function useCartBackend() {
       },
       phoneNumber: string,
       couponCode?: string,
-      orderType: "delivery" | "takeaway" = "delivery"
+      orderType: "delivery" | "takeaway" = "delivery",
+      specialInstructions?: string
     ) => {
       // Require login to place order
       if (!isLoggedIn) {
@@ -398,6 +399,7 @@ export function useCartBackend() {
           },
           couponCode,
           orderType,
+          specialInstructions,
         });
         await clearCart();
         await loadOrders();

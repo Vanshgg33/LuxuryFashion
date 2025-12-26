@@ -33,6 +33,7 @@ export interface OrderEmailData {
     phoneNumber?: string;
   };
   createdAt?: Date;
+  specialInstructions?: string;
 }
 
 @Injectable()

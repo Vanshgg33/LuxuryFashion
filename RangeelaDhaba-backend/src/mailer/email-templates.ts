@@ -80,6 +80,7 @@ interface OrderDetails {
     phoneNumber?: string;
   };
   createdAt?: Date;
+  specialInstructions?: string;
 }
 
 /**
@@ -224,6 +225,17 @@ export const orderPlacedEmailTemplate = (order: OrderDetails): string => {
     </div>
   ` : '';
 
+  const specialInstructionsHtml = order.specialInstructions ? `
+    <div style="background-color: #FEF3C7; border-radius: 10px; padding: 20px; margin-top: 20px; border-left: 4px solid ${brandColors.warning};">
+      <h4 style="color: ${brandColors.dark}; margin: 0 0 10px 0; font-size: 14px;">
+        📝 Special Instructions
+      </h4>
+      <p style="color: ${brandColors.gray}; margin: 0; font-size: 14px; line-height: 1.6; font-style: italic;">
+        "${order.specialInstructions}"
+      </p>
+    </div>
+  ` : '';
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -289,6 +301,8 @@ export const orderPlacedEmailTemplate = (order: OrderDetails): string => {
       </div>
 
       ${addressHtml}
+
+      ${specialInstructionsHtml}
 
       <div style="background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); border-radius: 10px; padding: 20px; margin-top: 25px; text-align: center;">
         <p style="color: #1E40AF; margin: 0; font-size: 14px; line-height: 1.6;">
