@@ -176,14 +176,18 @@ export function useCartBackend() {
   const loadOrders = useCallback(async () => {
     if (!isLoggedIn) {
       setOrders([]);
+      setLoading(false);
       return;
     }
     try {
+      setLoading(true);
       const orderList = await fetchOrderHistory();
       setOrders(orderList || []);
     } catch (err: any) {
       console.error("Error loading orders:", err);
       setOrders([]);
+    } finally {
+      setLoading(false);
     }
   }, [isLoggedIn]);
 
