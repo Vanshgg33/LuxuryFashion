@@ -83,7 +83,8 @@ const Cart = () => {
 
   useEffect(() => {
     loadCart();
-  }, [loadCart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<CouponResult | null>(null);

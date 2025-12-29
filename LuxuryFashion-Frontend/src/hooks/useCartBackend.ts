@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getCart,
   addToCart as apiAddToCart,
@@ -84,6 +84,11 @@ export function useCartBackend() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
+
+  // Refs to prevent duplicate API calls
+  const isLoadingOrdersRef = useRef(false);
+  const ordersLoadedRef = useRef(false);
+  const isInitializedRef = useRef(false);
 
   // Check if user is logged in
   const isLoggedIn = !!user;
@@ -174,19 +179,30 @@ export function useCartBackend() {
   }, [isLoggedIn, authLoading, loadBackendCart, loadProducts, loadGuestCart]);
 
   // Load orders from backend
-  const loadOrders = useCallback(async () => {
+  const loadOrders = useCallback(async (forceRefresh = false) => {
     if (!isLoggedIn) {
       setOrders([]);
       return;
     }
+    // Prevent duplicate concurrent calls
+    if (isLoadingOrdersRef.current) {
+      return;
+    }
+    // Skip if already loaded (unless force refresh)
+    if (ordersLoadedRef.current && !forceRefresh) {
+      return;
+    }
     try {
+      isLoadingOrdersRef.current = true;
       setOrdersLoading(true);
       const orderList = await fetchOrderHistory();
       setOrders(orderList || []);
+      ordersLoadedRef.current = true;
     } catch (err: any) {
       console.error("Error loading orders:", err);
       setOrders([]);
     } finally {
+      isLoadingOrdersRef.current = false;
       setOrdersLoading(false);
     }
   }, [isLoggedIn]);
@@ -220,12 +236,18 @@ export function useCartBackend() {
   useEffect(() => {
     if (authLoading) return;
 
+    // Prevent duplicate initialization
+    if (isInitializedRef.current && !isLoggedIn) return;
+
     const init = async () => {
-      try {
-        const productsData = await fetchProducts();
-        setProducts(Array.isArray(productsData) ? productsData : []);
-      } catch (err) {
-        console.error("Error loading products:", err);
+      // Only load products once
+      if (products.length === 0) {
+        try {
+          const productsData = await fetchProducts();
+          setProducts(Array.isArray(productsData) ? productsData : []);
+        } catch (err) {
+          console.error("Error loading products:", err);
+        }
       }
 
       if (isLoggedIn) {
@@ -255,21 +277,15 @@ export function useCartBackend() {
           setError(err.message);
         }
 
-        // Load orders
-        try {
-          setOrdersLoading(true);
-          const orderList = await fetchOrderHistory();
-          setOrders(orderList || []);
-        } catch (err: any) {
-          console.error("Error loading orders:", err);
-          setOrders([]);
-        } finally {
-          setOrdersLoading(false);
-        }
+        // Don't load orders here - let the Orders page load them when visited
+        // This prevents unnecessary API calls on app startup
       } else {
+        // Reset orders loaded flag when user logs out
+        ordersLoadedRef.current = false;
         // For guest users, cart will be loaded when products state updates
       }
       setLoading(false);
+      isInitializedRef.current = true;
     };
 
     init();
@@ -445,7 +461,9 @@ export function useCartBackend() {
           specialInstructions,
         });
         await clearCart();
-        await loadOrders();
+        // Force refresh orders after placing a new order
+        ordersLoadedRef.current = false;
+        await loadOrders(true);
         return response.order?.id;
       } catch (err: any) {
         console.error("Error placing order:", err);

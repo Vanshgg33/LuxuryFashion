@@ -31,7 +31,7 @@ interface CartContextType {
   ordersLoading: boolean;
   error: string | null;
   loadCart: () => Promise<void>;
-  loadOrders: () => Promise<void>;
+  loadOrders: (forceRefresh?: boolean) => Promise<void>;
   isLoggedIn: boolean;
 }
 
