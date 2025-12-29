@@ -216,26 +216,65 @@ export function useCartBackend() {
     }
   }, [loadBackendCart]);
 
-  // Initial load and sync
+  // Initial load and sync - only run when auth state changes
   useEffect(() => {
     if (authLoading) return;
 
     const init = async () => {
-      await loadProducts();
+      try {
+        const productsData = await fetchProducts();
+        setProducts(Array.isArray(productsData) ? productsData : []);
+      } catch (err) {
+        console.error("Error loading products:", err);
+      }
 
       if (isLoggedIn) {
-        // First sync any guest cart items, then load backend cart
-        await syncGuestCartToBackend();
-        await loadBackendCart();
-        await loadOrders();
+        // Sync guest cart to backend
+        const guestCart = getGuestCart();
+        if (guestCart.length > 0) {
+          for (const item of guestCart) {
+            try {
+              await apiAddToCart(item.dishId, item.quantity);
+            } catch (err) {
+              console.error("Error syncing item:", item.dishId, err);
+            }
+          }
+          clearGuestCart();
+        }
+
+        // Load backend cart
+        try {
+          const cart = await getCart();
+          setCartItems(cart.cartItems || []);
+          setCartTotal(cart.totalPrice || 0);
+          setCartCount(
+            cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
+          );
+        } catch (err: any) {
+          console.error("Error loading cart:", err);
+          setError(err.message);
+        }
+
+        // Load orders
+        try {
+          setOrdersLoading(true);
+          const orderList = await fetchOrderHistory();
+          setOrders(orderList || []);
+        } catch (err: any) {
+          console.error("Error loading orders:", err);
+          setOrders([]);
+        } finally {
+          setOrdersLoading(false);
+        }
       } else {
-        loadGuestCart();
-        setLoading(false);
+        // For guest users, cart will be loaded when products state updates
       }
+      setLoading(false);
     };
 
     init();
-  }, [isLoggedIn, authLoading, loadProducts, loadBackendCart, loadOrders, syncGuestCartToBackend, loadGuestCart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, authLoading]);
 
   // Reload guest cart when products change
   useEffect(() => {
