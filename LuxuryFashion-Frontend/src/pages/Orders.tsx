@@ -6,14 +6,15 @@ import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const Orders = () => {
-  const { orders, loadOrders, loading } = useCartContext();
+  const { orders, loadOrders, ordersLoading } = useCartContext();
 
   useEffect(() => {
     loadOrders();
-  }, [loadOrders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Loading State
-  if (loading) {
+  if (ordersLoading) {
     return (
       <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center">
         <div className="text-center">

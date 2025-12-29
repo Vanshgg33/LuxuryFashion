@@ -81,6 +81,7 @@ export function useCartBackend() {
   const [cartTotal, setCartTotal] = useState(0);
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
 
@@ -176,18 +177,17 @@ export function useCartBackend() {
   const loadOrders = useCallback(async () => {
     if (!isLoggedIn) {
       setOrders([]);
-      setLoading(false);
       return;
     }
     try {
-      setLoading(true);
+      setOrdersLoading(true);
       const orderList = await fetchOrderHistory();
       setOrders(orderList || []);
     } catch (err: any) {
       console.error("Error loading orders:", err);
       setOrders([]);
     } finally {
-      setLoading(false);
+      setOrdersLoading(false);
     }
   }, [isLoggedIn]);
 
@@ -423,6 +423,7 @@ export function useCartBackend() {
     cartTotal,
     orders,
     loading,
+    ordersLoading,
     error,
     isLoggedIn,
     addToCart,

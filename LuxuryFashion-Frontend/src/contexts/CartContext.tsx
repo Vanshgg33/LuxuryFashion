@@ -28,8 +28,10 @@ interface CartContextType {
     specialInstructions?: string
   ) => Promise<number | undefined>;
   loading: boolean;
+  ordersLoading: boolean;
   error: string | null;
   loadCart: () => Promise<void>;
+  loadOrders: () => Promise<void>;
   isLoggedIn: boolean;
 }
 
