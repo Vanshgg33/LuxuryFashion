@@ -50,13 +50,24 @@ export class CartService {
     
     // Rebuild items array if deduplication occurred
     if (itemMap.size !== cart.items.length) {
+      const originalCount = cart.items.length;
+      const deduplicatedItems = Array.from(itemMap.values());
+
+      // Validate we're not losing items (total quantity should be preserved)
+      const originalTotalQty = cart.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+      const newTotalQty = deduplicatedItems.reduce((sum, item) => sum + item.quantity, 0);
+
+      if (newTotalQty !== originalTotalQty) {
+        this.logger.warn(`Cart deduplication quantity mismatch: original=${originalTotalQty}, new=${newTotalQty}`);
+      }
+
       // Clear existing items and add deduplicated ones
       cart.items.splice(0, cart.items.length);
-      Array.from(itemMap.values()).forEach(({ dish, quantity }) => {
+      deduplicatedItems.forEach(({ dish, quantity }) => {
         cart.items.push({ dish, quantity } as any);
       });
       await cart.save();
-      this.logger.debug(`Deduplicated cart items: ${cart.items.length} -> ${itemMap.size}`);
+      this.logger.debug(`Deduplicated cart items: ${originalCount} -> ${itemMap.size}, total qty: ${newTotalQty}`);
     }
     
     await cart.populate('items.dish');

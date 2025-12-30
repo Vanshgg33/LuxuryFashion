@@ -170,14 +170,11 @@ const AdminUsers = () => {
                 if (!pendingRole) return;
                 try {
                   await updateUserRole(pendingRole.id, pendingRole.role);
-                  setUsers((prev) =>
-                    prev.map((u) =>
-                      u._id === pendingRole.id || u.id === pendingRole.id ? { ...u, role: pendingRole.role } : u
-                    )
-                  );
-                  
+                  // Refresh users list to ensure sync with backend
+                  const data = await fetchUsers();
+                  setUsers(Array.isArray(data) ? data : []);
                 } catch (err: any) {
-                  
+                  console.error("Failed to update role:", err);
                 } finally {
                   setConfirmOpen(false);
                   setPendingRole(null);

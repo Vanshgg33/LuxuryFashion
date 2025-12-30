@@ -23,7 +23,7 @@ const Menu = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
+    const loadProducts = async () => {
       try {
         const prods = await fetchProducts();
         setAllItems(prods);
@@ -32,7 +32,16 @@ const Menu = () => {
       } finally {
         setIsLoading(false);
       }
-    })();
+    };
+
+    loadProducts();
+
+    // Refresh products every 60 seconds to catch stock changes
+    const interval = setInterval(() => {
+      fetchProducts().then(setAllItems).catch(console.error);
+    }, 60000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Update search query when URL param changes

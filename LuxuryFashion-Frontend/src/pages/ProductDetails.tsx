@@ -21,6 +21,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { getDishReviews, getDishRating, createReview, addFavorite, removeFavorite, checkFavorite } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -80,13 +81,13 @@ const ProductDetails = () => {
 
   const handleSubmitReview = async () => {
     if (!user || !id) {
-      
+      toast.error("Please login to submit a review");
       return;
     }
     setSubmittingReview(true);
     try {
       await createReview(id, reviewForm);
-      
+      toast.success("Review submitted successfully!");
       setShowReviewForm(false);
       setReviewForm({ rating: 5, comment: "" });
       const [reviewsData, ratingData] = await Promise.all([
@@ -96,7 +97,8 @@ const ProductDetails = () => {
       setReviews(Array.isArray(reviewsData) ? reviewsData : []);
       setRating(ratingData);
     } catch (err: any) {
-      
+      console.error("Failed to submit review:", err);
+      toast.error(err.message || "Failed to submit review");
     } finally {
       setSubmittingReview(false);
     }
@@ -104,7 +106,7 @@ const ProductDetails = () => {
 
   const handleToggleFavorite = async () => {
     if (!user) {
-      
+      toast.error("Please login to save favorites");
       return;
     }
     if (!id) return;
@@ -114,14 +116,15 @@ const ProductDetails = () => {
       if (isFavorite) {
         await removeFavorite(id);
         setIsFavorite(false);
-        
+        toast.success("Removed from favorites");
       } else {
         await addFavorite(id);
         setIsFavorite(true);
-        
+        toast.success("Added to favorites");
       }
     } catch (err: any) {
-      
+      console.error("Failed to toggle favorite:", err);
+      toast.error(err.message || "Failed to update favorites");
     } finally {
       setLoadingFavorite(false);
     }

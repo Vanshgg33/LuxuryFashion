@@ -13,9 +13,9 @@ export class DishesService {
    * Get current time in IST
    */
   private getCurrentTimeIST(): string {
+    // Use Intl.DateTimeFormat for accurate IST conversion
     const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istTime = new Date(now.getTime() + istOffset + now.getTimezoneOffset() * 60 * 1000);
+    const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
     const hours = istTime.getHours().toString().padStart(2, '0');
     const minutes = istTime.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;

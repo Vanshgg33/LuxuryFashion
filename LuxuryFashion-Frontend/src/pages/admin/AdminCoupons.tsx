@@ -56,10 +56,8 @@ export default function AdminCoupons() {
     try {
       if (editing) {
         await updateCoupon(editing._id || editing.id || "", form);
-        
       } else {
         await createCoupon(form);
-        
       }
       setDialogOpen(false);
       setEditing(null);
@@ -72,9 +70,10 @@ export default function AdminCoupons() {
         isActive: true,
         description: "",
       });
-      loadCoupons();
+      await loadCoupons();
     } catch (err: any) {
-      
+      console.error("Failed to save coupon:", err);
+      alert(err.message || "Failed to save coupon");
     }
   };
 
@@ -82,10 +81,10 @@ export default function AdminCoupons() {
     if (!confirm("Delete this coupon?")) return;
     try {
       await deleteCoupon(id);
-      
-      loadCoupons();
+      await loadCoupons();
     } catch (err: any) {
-      
+      console.error("Failed to delete coupon:", err);
+      alert(err.message || "Failed to delete coupon");
     }
   };
 

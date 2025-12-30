@@ -26,6 +26,15 @@ const Profile = () => {
       }
     };
     if (user) loadCounts();
+
+    // Refresh counts when page becomes visible (user returns from other pages)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        loadCounts();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user]);
 
   const totalSpent = orders.reduce((sum, o) => sum + (o.totalAmount || o.totalPrice || o.total || 0), 0);

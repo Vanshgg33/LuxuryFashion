@@ -9,7 +9,8 @@ const Orders = () => {
   const { orders, loadOrders, ordersLoading } = useCartContext();
 
   useEffect(() => {
-    loadOrders();
+    // Always force refresh to get latest order statuses
+    loadOrders(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

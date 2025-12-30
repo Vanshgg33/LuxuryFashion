@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import {
   getNotifications,
   getUnreadCount,
@@ -37,6 +37,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const isMountedRef = useRef(true);
 
   const formatTimestamp = (date: string | Date) => {
     const d = new Date(date);
@@ -55,9 +56,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const loadNotifications = useCallback(async () => {
     if (!user) {
-      setNotifications([]);
-      setUnreadCount(0);
-      setLoading(false);
+      if (isMountedRef.current) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setLoading(false);
+      }
       return;
     }
 
@@ -66,6 +69,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         getNotifications().catch(() => []),
         getUnreadCount().catch(() => ({ count: 0 })),
       ]);
+
+      // Only update state if component is still mounted
+      if (!isMountedRef.current) return;
 
       const formatted = (Array.isArray(notifs) ? notifs : []).map((n: Notification) => ({
         ...n,
@@ -77,24 +83,32 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setUnreadCount(typeof count === "number" ? count : count.count || 0);
     } catch (err: any) {
       console.error("Failed to load notifications", err);
-      setNotifications([]);
-      setUnreadCount(0);
+      if (isMountedRef.current) {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [user]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     loadNotifications();
 
-    // Poll for new notifications every 30 seconds
+    // Poll for new notifications every 15 seconds
     const interval = setInterval(() => {
-      if (user) {
+      if (user && isMountedRef.current) {
         loadNotifications();
       }
-    }, 30000);
+    }, 15000);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(interval);
+    };
   }, [loadNotifications, user]);
 
   const markAsRead = useCallback(async (id: string) => {

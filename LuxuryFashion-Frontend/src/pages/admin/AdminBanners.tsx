@@ -128,9 +128,12 @@ const AdminBanners = () => {
       setBanners((prev) =>
         prev.map((b) => (b._id === id ? { ...b, isActive: !b.isActive } : b))
       );
-      
+      // Refresh to ensure sync with backend
+      await loadData();
     } catch (err: any) {
-      
+      console.error("Failed to toggle banner:", err);
+      // Refresh to restore correct state on error
+      await loadData();
     }
   };
 
@@ -139,10 +142,11 @@ const AdminBanners = () => {
       await deleteBanner(id);
       setBanners((prev) => prev.filter((b) => b._id !== id));
       setDeleteConfirm(null);
-      
-      await loadData(); // Refresh limit info
+      await loadData(); // Refresh limit info and banner list
     } catch (err: any) {
-      
+      console.error("Failed to delete banner:", err);
+      // Refresh to restore correct state on error
+      await loadData();
     }
   };
 

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen } from "@/lib/api";
 import { reverseGeocode } from "@/lib/geocode";
 import { getAccurateLocation } from "@/lib/geolocation";
@@ -55,11 +55,12 @@ const Cart = () => {
   const { cartItems, clearCart, placeOrder, loading: cartLoading, loadCart, isLoggedIn } = useCartContext();
   const navigate = useNavigate();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const isPlacingOrderRef = useRef(false); // Prevent double submission
 
   // Deduplicate cart items by dish ID
   const uniqueCartItems = useMemo(() => {
     const itemMap = new Map<string, typeof cartItems[0]>();
-    cartItems.forEach((item) => {
+    cartItems.forEach((item, index) => {
       let dishIdStr: string;
       if (item.dish?._id) {
         dishIdStr = typeof item.dish._id === 'string' ? item.dish._id : item.dish._id.toString();
@@ -68,7 +69,7 @@ const Cart = () => {
       } else if (item.dish) {
         dishIdStr = typeof item.dish === 'string' ? item.dish : item.dish.toString();
       } else {
-        dishIdStr = item.id || `item-${Math.random()}`;
+        dishIdStr = item.id || `item-${index}-${Date.now()}`;
       }
 
       if (itemMap.has(dishIdStr)) {
@@ -126,7 +127,7 @@ const Cart = () => {
   const grandTotal = uniqueCartTotal + deliveryFee - discount;
 
   useEffect(() => {
-    (async () => {
+    const loadSettings = async () => {
       try {
         const [settingsData, openStatus] = await Promise.all([
           fetchSettings(),
@@ -142,7 +143,13 @@ const Cart = () => {
       } catch (err) {
         console.error("Failed to fetch settings", err);
       }
-    })();
+    };
+
+    loadSettings();
+
+    // Refresh settings every 60 seconds to catch admin changes
+    const interval = setInterval(loadSettings, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -249,6 +256,11 @@ const Cart = () => {
   };
 
   const handlePlaceOrder = async () => {
+    // Prevent double submission
+    if (isPlacingOrderRef.current) {
+      return;
+    }
+
     // Check if user is logged in
     if (!isLoggedIn) {
       setShowLoginPrompt(true);
@@ -260,6 +272,15 @@ const Cart = () => {
       setShowAddressForm(true);
       return;
     }
+
+    // Validate phone number format (10 digits for India)
+    const phoneDigits = address.phoneNumber.replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
+      toast.error("Please enter a valid 10-digit phone number");
+      setShowAddressForm(true);
+      return;
+    }
+
     if (!address.lat || !address.lng) {
       setShowAddressForm(true);
       return;
@@ -280,6 +301,7 @@ const Cart = () => {
       }
     }
 
+    isPlacingOrderRef.current = true;
     setIsPlacingOrder(true);
     // Determine order type based on delivery availability and distance
     const orderType = isTakeawayOnly ? "takeaway" : "delivery";
@@ -303,6 +325,7 @@ const Cart = () => {
         toast.error(error.message || "Failed to place order");
       }
     } finally {
+      isPlacingOrderRef.current = false;
       setIsPlacingOrder(false);
     }
   };

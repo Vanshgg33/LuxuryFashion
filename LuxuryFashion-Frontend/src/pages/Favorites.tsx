@@ -3,6 +3,7 @@ import { getFavorites, removeFavorite } from "@/lib/api";
 import { Heart, Trash2, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCartContext } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 export default function Favorites() {
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -11,6 +12,15 @@ export default function Favorites() {
 
   useEffect(() => {
     loadFavorites();
+
+    // Refresh when page becomes visible (user returns to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadFavorites();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const loadFavorites = async () => {
@@ -30,18 +40,20 @@ export default function Favorites() {
     try {
       await removeFavorite(dishId);
       setFavorites((prev) => prev.filter((f) => (f._id || f.id) !== dishId));
-      
+      toast.success("Removed from favorites");
     } catch (err: any) {
-      
+      console.error("Failed to remove favorite:", err);
+      toast.error(err.message || "Failed to remove from favorites");
     }
   };
 
   const handleAddToCart = async (dish: any) => {
     try {
       await addToCart(dish._id || dish.id, 1);
-      
+      toast.success("Added to cart");
     } catch (err: any) {
-      
+      console.error("Failed to add to cart:", err);
+      toast.error(err.message || "Failed to add to cart");
     }
   };
 

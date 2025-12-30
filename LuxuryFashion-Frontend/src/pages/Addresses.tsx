@@ -51,6 +51,15 @@ export default function Addresses() {
 
   useEffect(() => {
     loadAddresses();
+
+    // Refresh when page becomes visible (user returns to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadAddresses();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const loadAddresses = async () => {
@@ -158,20 +167,22 @@ export default function Addresses() {
     if (!confirm("Delete this address?")) return;
     try {
       await deleteAddress(id);
-      
-      loadAddresses();
+      toast.success("Address deleted successfully");
+      await loadAddresses();
     } catch (err: any) {
-      
+      console.error("Failed to delete address:", err);
+      toast.error(err.message || "Failed to delete address");
     }
   };
 
   const handleSetDefault = async (id: string) => {
     try {
       await setDefaultAddress(id);
-      
-      loadAddresses();
+      toast.success("Default address updated");
+      await loadAddresses();
     } catch (err: any) {
-      
+      console.error("Failed to set default address:", err);
+      toast.error(err.message || "Failed to set default address");
     }
   };
 
