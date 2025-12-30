@@ -7,6 +7,7 @@ interface OrderCardProps {
   order: BackendOrder;
 }
 
+// Backend status values: placed, preparing, ready_for_pickup, out_for_delivery, delivered, cancelled
 const statusConfig: Record<
   string,
   {
@@ -16,23 +17,30 @@ const statusConfig: Record<
     label: string;
   }
 > = {
-  PENDING: {
+  // Backend statuses (uppercase for matching)
+  PLACED: {
     icon: Clock,
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
     textColor: "text-amber-600 dark:text-amber-400",
-    label: "Pending",
+    label: "Order Placed",
   },
-  CONFIRMED: {
+  PREPARING: {
     icon: ChefHat,
+    bgColor: "bg-orange-50 dark:bg-orange-950/30",
+    textColor: "text-orange-600 dark:text-orange-400",
+    label: "Preparing",
+  },
+  READY_FOR_PICKUP: {
+    icon: Package,
     bgColor: "bg-blue-50 dark:bg-blue-950/30",
     textColor: "text-blue-600 dark:text-blue-400",
-    label: "Confirmed",
+    label: "Ready for Pickup",
   },
-  SHIPPED: {
+  OUT_FOR_DELIVERY: {
     icon: Truck,
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
     textColor: "text-purple-600 dark:text-purple-400",
-    label: "On the way",
+    label: "Out for Delivery",
   },
   DELIVERED: {
     icon: CheckCircle,
@@ -46,13 +54,20 @@ const statusConfig: Record<
     textColor: "text-red-600 dark:text-red-400",
     label: "Cancelled",
   },
-  Preparing: {
-    icon: ChefHat,
+  // Legacy/fallback statuses
+  PENDING: {
+    icon: Clock,
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
     textColor: "text-amber-600 dark:text-amber-400",
-    label: "Preparing",
+    label: "Pending",
   },
-  "On the way": {
+  CONFIRMED: {
+    icon: ChefHat,
+    bgColor: "bg-blue-50 dark:bg-blue-950/30",
+    textColor: "text-blue-600 dark:text-blue-400",
+    label: "Confirmed",
+  },
+  SHIPPED: {
     icon: Truck,
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
     textColor: "text-purple-600 dark:text-purple-400",

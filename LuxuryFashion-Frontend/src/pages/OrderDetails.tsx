@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { getOrder } from "@/lib/api";
-import { Package, MapPin, Phone, Calendar, ArrowLeft, CheckCircle, Clock, Truck } from "lucide-react";
+import { Package, MapPin, Phone, Calendar, ArrowLeft, CheckCircle, Clock, Truck, ChefHat, XCircle } from "lucide-react";
 
 interface OrderItem {
   dish?: string;
@@ -26,11 +26,14 @@ interface Order {
   paymentStatus?: string;
 }
 
+// Backend status values: placed, preparing, ready_for_pickup, out_for_delivery, delivered, cancelled
 const statusConfig: Record<string, { label: string; icon: any; color: string }> = {
-  placed: { label: "Order Placed", icon: CheckCircle, color: "text-blue-600" },
-  preparing: { label: "Preparing", icon: Clock, color: "text-yellow-600" },
+  placed: { label: "Order Placed", icon: Clock, color: "text-blue-600" },
+  preparing: { label: "Preparing", icon: ChefHat, color: "text-orange-600" },
+  ready_for_pickup: { label: "Ready for Pickup", icon: Package, color: "text-blue-600" },
   out_for_delivery: { label: "Out for Delivery", icon: Truck, color: "text-purple-600" },
   delivered: { label: "Delivered", icon: CheckCircle, color: "text-green-600" },
+  cancelled: { label: "Cancelled", icon: XCircle, color: "text-red-600" },
 };
 
 const OrderDetails = () => {
@@ -38,24 +41,41 @@ const OrderDetails = () => {
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const isLoadingRef = useRef(false);
 
-  useEffect(() => {
-    const loadOrder = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const data = await getOrder(id);
-        setOrder(data);
-      } catch (err: any) {
-        console.error("Failed to load order:", err);
-        
-        navigate("/orders");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadOrder();
+  const loadOrder = useCallback(async (showLoading = true) => {
+    if (!id || isLoadingRef.current) return;
+    try {
+      isLoadingRef.current = true;
+      if (showLoading) setLoading(true);
+      const data = await getOrder(id);
+      setOrder(data);
+    } catch (err: any) {
+      console.error("Failed to load order:", err);
+      if (showLoading) navigate("/orders");
+    } finally {
+      isLoadingRef.current = false;
+      if (showLoading) setLoading(false);
+    }
   }, [id, navigate]);
+
+  // Initial load
+  useEffect(() => {
+    loadOrder(true);
+  }, [loadOrder]);
+
+  // Poll for updates on active orders
+  useEffect(() => {
+    if (!order) return;
+    const isActiveOrder = !['delivered', 'cancelled'].includes(order.status?.toLowerCase() || '');
+    if (!isActiveOrder) return;
+
+    const interval = setInterval(() => {
+      loadOrder(false); // Silent refresh
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [order?.status, loadOrder]);
 
   if (loading) {
     return (

@@ -1,18 +1,37 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Package, ArrowRight, ShoppingBag } from "lucide-react";
 import { OrderCard } from "@/components/OrderCard";
 import { useCartContext } from "@/contexts/CartContext";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 const Orders = () => {
   const { orders, loadOrders, ordersLoading } = useCartContext();
+  const location = useLocation();
 
+  // Check if there are any active (non-completed) orders
+  const hasActiveOrders = useMemo(() =>
+    orders.some(o => !['delivered', 'cancelled'].includes(o.status?.toLowerCase() || '')),
+    [orders]
+  );
+
+  // Force refresh when page is visited
   useEffect(() => {
-    // Always force refresh to get latest order statuses
     loadOrders(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location.pathname]);
+
+  // Poll for updates when there are active orders
+  useEffect(() => {
+    if (!hasActiveOrders) return;
+
+    const interval = setInterval(() => {
+      loadOrders(true);
+    }, 10000); // Refresh every 10 seconds for active orders
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasActiveOrders]);
 
   // Loading State
   if (ordersLoading) {
