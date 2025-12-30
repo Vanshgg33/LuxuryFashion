@@ -142,23 +142,23 @@ export function ProductCard({ item }: ProductCardProps) {
         </div>
 
         {/* Content */}
-        <div className="p-4 flex-1 flex flex-col">
+        <div className="p-3 sm:p-4 flex-1 flex flex-col">
           {/* Name & Description */}
-          <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-terracotta transition-colors">
+          <h3 className="font-semibold text-sm sm:text-base text-foreground line-clamp-1 group-hover:text-terracotta transition-colors">
             {item.name}
           </h3>
           {item.description && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 flex-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2 flex-1">
               {item.description}
             </p>
           )}
 
           {/* Price & Add Button */}
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-            <div>
-              <p className="text-lg font-bold text-foreground">₹{item.price}</p>
+          <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/50 gap-2">
+            <div className="flex-shrink-0">
+              <p className="text-base sm:text-lg font-bold text-foreground">₹{item.price}</p>
               {item.originalPrice && item.originalPrice > item.price && (
-                <p className="text-xs text-muted-foreground line-through">₹{item.originalPrice}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground line-through">₹{item.originalPrice}</p>
               )}
             </div>
 
@@ -166,25 +166,25 @@ export function ProductCard({ item }: ProductCardProps) {
             {quantityInCart > 0 ? (
               // Show quantity controls if already in cart
               <div
-                className="flex items-center gap-1 bg-gradient-to-r from-primary to-accent rounded-xl overflow-hidden shadow-md"
+                className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-primary to-accent rounded-lg sm:rounded-xl overflow-hidden shadow-md"
                 onClick={(e) => e.preventDefault()}
               >
                 <button
                   onClick={handleDecreaseQuantity}
                   disabled={isUpdating}
-                  className="p-2.5 text-foreground hover:bg-black/10 transition-colors disabled:opacity-50"
+                  className="p-1.5 sm:p-2.5 text-foreground hover:bg-black/10 transition-colors disabled:opacity-50"
                 >
-                  <Minus className="w-4 h-4" />
+                  <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
-                <span className="text-foreground font-bold min-w-[2rem] text-center text-sm">
+                <span className="text-foreground font-bold min-w-[1.5rem] sm:min-w-[2rem] text-center text-xs sm:text-sm">
                   {isUpdating ? "..." : quantityInCart}
                 </span>
                 <button
                   onClick={handleIncreaseQuantity}
                   disabled={isAdding}
-                  className="p-2.5 text-foreground hover:bg-black/10 transition-colors disabled:opacity-50"
+                  className="p-1.5 sm:p-2.5 text-foreground hover:bg-black/10 transition-colors disabled:opacity-50"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
               </div>
             ) : (
@@ -193,17 +193,17 @@ export function ProductCard({ item }: ProductCardProps) {
                 onClick={handleAddToCart}
                 disabled={item.inStock === false || isAdding}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-4 py-2.5",
+                  "inline-flex items-center gap-1 sm:gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5",
                   "bg-gradient-to-r from-primary to-accent text-foreground",
-                  "font-bold text-sm",
-                  "rounded-xl shadow-md",
+                  "font-bold text-xs sm:text-sm",
+                  "rounded-lg sm:rounded-xl shadow-md",
                   "transition-all duration-200",
                   "hover:shadow-lg hover:scale-[1.02]",
                   "active:scale-[0.98]",
                   (item.inStock === false || isAdding) && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                 {isAdding ? "..." : "ADD"}
               </button>
             )}

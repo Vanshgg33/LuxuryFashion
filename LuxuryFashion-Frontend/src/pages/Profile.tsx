@@ -1,26 +1,21 @@
-import { User, Mail, Phone, MapPin, CreditCard, Bell, LogOut, ChevronRight, Package, Heart, Settings, Shield } from "lucide-react";
+import { User, Mail, Phone, Bell, LogOut, ChevronRight, Package, Heart, Settings, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { getFavorites, getAddresses } from "@/lib/api";
+import { getFavorites } from "@/lib/api";
 
 const Profile = () => {
   const { orders } = useCartContext();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [favoritesCount, setFavoritesCount] = useState(0);
-  const [addressesCount, setAddressesCount] = useState(0);
 
   useEffect(() => {
     const loadCounts = async () => {
       try {
-        const [favorites, addresses] = await Promise.all([
-          getFavorites().catch(() => []),
-          getAddresses().catch(() => []),
-        ]);
+        const favorites = await getFavorites().catch(() => []);
         setFavoritesCount(Array.isArray(favorites) ? favorites.length : 0);
-        setAddressesCount(Array.isArray(addresses) ? addresses.length : 0);
       } catch (err) {
         console.error("Failed to load counts", err);
       }
@@ -42,8 +37,6 @@ const Profile = () => {
   const menuItems = [
     { icon: Package, label: "My Orders", path: "/orders", count: orders.length },
     { icon: Heart, label: "Favorites", path: "/favorites", count: favoritesCount },
-    { icon: MapPin, label: "Saved Addresses", path: "/addresses", count: addressesCount },
-    { icon: CreditCard, label: "Payment Methods", path: "/payment-methods", count: 0 },
     { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];

@@ -108,6 +108,7 @@ const Cart = () => {
   const [loadingCoupons, setLoadingCoupons] = useState(false);
   const [restaurantStatus, setRestaurantStatus] = useState<{ isOpen: boolean; openingTime: string; closingTime: string; isManuallyClosed?: boolean; closureReason?: string } | null>(null);
   const [specialInstructions, setSpecialInstructions] = useState("");
+  const [userPreferredOrderType, setUserPreferredOrderType] = useState<"delivery" | "takeaway">("delivery");
 
   // Calculate totals
   const uniqueCartTotal = useMemo(() => {
@@ -117,12 +118,19 @@ const Cart = () => {
     }, 0);
   }, [uniqueCartItems]);
 
-  // Determine if order will be takeaway (delivery disabled or distance > 5km)
-  const isTakeawayOnly = !settings.isDeliveryEnabled || (distanceKm !== null && distanceKm > 5);
+  // Determine if delivery is available (delivery enabled AND distance <= 5km)
+  const isDeliveryAvailable = settings.isDeliveryEnabled && (distanceKm === null || distanceKm <= 5);
+
+  // Final order type based on availability and user preference
+  const finalOrderType = !isDeliveryAvailable ? "takeaway" : userPreferredOrderType;
+  const isTakeawayOnly = finalOrderType === "takeaway";
 
   // Use admin-configured delivery fee, no fee for takeaway orders
   const adminDeliveryFee = settings.deliveryFee ?? 40;
   const deliveryFee = isTakeawayOnly ? 0 : adminDeliveryFee;
+
+  // Estimated time based on order type
+  const estimatedTime = isTakeawayOnly ? "15-20 min" : "50-60 min";
   const discount = appliedCoupon?.valid ? (appliedCoupon.discount || 0) : 0;
   const grandTotal = uniqueCartTotal + deliveryFee - discount;
 
@@ -303,8 +311,8 @@ const Cart = () => {
 
     isPlacingOrderRef.current = true;
     setIsPlacingOrder(true);
-    // Determine order type based on delivery availability and distance
-    const orderType = isTakeawayOnly ? "takeaway" : "delivery";
+    // Use the final order type based on user preference and availability
+    const orderType = finalOrderType;
 
     try {
       const orderId = await placeOrder(
@@ -463,7 +471,70 @@ const Cart = () => {
                 </div>
               )}
 
-              
+              {/* Delivery/Takeaway Toggle */}
+              {restaurantStatus?.isOpen && (
+                <div className="mb-5 p-4 bg-cream rounded-xl border border-border/50">
+                  <p className="text-sm font-medium text-foreground mb-3">Order Type</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setUserPreferredOrderType("delivery")}
+                      disabled={!isDeliveryAvailable}
+                      className={cn(
+                        "flex-1 flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all",
+                        userPreferredOrderType === "delivery" && isDeliveryAvailable
+                          ? "border-terracotta bg-terracotta/10"
+                          : "border-border/50 bg-white",
+                        !isDeliveryAvailable && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <Truck className={cn(
+                        "w-5 h-5",
+                        userPreferredOrderType === "delivery" && isDeliveryAvailable ? "text-terracotta" : "text-muted-foreground"
+                      )} />
+                      <span className={cn(
+                        "text-sm font-medium",
+                        userPreferredOrderType === "delivery" && isDeliveryAvailable ? "text-terracotta" : "text-muted-foreground"
+                      )}>Delivery</span>
+                      <span className="text-xs text-muted-foreground">50-60 min</span>
+                    </button>
+                    <button
+                      onClick={() => setUserPreferredOrderType("takeaway")}
+                      className={cn(
+                        "flex-1 flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all",
+                        userPreferredOrderType === "takeaway" || !isDeliveryAvailable
+                          ? "border-terracotta bg-terracotta/10"
+                          : "border-border/50 bg-white"
+                      )}
+                    >
+                      <ShoppingBag className={cn(
+                        "w-5 h-5",
+                        userPreferredOrderType === "takeaway" || !isDeliveryAvailable ? "text-terracotta" : "text-muted-foreground"
+                      )} />
+                      <span className={cn(
+                        "text-sm font-medium",
+                        userPreferredOrderType === "takeaway" || !isDeliveryAvailable ? "text-terracotta" : "text-muted-foreground"
+                      )}>Takeaway</span>
+                      <span className="text-xs text-muted-foreground">15-20 min</span>
+                    </button>
+                  </div>
+                  {!isDeliveryAvailable && settings.isDeliveryEnabled && distanceKm !== null && distanceKm > 5 && (
+                    <p className="text-xs text-amber-600 mt-2 text-center">
+                      Delivery not available for distance &gt; 5km
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Estimated Time Banner */}
+              {restaurantStatus?.isOpen && (
+                <div className="mb-5 p-3 bg-bengali-green/10 rounded-lg flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-bengali-green" />
+                  <p className="text-sm font-medium text-bengali-green">
+                    Estimated {isTakeawayOnly ? "pickup" : "delivery"} time: {estimatedTime}
+                  </p>
+                </div>
+              )}
+
               {/* Price Breakdown */}
               <div className="space-y-3 pb-4 border-b border-border/50 text-sm">
                 <div className="flex justify-between">

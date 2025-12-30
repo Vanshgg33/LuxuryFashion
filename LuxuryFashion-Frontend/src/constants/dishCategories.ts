@@ -4,21 +4,23 @@ export enum FoodCategory {
   NON_VEG = 'Non-Veg',
 }
 
-// Dish Category - Type of dish (Main Course, Starters, etc.)
+// Dish Category - Type of dish based on Rangeela Dhaba menu
 export enum DishCategory {
-  MAIN_COURSE = 'Main Course',
-  STARTERS = 'Starters',
-  APPETIZERS = 'Appetizers',
-  DESSERTS = 'Desserts',
-  BEVERAGES = 'Beverages',
-  BREADS = 'Breads',
-  RICE = 'Rice',
-  SOUPS = 'Soups',
-  SALADS = 'Salads',
-  SOUTH_INDIAN = 'South Indian',
-  NORTH_INDIAN = 'North Indian',
-  FAST_FOOD = 'Fast Food',
-  CHEFS_SPECIAL = "Chef's Special",
+  HAKKA_NOODLES = 'Hakka Noodles',
+  VEG_STARTERS = 'Veg Starters',
+  NON_VEG_STARTERS = 'Non Veg Starters',
+  SALAD_RAITA = 'Salad & Raita',
+  CHINESE_VEG = 'Chinese Veg',
+  CHINESE_NON_VEG = 'Chinese Non Veg',
+  BIRYANI = 'Biryani',
+  FRIED_RICE_PULAO = 'Fried Rice & Pulao',
+  VEG_MAIN_COURSE = 'Veg Main Course',
+  NON_VEG_MAIN_COURSE = 'Non Veg Main Course',
+  MUGHLAI = 'Mughlai',
+  ROTI_PARATHA = 'Roti & Paratha',
+  TANDOORI = 'Tandoori',
+  TADKA = 'Tadka',
+  DESSERTS_BEVERAGES = 'Desserts & Beverages',
 }
 
 // Array of all food categories
@@ -38,4 +40,3 @@ export const DISH_CATEGORY_OPTIONS = DISH_CATEGORIES.map((category) => ({
   value: category,
   label: category,
 }));
-
