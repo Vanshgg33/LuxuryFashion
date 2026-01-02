@@ -1,4 +1,15 @@
-import { IsString, IsEnum, IsNumber, IsOptional, IsBoolean, IsDateString, Min } from 'class-validator';
+import { IsString, IsEnum, IsNumber, IsOptional, IsBoolean, IsDateString, Min, IsArray, ValidateNested, IsMongoId } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class FreeItemDto {
+  @IsMongoId()
+  dish: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  quantity?: number;
+}
 
 export class CreateCouponDto {
   @IsString()
@@ -41,6 +52,12 @@ export class CreateCouponDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FreeItemDto)
+  freeItems?: FreeItemDto[];
 }
 
 

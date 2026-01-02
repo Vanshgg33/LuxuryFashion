@@ -13,7 +13,8 @@ import {
   Navigation,
   Clock,
   LogIn,
-  MessageSquare
+  MessageSquare,
+  Gift
 } from "lucide-react";
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
@@ -30,6 +31,16 @@ import { toast } from "sonner";
    Simple, warm checkout experience
 ═══════════════════════════════════════════════════════════════════════════ */
 
+interface FreeItemInfo {
+  dish: {
+    _id: string;
+    name: string;
+    price: number;
+    imageUrl?: string;
+  };
+  quantity: number;
+}
+
 interface CouponResult {
   valid: boolean;
   coupon?: any;
@@ -37,6 +48,7 @@ interface CouponResult {
   discountFormatted?: string;
   finalAmount?: number;
   finalAmountFormatted?: string;
+  freeItems?: FreeItemInfo[];
   message?: string;
 }
 
@@ -130,7 +142,7 @@ const Cart = () => {
   const deliveryFee = isTakeawayOnly ? 0 : adminDeliveryFee;
 
   // Estimated time based on order type
-  const estimatedTime = isTakeawayOnly ? "15-20 min" : "50-60 min";
+  const estimatedTime = isTakeawayOnly ? "15-20 min" : "30-60 min";
   const discount = appliedCoupon?.valid ? (appliedCoupon.discount || 0) : 0;
   const grandTotal = uniqueCartTotal + deliveryFee - discount;
 
@@ -495,7 +507,7 @@ const Cart = () => {
                         "text-sm font-medium",
                         userPreferredOrderType === "delivery" && isDeliveryAvailable ? "text-terracotta" : "text-muted-foreground"
                       )}>Delivery</span>
-                      <span className="text-xs text-muted-foreground">50-60 min</span>
+                      <span className="text-xs text-muted-foreground">30-60 min</span>
                     </button>
                     <button
                       onClick={() => setUserPreferredOrderType("takeaway")}
@@ -576,16 +588,40 @@ const Cart = () => {
               {/* Coupon */}
               <div className="py-4 border-b border-border/50">
                 {appliedCoupon?.valid ? (
-                  <div className="flex items-center justify-between p-3 bg-bengali-green/10 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-bengali-green" />
-                      <span className="font-medium text-bengali-green">
-                        {appliedCoupon.coupon?.code} applied
-                      </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-bengali-green/10 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-bengali-green" />
+                        <span className="font-medium text-bengali-green">
+                          {appliedCoupon.coupon?.code} applied
+                        </span>
+                      </div>
+                      <button onClick={handleRemoveCoupon} className="p-1 hover:bg-bengali-green/20 rounded">
+                        <X className="w-4 h-4 text-bengali-green" />
+                      </button>
                     </div>
-                    <button onClick={handleRemoveCoupon} className="p-1 hover:bg-bengali-green/20 rounded">
-                      <X className="w-4 h-4 text-bengali-green" />
-                    </button>
+                    {/* Free Items Preview */}
+                    {appliedCoupon.freeItems && appliedCoupon.freeItems.length > 0 && (
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-2 flex items-center gap-1">
+                          <Gift className="w-3 h-3" />
+                          Free items included:
+                        </p>
+                        <div className="space-y-1">
+                          {appliedCoupon.freeItems.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-sm">
+                              {item.dish.imageUrl && (
+                                <img src={item.dish.imageUrl} alt={item.dish.name} className="w-6 h-6 rounded object-cover" />
+                              )}
+                              <span className="text-green-700 dark:text-green-400">
+                                {item.quantity}x {item.dish.name}
+                              </span>
+                              <span className="text-green-600 dark:text-green-500 text-xs ml-auto">FREE</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div>

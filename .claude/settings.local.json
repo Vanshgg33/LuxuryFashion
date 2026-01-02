@@ -3,7 +3,11 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(bun add:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(mv:*)",
+      "Bash(git -C /Users/mac/Desktop/LuxuryFashion log --oneline --max-count=15)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

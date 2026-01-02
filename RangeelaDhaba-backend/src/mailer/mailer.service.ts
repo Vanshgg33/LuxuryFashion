@@ -19,6 +19,7 @@ export interface OrderEmailData {
     name: string;
     quantity: number;
     price: number;
+    isFree?: boolean;
   }>;
   subtotal: number;
   discountAmount?: number;

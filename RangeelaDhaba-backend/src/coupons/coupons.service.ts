@@ -4,12 +4,16 @@ import { Model } from 'mongoose';
 import { Coupon, CouponDocument } from './schemas/coupon.schema';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { ValidateCouponDto } from './dto/validate-coupon.dto';
+import { Dish, DishDocument } from '../dishes/schemas/dish.schema';
 
 @Injectable()
 export class CouponsService {
   private readonly logger = new Logger(CouponsService.name);
 
-  constructor(@InjectModel(Coupon.name) private couponModel: Model<CouponDocument>) {}
+  constructor(
+    @InjectModel(Coupon.name) private couponModel: Model<CouponDocument>,
+    @InjectModel(Dish.name) private dishModel: Model<DishDocument>,
+  ) {}
 
   async create(dto: CreateCouponDto) {
     const code = dto.code.toUpperCase().trim();
@@ -26,7 +30,11 @@ export class CouponsService {
   }
 
   async findAll() {
-    return this.couponModel.find().sort({ createdAt: -1 }).exec();
+    return this.couponModel
+      .find()
+      .populate('freeItems.dish', 'name price imageUrl')
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   async findActiveCoupons() {
@@ -56,7 +64,8 @@ export class CouponsService {
     // Usage limit: either doesn't exist, is 0 (unlimited), or not reached
     const coupons = await this.couponModel
       .find(query)
-      .select('code discountType discountValue minOrderAmount maxDiscountAmount description validFrom validUntil usageLimit usedCount')
+      .select('code discountType discountValue minOrderAmount maxDiscountAmount description validFrom validUntil usageLimit usedCount freeItems')
+      .populate('freeItems.dish', 'name price imageUrl')
       .sort({ createdAt: -1 })
       .exec();
 
@@ -127,8 +136,36 @@ export class CouponsService {
 
     const finalDiscount = Math.round(discount * 100) / 100;
     const finalAmount = dto.subtotal - finalDiscount;
-    
+
     this.logger.log(`Coupon validated successfully: ${normalizedCode} - Discount: ₹${finalDiscount}, Final: ₹${finalAmount}`);
+
+    // Get free items with dish details
+    let freeItems: any[] = [];
+    if (coupon.freeItems && coupon.freeItems.length > 0) {
+      const dishIds = coupon.freeItems.map((item) => item.dish);
+      const dishes = await this.dishModel
+        .find({ _id: { $in: dishIds } })
+        .select('_id name price imageUrl')
+        .exec();
+
+      const dishMap = new Map(dishes.map((d) => [d._id.toString(), d]));
+
+      freeItems = coupon.freeItems
+        .map((item) => {
+          const dish = dishMap.get(item.dish.toString());
+          if (!dish) return null;
+          return {
+            dish: {
+              _id: dish._id,
+              name: dish.name,
+              price: dish.price,
+              imageUrl: dish.imageUrl,
+            },
+            quantity: item.quantity,
+          };
+        })
+        .filter(Boolean);
+    }
 
     return {
       valid: true,
@@ -142,6 +179,7 @@ export class CouponsService {
       discountFormatted: `₹${finalDiscount}`,
       finalAmount: finalAmount,
       finalAmountFormatted: `₹${finalAmount}`,
+      freeItems,
       message: 'Coupon applied successfully',
     };
   }

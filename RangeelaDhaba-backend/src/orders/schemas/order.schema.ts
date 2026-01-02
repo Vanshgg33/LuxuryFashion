@@ -16,6 +16,9 @@ export class OrderItem {
 
   @Prop({ default: 1 })
   quantity: number;
+
+  @Prop({ default: false })
+  isFree?: boolean;
 }
 
 @Schema({ timestamps: true })

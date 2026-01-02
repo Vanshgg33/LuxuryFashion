@@ -46,7 +46,7 @@ const features = [
   {
     icon: Truck,
     title: "Fast Delivery",
-    description: "Hot and fresh food delivered to your doorstep within 30-45 minutes.",
+    description: "Hot and fresh food delivered to your doorstep within 30-60 minutes.",
   },
   {
     icon: Leaf,
@@ -65,7 +65,7 @@ const Index = () => {
   const [banners, setBanners] = useState<any[]>([]);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [foodFilter, setFoodFilter] = useState<'all' | 'veg' | 'nonveg'>('all');
+  const [foodFilter, setFoodFilter] = useState<'all' | 'veg' | 'nonveg' | 'southindian'>('all');
 
   useEffect(() => {
     const loadData = async () => {
@@ -107,11 +107,21 @@ const Index = () => {
   const featuredDishes = useMemo(() => {
     let filtered = [...products];
 
-    // Apply veg/non-veg filter
+    // Apply veg/non-veg/south indian filter
     if (foodFilter === 'veg') {
       filtered = filtered.filter(item => item.isVeg === true);
     } else if (foodFilter === 'nonveg') {
       filtered = filtered.filter(item => item.isVeg === false);
+    } else if (foodFilter === 'southindian') {
+      filtered = filtered.filter(item =>
+        item.category?.toLowerCase().includes('south indian') ||
+        item.category?.toLowerCase() === 'south indian' ||
+        item.name?.toLowerCase().includes('dosa') ||
+        item.name?.toLowerCase().includes('idli') ||
+        item.name?.toLowerCase().includes('vada') ||
+        item.name?.toLowerCase().includes('uttapam') ||
+        item.name?.toLowerCase().includes('sambar')
+      );
     }
 
     return filtered
@@ -272,6 +282,20 @@ const Index = () => {
                 </span>
                 Non-Veg
               </button>
+
+              {/* South Indian Button */}
+              <button
+                onClick={() => setFoodFilter('southindian')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300",
+                  foodFilter === 'southindian'
+                    ? "bg-amber-500 text-white shadow-md"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className="text-base">🍛</span>
+                South Indian
+              </button>
             </div>
 
             <Link
@@ -303,7 +327,7 @@ const Index = () => {
                 <Utensils className="w-8 h-8 text-muted-foreground" />
               </div>
               <p className="text-muted-foreground mb-4">
-                No {foodFilter === 'veg' ? 'vegetarian' : 'non-vegetarian'} dishes found
+                No {foodFilter === 'veg' ? 'vegetarian' : foodFilter === 'nonveg' ? 'non-vegetarian' : 'South Indian'} dishes found
               </p>
               <button
                 onClick={() => setFoodFilter('all')}
@@ -330,7 +354,7 @@ const Index = () => {
           <div className="mt-8 pt-8 border-t border-border/50">
             <p className="text-sm text-muted-foreground mb-4">Browse by category:</p>
             <div className="flex flex-wrap gap-2">
-              {["Biryani", "Bengali", "Chinese", "Rolls", "Sweets", "Drinks"].map((cat) => (
+              {["Biryani", "Bengali", "South Indian", "Chinese", "Rolls", "Sweets", "Drinks"].map((cat) => (
                 <Link
                   key={cat}
                   to={`/menu?category=${cat}`}

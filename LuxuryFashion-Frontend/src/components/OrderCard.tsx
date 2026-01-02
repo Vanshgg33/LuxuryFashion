@@ -1,4 +1,4 @@
-import { Package, Clock, CheckCircle, Truck, ArrowRight, XCircle, ChefHat } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, ArrowRight, XCircle, ChefHat, Gift } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BackendOrder } from "@/hooks/useCartBackend";
 import { cn } from "@/lib/utils";
@@ -170,13 +170,23 @@ export function OrderCard({ order }: OrderCardProps) {
             </div>
           </div>
 
-          {/* Discount Badge */}
-          {order.couponCode && order.discountAmount && order.discountAmount > 0 && (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 text-xs font-medium rounded-full mb-4">
-              <CheckCircle className="w-3 h-3" />
-              Saved ₹{order.discountAmount.toFixed(0)} with {order.couponCode}
-            </div>
-          )}
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {/* Free Items Badge */}
+            {order.items?.some((item: any) => item.isFree) && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 text-xs font-medium rounded-full">
+                <Gift className="w-3 h-3" />
+                Free items included
+              </div>
+            )}
+            {/* Discount Badge */}
+            {order.couponCode && order.discountAmount && order.discountAmount > 0 && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 text-xs font-medium rounded-full">
+                <CheckCircle className="w-3 h-3" />
+                Saved ₹{order.discountAmount.toFixed(0)} with {order.couponCode}
+              </div>
+            )}
+          </div>
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-border/50">

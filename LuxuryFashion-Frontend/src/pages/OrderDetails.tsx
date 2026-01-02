@@ -1,13 +1,14 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { getOrder } from "@/lib/api";
-import { Package, MapPin, Phone, Calendar, ArrowLeft, CheckCircle, Clock, Truck, ChefHat, XCircle } from "lucide-react";
+import { Package, MapPin, Phone, Calendar, ArrowLeft, CheckCircle, Clock, Truck, ChefHat, XCircle, Gift } from "lucide-react";
 
 interface OrderItem {
   dish?: string;
   name: string;
   price: number;
   quantity: number;
+  isFree?: boolean;
 }
 
 interface Order {
@@ -136,15 +137,21 @@ const OrderDetails = () => {
             <h2 className="text-lg font-semibold text-foreground mb-4">Order Items</h2>
             <div className="space-y-3">
               {order.items?.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                <div key={idx} className={`flex items-center justify-between p-3 rounded-lg ${item.isFree ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-secondary/50'}`}>
                   <div>
-                    <p className="font-medium text-foreground">{item.name}</p>
+                    <p className="font-medium text-foreground flex items-center gap-2">
+                      {item.isFree && <Gift className="w-4 h-4 text-green-600" />}
+                      {item.name}
+                      {item.isFree && (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">FREE</span>
+                      )}
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      Qty: {item.quantity} × ₹{item.price}
+                      Qty: {item.quantity} {!item.isFree && `× ₹${item.price}`}
                     </p>
                   </div>
-                  <p className="font-semibold text-foreground">
-                    ₹{(item.price * item.quantity).toFixed(2)}
+                  <p className={`font-semibold ${item.isFree ? 'text-green-600' : 'text-foreground'}`}>
+                    {item.isFree ? 'FREE' : `₹${(item.price * item.quantity).toFixed(2)}`}
                   </p>
                 </div>
               ))}

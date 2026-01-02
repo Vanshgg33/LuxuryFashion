@@ -37,6 +37,7 @@ export class OrdersService {
         name: item.name,
         quantity: item.quantity,
         price: item.price,
+        isFree: item.isFree,
       })),
       subtotal: order.subtotal,
       discountAmount: order.discountAmount,
@@ -101,6 +102,20 @@ export class OrdersService {
         if (couponResult.valid) {
           discountAmount = couponResult.discount;
           couponCode = normalizedCouponCode;
+
+          // Add free items to order if coupon has any
+          if (couponResult.freeItems && couponResult.freeItems.length > 0) {
+            for (const freeItem of couponResult.freeItems) {
+              items.push({
+                dish: freeItem.dish._id,
+                name: freeItem.dish.name,
+                price: 0,
+                quantity: freeItem.quantity,
+                isFree: true,
+              });
+            }
+          }
+
           // Increment usage count when coupon is applied
           await this.couponsService.applyCoupon(normalizedCouponCode);
         }

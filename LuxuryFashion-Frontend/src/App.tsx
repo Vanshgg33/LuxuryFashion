@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -39,6 +39,22 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Handle redirect from 404.html fallback
+const RedirectHandler = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get('redirect');
+    if (redirect) {
+      navigate(decodeURIComponent(redirect), { replace: true });
+    }
+  }, [location, navigate]);
+
+  return null;
+};
+
 const App = () => {
   // Ping Appwrite server on app initialization to verify setup
   useEffect(() => {
@@ -56,6 +72,7 @@ const App = () => {
             <Toaster />
             <Sonner position="top-center" />
             <BrowserRouter>
+              <RedirectHandler />
               <Routes>
                 <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />

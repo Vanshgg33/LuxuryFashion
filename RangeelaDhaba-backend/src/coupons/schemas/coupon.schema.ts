@@ -1,7 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type CouponDocument = Coupon & Document;
+
+@Schema({ _id: false })
+export class FreeItem {
+  @Prop({ type: Types.ObjectId, ref: 'Dish', required: true })
+  dish: Types.ObjectId;
+
+  @Prop({ default: 1 })
+  quantity: number;
+}
+
+export const FreeItemSchema = SchemaFactory.createForClass(FreeItem);
 
 @Schema({ timestamps: true })
 export class Coupon {
@@ -37,6 +48,9 @@ export class Coupon {
 
   @Prop({ default: '' })
   description?: string;
+
+  @Prop({ type: [FreeItemSchema], default: [] })
+  freeItems: FreeItem[];
 }
 
 export const CouponSchema = SchemaFactory.createForClass(Coupon);

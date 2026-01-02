@@ -60,6 +60,7 @@ interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+  isFree?: boolean;
 }
 
 interface OrderDetails {
@@ -199,15 +200,18 @@ export const orderPlacedEmailTemplate = (order: OrderDetails): string => {
     <tr>
       <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
         <div style="display: flex; align-items: center;">
-          <span style="font-size: 24px; margin-right: 12px;">🍽️</span>
+          <span style="font-size: 24px; margin-right: 12px;">${item.isFree ? '🎁' : '🍽️'}</span>
           <div>
-            <p style="margin: 0; color: ${brandColors.dark}; font-weight: 600; font-size: 15px;">${item.name}</p>
+            <p style="margin: 0; color: ${brandColors.dark}; font-weight: 600; font-size: 15px;">
+              ${item.name}
+              ${item.isFree ? `<span style="background-color: ${brandColors.success}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px;">FREE</span>` : ''}
+            </p>
             <p style="margin: 5px 0 0 0; color: ${brandColors.gray}; font-size: 13px;">Qty: ${item.quantity}</p>
           </div>
         </div>
       </td>
       <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; text-align: right;">
-        <p style="margin: 0; color: ${brandColors.dark}; font-weight: 600; font-size: 15px;">₹${(item.price * item.quantity).toFixed(2)}</p>
+        <p style="margin: 0; color: ${item.isFree ? brandColors.success : brandColors.dark}; font-weight: 600; font-size: 15px;">${item.isFree ? 'FREE' : `₹${(item.price * item.quantity).toFixed(2)}`}</p>
       </td>
     </tr>
   `).join('');
