@@ -19,7 +19,7 @@ import {
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen } from "@/lib/api";
+import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen, fetchProfile, updateProfile } from "@/lib/api";
 import { reverseGeocode } from "@/lib/geocode";
 import { getAccurateLocation } from "@/lib/geolocation";
 import { MapPicker } from "@/components/MapPicker";
@@ -171,6 +171,38 @@ const Cart = () => {
     const interval = setInterval(loadSettings, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Load saved address from user profile
+  useEffect(() => {
+    const loadSavedAddress = async () => {
+      if (!isLoggedIn) return;
+
+      try {
+        const profile = await fetchProfile();
+        if (profile?.address) {
+          const savedAddr = profile.address;
+          setAddress({
+            street: savedAddr.street || "",
+            city: savedAddr.city || "",
+            state: savedAddr.state || "",
+            zipCode: savedAddr.zipCode || "",
+            country: savedAddr.country || "India",
+            phoneNumber: savedAddr.phoneNumber || profile.phone || "",
+            lat: savedAddr.lat,
+            lng: savedAddr.lng,
+          });
+          // If address is complete, expand the address form
+          if (savedAddr.street && savedAddr.city && savedAddr.lat && savedAddr.lng) {
+            setShowAddressForm(true);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load saved address:", err);
+      }
+    };
+
+    loadSavedAddress();
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (address.lat && address.lng && settings.lat && settings.lng) {
@@ -335,6 +367,13 @@ const Cart = () => {
         specialInstructions.trim() || undefined
       );
       if (orderId) {
+        // Save address to user profile for future orders
+        try {
+          await updateProfile({ address });
+        } catch (saveErr) {
+          console.error("Failed to save address to profile:", saveErr);
+          // Don't block the order flow if address save fails
+        }
         navigate("/order-confirmation", { state: { orderId, orderType, address } });
       }
     } catch (error: any) {
