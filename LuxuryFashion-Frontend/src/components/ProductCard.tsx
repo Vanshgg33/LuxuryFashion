@@ -1,13 +1,14 @@
 import { Star, Plus, Minus } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { FoodItem } from "@/data/foodData";
 import { useCartContext } from "@/contexts/CartContext";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   KOLKATA KITCHEN — PRODUCT CARD
-   Simple, food-first card with clear add-to-cart action
+   RANGEELA DHABA — PRODUCT CARD
+   3D animated card with micro-interactions
 ═══════════════════════════════════════════════════════════════════════════ */
 
 interface ProductCardProps {
@@ -18,6 +19,27 @@ export function ProductCard({ item }: ProductCardProps) {
   const { addToCart, cartItems, updateQuantity, removeFromCart } = useCartContext();
   const [isAdding, setIsAdding] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+
+  // 3D tilt effect handler
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const mouseX = e.clientX - centerX;
+    const mouseY = e.clientY - centerY;
+    setRotateX(mouseY / 20);
+    setRotateY(-mouseX / 20);
+  };
+
+  const handleMouseLeave = () => {
+    setRotateX(0);
+    setRotateY(0);
+  };
 
   // Check if item is already in cart (safely handle undefined)
   const cart = cartItems || [];
@@ -36,6 +58,9 @@ export function ProductCard({ item }: ProductCardProps) {
     if (item.inStock === false || !item.id) return;
 
     setIsAdding(true);
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 800);
+
     try {
       const dishId = String(item.id);
       await addToCart(dishId, 1);
@@ -86,14 +111,54 @@ export function ProductCard({ item }: ProductCardProps) {
   };
 
   return (
-    <Link to={`/product/${item.id}`} className="group block h-full">
-      <article className="food-card h-full flex flex-col">
+    <Link to={`/product/${item.id}`} className="group block h-full perspective-1000">
+      <motion.article
+        ref={cardRef}
+        className="food-card h-full flex flex-col relative"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          transformStyle: "preserve-3d",
+          transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
+        }}
+        whileHover={{ scale: 1.02 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      >
+        {/* Confetti Effect */}
+        <AnimatePresence>
+          {showConfetti && (
+            <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+              {[...Array(12)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-2 h-2 rounded-full"
+                  style={{
+                    backgroundColor: ["#f59e0b", "#22c55e", "#ef4444", "#3b82f6"][i % 4],
+                    left: "50%",
+                    top: "50%",
+                  }}
+                  initial={{ scale: 0, x: 0, y: 0 }}
+                  animate={{
+                    scale: [0, 1, 0],
+                    x: (Math.random() - 0.5) * 150,
+                    y: (Math.random() - 0.5) * 150,
+                  }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6, delay: i * 0.02 }}
+                />
+              ))}
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl">
-          <img
+          <motion.img
             src={item.image}
             alt={item.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover"
+            whileHover={{ scale: 1.1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             loading="lazy"
           />
 
@@ -209,7 +274,15 @@ export function ProductCard({ item }: ProductCardProps) {
             )}
           </div>
         </div>
-      </article>
+
+        {/* Glare effect */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none rounded-2xl"
+          style={{
+            background: `radial-gradient(circle at ${50 + rotateY * 3}% ${50 + rotateX * 3}%, rgba(255,255,255,0.15) 0%, transparent 60%)`,
+          }}
+        />
+      </motion.article>
     </Link>
   );
 }

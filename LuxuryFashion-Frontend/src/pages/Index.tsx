@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
   Star,
@@ -10,14 +11,28 @@ import {
   Truck,
   Leaf,
   Heart,
-  ChefHat
+  ChefHat,
+  Sparkles
 } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { fetchProducts } from "@/data/foodData";
 import { fetchGallery } from "@/lib/api";
 import type { FoodItem } from "@/data/foodData";
 import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/ProductCard";
+import {
+  FadeIn,
+  StaggerContainer,
+  StaggerItem,
+  FloatingParticles,
+  GradientText,
+  Magnetic,
+  ImageReveal,
+  Marquee,
+  AnimatedCounter,
+  ScrollTextReveal,
+  Float,
+} from "@/components/animations";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RANGEELA DHABA — PREMIUM HOMEPAGE
@@ -132,90 +147,212 @@ const Index = () => {
   const heroImage = banners[currentBanner]?.imageUrl ||
     "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=1920&h=800&fit=crop";
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* ═══════════════════════════════════════════════════════════════════
-          HERO SECTION — Elegant Dark with Golden Accents
-      ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden">
-        {/* Background Image */}
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        >
-          {/* Overlay Gradients - Darker for better contrast */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/40" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-        </div>
+  // Parallax scroll effect for hero
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
 
-        {/* Content */}
-        <div className="relative h-full container-custom flex items-center">
-          <div className="max-w-2xl animate-fade-up">
-            {/* Decorative Element */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-1 bg-gradient-to-r from-primary to-accent rounded-full" />
-              <span className="text-primary font-medium tracking-wider uppercase text-sm">
-                Authentic Bengali Cuisine
-              </span>
+  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const heroScale = useTransform(scrollYProgress, [0, 1], [1, 1.2]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
+  return (
+    <div className="min-h-screen bg-background overflow-hidden">
+      {/* ═══════════════════════════════════════════════════════════════════
+          HERO SECTION — Cinematic Parallax with 3D Depth
+      ═══════════════════════════════════════════════════════════════════ */}
+      <section ref={heroRef} className="relative h-[100vh] min-h-[600px] overflow-hidden">
+        {/* Background Image with Deep Parallax */}
+        <motion.div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${heroImage})`,
+            y: heroY,
+            scale: heroScale,
+          }}
+        >
+          {/* Animated Gradient Overlay */}
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              background: "linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.4) 100%)",
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1 }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        </motion.div>
+
+        {/* Floating particles */}
+        <FloatingParticles count={30} color="rgba(245, 158, 11, 0.3)" />
+
+        {/* Content with Parallax */}
+        <motion.div
+          className="relative h-full container-custom flex items-center"
+          style={{ y: textY, opacity: heroOpacity }}
+        >
+          <div className="max-w-3xl">
+            {/* Animated Badge */}
+            <motion.div
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full mb-8 border border-white/20"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+            >
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-white/90 text-sm font-medium">Authentic Bengali Cuisine Since 2009</span>
+            </motion.div>
+
+            {/* Main Title with Reveal Animation */}
+            <div className="overflow-hidden mb-6">
+              <motion.h1
+                className="font-serif text-5xl md:text-6xl lg:text-8xl font-bold text-white leading-[1.1]"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                transition={{ duration: 0.8, delay: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+              >
+                Taste of
+              </motion.h1>
+            </div>
+            <div className="overflow-hidden mb-8">
+              <motion.h1
+                className="font-serif text-5xl md:text-6xl lg:text-8xl font-bold leading-[1.1]"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                transition={{ duration: 0.8, delay: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+              >
+                <GradientText colors={["#f59e0b", "#ea580c", "#fbbf24", "#f59e0b"]}>
+                  Bengal
+                </GradientText>
+              </motion.h1>
             </div>
 
-            {/* Title */}
-            <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Welcome to<br />
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Rangeela Dhaba</span>
-            </h1>
-
             {/* Subtitle */}
-            <p className="text-white/80 text-lg md:text-xl mb-8 max-w-lg">
-              Authentic Bengali flavors delivered to your doorstep.
-              Experience the warmth of home-cooked meals from Kolkata.
-            </p>
-
-            {/* CTA Button */}
-            <Link
-              to="/menu"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary to-accent text-foreground font-bold text-base rounded-xl hover:shadow-xl hover:scale-[1.02] transition-all duration-300 shadow-lg group"
+            <motion.p
+              className="text-white/70 text-lg md:text-xl mb-10 max-w-xl"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9, duration: 0.6 }}
             >
-              Order Now
-              <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </div>
-        </div>
+              Experience the rich, aromatic flavors of authentic Bengali cuisine.
+              From spicy fish curries to sweet mishti doi.
+            </motion.p>
 
-        {/* Banner Indicators */}
-        {banners.length > 1 && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
-            {banners.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentBanner(index)}
-                className={cn(
-                  "w-2 h-2 rounded-full transition-all duration-300",
-                  index === currentBanner
-                    ? "bg-primary w-8"
-                    : "bg-background/50 hover:bg-background/75"
-                )}
-              />
-            ))}
-          </div>
-        )}
+            {/* CTA Buttons */}
+            <motion.div
+              className="flex flex-wrap items-center gap-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.1, duration: 0.6 }}
+            >
+              <Magnetic strength={0.3}>
+                <Link
+                  to="/menu"
+                  className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary to-accent text-foreground font-bold text-lg rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_0_40px_rgba(245,158,11,0.4)]"
+                >
+                  <span className="relative z-10">Explore Menu</span>
+                  <motion.span
+                    className="relative z-10"
+                    whileHover={{ x: 5 }}
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </motion.span>
+                  {/* Shine effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    initial={{ x: "-100%" }}
+                    whileHover={{ x: "100%" }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </Link>
+              </Magnetic>
 
-        {/* Decorative Bottom Wave */}
-        <div className="wave-decoration">
-          <svg
-            viewBox="0 0 1440 120"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-auto"
-            preserveAspectRatio="none"
+              <Magnetic strength={0.3}>
+                <a
+                  href={`tel:${RESTAURANT_INFO.phone}`}
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300"
+                >
+                  <Phone className="w-5 h-5" />
+                  Order by Phone
+                </a>
+              </Magnetic>
+            </motion.div>
+
+            {/* Stats */}
+            <motion.div
+              className="flex items-center gap-8 mt-12 pt-8 border-t border-white/10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.3, duration: 0.6 }}
+            >
+              <div>
+                <div className="text-3xl font-bold text-white">
+                  <AnimatedCounter value={15} suffix="+" />
+                </div>
+                <div className="text-white/60 text-sm">Years of Excellence</div>
+              </div>
+              <div className="w-px h-12 bg-white/20" />
+              <div>
+                <div className="text-3xl font-bold text-white">
+                  <AnimatedCounter value={50} suffix="+" />
+                </div>
+                <div className="text-white/60 text-sm">Authentic Dishes</div>
+              </div>
+              <div className="w-px h-12 bg-white/20" />
+              <div>
+                <div className="text-3xl font-bold text-white">
+                  <AnimatedCounter value={10} suffix="K+" />
+                </div>
+                <div className="text-white/60 text-sm">Happy Customers</div>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Scroll Indicator */}
+        <motion.div
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+        >
+          <span className="text-white/50 text-sm">Scroll to explore</span>
+          <motion.div
+            className="w-6 h-10 rounded-full border-2 border-white/30 flex justify-center pt-2"
+            animate={{ y: [0, 5, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
           >
-            <path
-              d="M0 120L48 110C96 100 192 80 288 70C384 60 480 60 576 65C672 70 768 80 864 85C960 90 1056 90 1152 85C1248 80 1344 70 1392 65L1440 60V120H1392C1344 120 1248 120 1152 120C1056 120 960 120 864 120C768 120 672 120 576 120C480 120 384 120 288 120C192 120 96 120 48 120H0Z"
-              className="fill-background"
+            <motion.div
+              className="w-1.5 h-3 bg-primary rounded-full"
+              animate={{ y: [0, 8, 0], opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
             />
-          </svg>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          MARQUEE SECTION — Scrolling Text Banner
+      ═══════════════════════════════════════════════════════════════════ */}
+      <section className="py-6 bg-primary overflow-hidden">
+        <Marquee speed={30} className="text-foreground">
+          <span className="flex items-center gap-8 px-8">
+            <span className="text-2xl font-serif font-bold">Authentic Bengali Cuisine</span>
+            <Star className="w-6 h-6 fill-current" />
+            <span className="text-2xl font-serif font-bold">Fresh Ingredients Daily</span>
+            <Star className="w-6 h-6 fill-current" />
+            <span className="text-2xl font-serif font-bold">Fast Delivery</span>
+            <Star className="w-6 h-6 fill-current" />
+            <span className="text-2xl font-serif font-bold">Family Recipes</span>
+            <Star className="w-6 h-6 fill-current" />
+          </span>
+        </Marquee>
+      </section>
+
 
       {/* ═══════════════════════════════════════════════════════════════════
           BEST SELLERS — Popular Items (FIRST - Users want food!)
@@ -371,10 +508,13 @@ const Index = () => {
       {/* ═══════════════════════════════════════════════════════════════════
           WHY CHOOSE US — Feature Cards (After food)
       ═══════════════════════════════════════════════════════════════════ */}
-      <section className="py-12 md:py-16 bg-secondary/30">
-        <div className="container-custom">
+      <section className="py-12 md:py-16 bg-secondary/30 relative overflow-hidden">
+        {/* Background Particles */}
+        <FloatingParticles count={15} color="rgba(245, 158, 11, 0.1)" />
+
+        <div className="container-custom relative z-10">
           {/* Section Header */}
-          <div className="text-center mb-10">
+          <FadeIn direction="up" className="text-center mb-10">
             <span className="label-premium mb-2 block">
               Why People Love Us
             </span>
@@ -384,28 +524,33 @@ const Index = () => {
             <p className="section-subtitle max-w-2xl mx-auto">
               We take pride in delivering an exceptional dining experience with every order
             </p>
-          </div>
+          </FadeIn>
 
-          {/* Features Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {/* Features Grid with Stagger */}
+          <StaggerContainer className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" staggerDelay={0.15}>
             {features.map((feature, index) => (
-              <div
-                key={feature.title}
-                className="feature-card text-center group p-4 md:p-6"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary group-hover:scale-110 transition-all duration-300">
-                  <feature.icon className="w-6 h-6 md:w-7 md:h-7 text-primary group-hover:text-primary-foreground transition-colors" />
-                </div>
-                <h3 className="font-serif text-base md:text-lg font-semibold text-foreground mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
+              <StaggerItem key={feature.title}>
+                <motion.div
+                  className="feature-card text-center group p-4 md:p-6 h-full"
+                  whileHover={{ y: -8, boxShadow: "0 20px 40px -15px rgba(0,0,0,0.15)" }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <motion.div
+                    className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary transition-all duration-300"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                  >
+                    <feature.icon className="w-6 h-6 md:w-7 md:h-7 text-primary group-hover:text-primary-foreground transition-colors" />
+                  </motion.div>
+                  <h3 className="font-serif text-base md:text-lg font-semibold text-foreground mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">
+                    {feature.description}
+                  </p>
+                </motion.div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
@@ -416,36 +561,50 @@ const Index = () => {
         <div className="container-custom">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Image Side */}
-            <div className="relative">
+            <FadeIn direction="left" className="relative">
               <div className="image-decorated">
-                <img
+                <motion.img
                   src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop"
                   alt="Restaurant Interior"
                   className="rounded-2xl shadow-medium w-full relative z-10"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.4 }}
                 />
               </div>
 
               {/* Floating Card */}
-              <div className="floating-card -bottom-6 -right-6 md:right-8">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <ChefHat className="w-6 h-6 text-primary" />
+              <Float duration={3} distance={8}>
+                <motion.div
+                  className="floating-card -bottom-6 -right-6 md:right-8"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <div className="flex items-center gap-3">
+                    <motion.div
+                      className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <ChefHat className="w-6 h-6 text-primary" />
+                    </motion.div>
+                    <div>
+                      <p className="font-serif font-semibold text-foreground">15+ Years</p>
+                      <p className="text-sm text-muted-foreground">of Excellence</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-serif font-semibold text-foreground">15+ Years</p>
-                    <p className="text-sm text-muted-foreground">of Excellence</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+                </motion.div>
+              </Float>
+            </FadeIn>
 
             {/* Content Side */}
-            <div>
+            <FadeIn direction="right">
               <span className="label-premium mb-3 block">
                 Our Story
               </span>
               <h2 className="section-title mb-6">
-                About Rangeela Dhaba
+                About <GradientText colors={["#f59e0b", "#ea580c", "#f59e0b"]}>Rangeela Dhaba</GradientText>
               </h2>
               <p className="text-muted-foreground mb-6 leading-relaxed">
                 Welcome to Rangeela Dhaba, where tradition meets taste. Founded with a passion for authentic
@@ -485,7 +644,7 @@ const Index = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </FadeIn>
           </div>
         </div>
       </section>
@@ -496,7 +655,7 @@ const Index = () => {
       <section className="py-16 md:py-24">
         <div className="container-custom">
           {/* Section Header */}
-          <div className="text-center mb-12 md:mb-16">
+          <FadeIn direction="up" className="text-center mb-12 md:mb-16">
             <span className="label-premium mb-3 block">
               Testimonials
             </span>
@@ -506,10 +665,10 @@ const Index = () => {
             <p className="section-subtitle max-w-2xl mx-auto">
               Real reviews from real food lovers
             </p>
-          </div>
+          </FadeIn>
 
-          {/* Reviews Grid */}
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Reviews Grid with Stagger */}
+          <StaggerContainer className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto" staggerDelay={0.2}>
             {[
               {
                 name: "Anindita Roy",
@@ -530,11 +689,12 @@ const Index = () => {
                 dish: "Mishti Doi",
               },
             ].map((review, index) => (
-              <div
-                key={index}
-                className="feature-card text-left animate-fade-in-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
+              <StaggerItem key={index}>
+                <motion.div
+                  className="feature-card text-left h-full"
+                  whileHover={{ y: -5, boxShadow: "0 15px 30px -10px rgba(0,0,0,0.1)" }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
                 <div className="flex items-center gap-1 mb-4">
                   {[...Array(review.rating)].map((_, i) => (
                     <Star key={i} className="w-5 h-5 fill-primary text-primary" />
@@ -553,9 +713,10 @@ const Index = () => {
                     </p>
                   </div>
                 </div>
-              </div>
+                </motion.div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
@@ -563,37 +724,56 @@ const Index = () => {
           CTA SECTION — Order Now
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="relative py-16 md:py-24 overflow-hidden">
-        {/* Background */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-fixed"
+        {/* Background with Parallax Effect */}
+        <motion.div
+          className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: `url(https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1920&h=600&fit=crop)`
           }}
+          initial={{ scale: 1.1 }}
+          whileInView={{ scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.5 }}
         >
           <div className="absolute inset-0 bg-foreground/85" />
-        </div>
+        </motion.div>
+
+        {/* Floating particles */}
+        <FloatingParticles count={10} color="rgba(245, 158, 11, 0.2)" />
 
         {/* Content */}
         <div className="relative container-custom text-center">
-          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-background mb-4">
-            Ready to taste authentic Bengali food?
-          </h2>
-          <p className="text-background/80 max-w-xl mx-auto mb-8 text-lg">
-            Order now and enjoy the flavors of Kolkata delivered fresh to your doorstep.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link to="/menu" className="btn-premium group">
-              Order Now
-              <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-            </Link>
-            <a
-              href={`tel:${RESTAURANT_INFO.phone}`}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-background/10 backdrop-blur-sm text-background font-semibold rounded-lg border border-background/30 hover:bg-background/20 transition-all duration-300"
-            >
-              <Phone className="w-5 h-5" />
-              Call Us
-            </a>
-          </div>
+          <FadeIn direction="up">
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-background mb-4">
+              Ready to taste authentic Bengali food?
+            </h2>
+          </FadeIn>
+          <FadeIn direction="up" delay={0.2}>
+            <p className="text-background/80 max-w-xl mx-auto mb-8 text-lg">
+              Order now and enjoy the flavors of Kolkata delivered fresh to your doorstep.
+            </p>
+          </FadeIn>
+          <FadeIn direction="up" delay={0.4}>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Magnetic strength={0.15}>
+                <Link to="/menu" className="btn-premium group">
+                  <motion.span whileHover={{ x: -3 }}>Order Now</motion.span>
+                  <motion.span whileHover={{ x: 3 }}>
+                    <ArrowRight className="w-5 h-5" />
+                  </motion.span>
+                </Link>
+              </Magnetic>
+              <Magnetic strength={0.15}>
+                <a
+                  href={`tel:${RESTAURANT_INFO.phone}`}
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-background/10 backdrop-blur-sm text-background font-semibold rounded-lg border border-background/30 hover:bg-background/20 transition-all duration-300"
+                >
+                  <Phone className="w-5 h-5" />
+                  Call Us
+                </a>
+              </Magnetic>
+            </div>
+          </FadeIn>
         </div>
       </section>
 

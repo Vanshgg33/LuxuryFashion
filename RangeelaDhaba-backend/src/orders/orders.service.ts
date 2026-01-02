@@ -76,14 +76,14 @@ export class OrdersService {
     if (!sourceItems || sourceItems.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
-    const items = await Promise.all(
+    const items: { dish: any; name: string; price: number; quantity: number; isFree?: boolean }[] = await Promise.all(
       sourceItems.map(async (i: any) => {
         const dishId = i.dishId || i.dish?._id || i.dish;
         const qty = i.quantity;
         const dish = await this.dishesService.findOne(dishId);
         if (!dish) throw new NotFoundException('Dish not found');
         if (!dish.inStock) throw new BadRequestException('Dish is out of stock');
-        return { dish: dish._id, name: dish.name, price: dish.price, quantity: qty };
+        return { dish: dish._id, name: dish.name, price: dish.price, quantity: qty, isFree: false };
       }),
     );
     let subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
