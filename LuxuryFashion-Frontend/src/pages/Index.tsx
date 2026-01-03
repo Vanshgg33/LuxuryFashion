@@ -10,7 +10,8 @@ import {
   Truck,
   Leaf,
   Heart,
-  ChefHat
+  ChefHat,
+  ExternalLink
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { fetchProducts } from "@/data/foodData";
@@ -28,8 +29,9 @@ import { ProductCard } from "@/components/ProductCard";
 const RESTAURANT_INFO = {
   name: "Rangeela Dhaba",
   tagline: "Authentic Bengali Cuisine",
-  address: "Park Street, Kolkata 700017",
-  phone: "+91 89812 60291",
+  address: "Bablatala Link Road, Kolkata 700136",
+  phone: "+91 82409 21497",
+  googleMapsUrl: "https://maps.app.goo.gl/epVDq1DsjFoYJ2fCA",
   openingHours: {
     weekdays: "11:00 AM - 11:00 PM",
     weekends: "10:00 AM - 11:30 PM",
@@ -460,20 +462,31 @@ const Index = () => {
 
               {/* Info Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="info-card">
+                <a
+                  href={RESTAURANT_INFO.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="info-card hover:border-primary/50 hover:bg-primary/5 transition-colors group cursor-pointer"
+                >
                   <MapPin className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-foreground text-sm">Location</p>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground text-sm flex items-center gap-1">
+                      Location
+                      <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </p>
                     <p className="text-muted-foreground text-sm">{RESTAURANT_INFO.address}</p>
                   </div>
-                </div>
-                <div className="info-card">
+                </a>
+                <a
+                  href={`tel:${RESTAURANT_INFO.phone}`}
+                  className="info-card hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer"
+                >
                   <Phone className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium text-foreground text-sm">Call Us</p>
                     <p className="text-muted-foreground text-sm">{RESTAURANT_INFO.phone}</p>
                   </div>
-                </div>
+                </a>
                 <div className="info-card sm:col-span-2">
                   <Clock className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div>
@@ -603,22 +616,29 @@ const Index = () => {
       <section className="py-8 bg-secondary/50 border-t border-border/50">
         <div className="container-custom">
           <div className="flex flex-col md:flex-row items-center justify-center gap-6 text-center md:text-left">
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <a
+              href={RESTAURANT_INFO.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+            >
               <MapPin className="w-4 h-4 text-primary" />
               <span>{RESTAURANT_INFO.address}</span>
-            </div>
+              <ExternalLink className="w-3 h-3" />
+            </a>
             <div className="hidden md:block w-px h-6 bg-border" />
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock className="w-4 h-4 text-primary" />
               <span>Open daily: 11 AM - 11 PM</span>
             </div>
             <div className="hidden md:block w-px h-6 bg-border" />
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <a
+              href={`tel:${RESTAURANT_INFO.phone}`}
+              className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+            >
               <Phone className="w-4 h-4 text-primary" />
-              <a href={`tel:${RESTAURANT_INFO.phone}`} className="hover:text-primary transition-colors">
-                {RESTAURANT_INFO.phone}
-              </a>
-            </div>
+              <span>{RESTAURANT_INFO.phone}</span>
+            </a>
           </div>
         </div>
       </section>

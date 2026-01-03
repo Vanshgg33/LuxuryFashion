@@ -1,5 +1,14 @@
 import { Link } from "react-router-dom";
-import { Instagram, Twitter, MapPin, Mail, Phone, ArrowUpRight } from "lucide-react";
+import { Instagram, Twitter, MapPin, Mail, Phone, ArrowUpRight, ExternalLink } from "lucide-react";
+
+// Restaurant contact info
+const CONTACT_INFO = {
+  address: "Bablatala Link Road, Kolkata 700136",
+  phone: "+91 82409 21497",
+  phoneRaw: "+918240921497",
+  email: "order@rangeeladhaba.in",
+  googleMapsUrl: "https://maps.app.goo.gl/epVDq1DsjFoYJ2fCA",
+};
 
 const footerLinks = {
   explore: [
@@ -115,22 +124,28 @@ export function Footer() {
                 <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <MapPin className="w-4 h-4 text-primary" />
                 </div>
-                <div>
-                  <p className="text-sm text-white/70">
-                    Park Street, Near South City Mall<br />
-                    Kolkata 700017, West Bengal
-                  </p>
-                </div>
+                <a
+                  href={CONTACT_INFO.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-white/70 hover:text-primary transition-colors group"
+                >
+                  <span className="flex items-center gap-1">
+                    {CONTACT_INFO.address}
+                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </span>
+                  <span className="text-xs text-white/50">Click to open in Google Maps</span>
+                </a>
               </li>
               <li className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <Phone className="w-4 h-4 text-primary" />
                 </div>
                 <a
-                  href="tel:+918981260291"
+                  href={`tel:${CONTACT_INFO.phoneRaw}`}
                   className="text-sm text-white/70 hover:text-primary transition-colors"
                 >
-                  +91 89812 60291
+                  {CONTACT_INFO.phone}
                 </a>
               </li>
               <li className="flex items-center gap-3">
@@ -138,10 +153,10 @@ export function Footer() {
                   <Mail className="w-4 h-4 text-primary" />
                 </div>
                 <a
-                  href="mailto:order@rangeeladhaba.in"
+                  href={`mailto:${CONTACT_INFO.email}`}
                   className="text-sm text-white/70 hover:text-primary transition-colors"
                 >
-                  order@rangeeladhaba.in
+                  {CONTACT_INFO.email}
                 </a>
               </li>
             </ul>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAllCoupons, createCoupon, updateCoupon, deleteCoupon, fetchProducts } from "@/lib/api";
-import { Plus, Edit, Trash2, Check, X, Gift } from "lucide-react";
+import { Plus, Edit, Trash2, Check, X, Gift, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -48,6 +48,9 @@ export default function AdminCoupons() {
     isActive: true,
     description: "",
     freeItems: [],
+    validFrom: "",
+    validUntil: "",
+    usageLimit: 0,
   });
   const [selectedDish, setSelectedDish] = useState<string>("");
   const [freeItemQty, setFreeItemQty] = useState<number>(1);
@@ -112,14 +115,22 @@ export default function AdminCoupons() {
 
   const handleSave = async () => {
     try {
-      // Transform freeItems to only send dish IDs
-      const payload = {
+      // Transform freeItems to only send dish IDs and clean up dates
+      const payload: any = {
         ...form,
         freeItems: (form.freeItems || []).map((item) => ({
           dish: typeof item.dish === 'string' ? item.dish : item.dish._id,
           quantity: item.quantity,
         })),
       };
+
+      // Only include dates if they have valid values
+      if (!form.validFrom) delete payload.validFrom;
+      if (!form.validUntil) delete payload.validUntil;
+
+      // Ensure usageLimit is a number (0 means unlimited)
+      payload.usageLimit = form.usageLimit || 0;
+
       if (editing) {
         await updateCoupon(editing._id || editing.id || "", payload);
       } else {
@@ -145,6 +156,9 @@ export default function AdminCoupons() {
       isActive: true,
       description: "",
       freeItems: [],
+      validFrom: "",
+      validUntil: "",
+      usageLimit: 0,
     });
     setSelectedDish("");
     setFreeItemQty(1);
@@ -191,6 +205,7 @@ export default function AdminCoupons() {
                 <th className="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Type</th>
                 <th className="text-right py-4 px-6 text-sm font-medium text-muted-foreground">Value</th>
                 <th className="text-right py-4 px-6 text-sm font-medium text-muted-foreground">Min Order</th>
+                <th className="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Validity</th>
                 <th className="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Free Items</th>
                 <th className="text-center py-4 px-6 text-sm font-medium text-muted-foreground">Used</th>
                 <th className="text-center py-4 px-6 text-sm font-medium text-muted-foreground">Status</th>
@@ -200,7 +215,7 @@ export default function AdminCoupons() {
             <tbody>
               {coupons.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     No coupons found
                   </td>
                 </tr>
@@ -213,6 +228,26 @@ export default function AdminCoupons() {
                       {coupon.discountType === "percentage" ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}
                     </td>
                     <td className="py-4 px-6 text-right">₹{coupon.minOrderAmount || 0}</td>
+                    <td className="py-4 px-6">
+                      <div className="text-xs">
+                        {coupon.validFrom || coupon.validUntil ? (
+                          <>
+                            {coupon.validFrom && (
+                              <div className="text-muted-foreground">
+                                From: {new Date(coupon.validFrom).toLocaleDateString()}
+                              </div>
+                            )}
+                            {coupon.validUntil && (
+                              <div className="text-muted-foreground">
+                                Until: {new Date(coupon.validUntil).toLocaleDateString()}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">Always valid</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-4 px-6">
                       {coupon.freeItems && coupon.freeItems.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -332,6 +367,44 @@ export default function AdminCoupons() {
                   />
                 </div>
               )}
+            </div>
+
+            {/* Validity Period */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Valid From (Optional)</label>
+                <input
+                  type="datetime-local"
+                  value={form.validFrom ? new Date(form.validFrom).toISOString().slice(0, 16) : ""}
+                  onChange={(e) => setForm({ ...form, validFrom: e.target.value ? new Date(e.target.value).toISOString() : "" })}
+                  className="input-styled w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Valid Until (Optional)</label>
+                <input
+                  type="datetime-local"
+                  value={form.validUntil ? new Date(form.validUntil).toISOString().slice(0, 16) : ""}
+                  onChange={(e) => setForm({ ...form, validUntil: e.target.value ? new Date(e.target.value).toISOString() : "" })}
+                  className="input-styled w-full"
+                />
+              </div>
+            </div>
+
+            {/* Usage Limit */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Usage Limit (0 = Unlimited)</label>
+              <input
+                type="number"
+                value={form.usageLimit || 0}
+                onChange={(e) => setForm({ ...form, usageLimit: parseInt(e.target.value) || 0 })}
+                className="input-styled w-full"
+                min="0"
+                placeholder="Leave at 0 for unlimited usage"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Set to 0 for unlimited uses, or specify a number to limit usage
+              </p>
             </div>
 
             {/* Free Items Section */}

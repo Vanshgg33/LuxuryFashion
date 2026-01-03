@@ -726,6 +726,17 @@ const Cart = () => {
                                             )}
                                           </p>
                                         )}
+                                        {/* Show free items if any */}
+                                        {coupon.freeItems && coupon.freeItems.length > 0 && (
+                                          <div className="mt-1.5 flex items-center gap-1 text-xs">
+                                            <Gift className="w-3 h-3 text-green-600" />
+                                            <span className="text-green-600 font-medium">
+                                              Free: {coupon.freeItems.map((item: any) =>
+                                                `${item.quantity}x ${item.dish?.name || 'Item'}`
+                                              ).join(', ')}
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
                                       <button
                                         onClick={() => handleApplyCoupon(coupon.code)}

@@ -1,5 +1,5 @@
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { CheckCircle, MapPin, ArrowLeft, Clock, Package } from "lucide-react";
+import { CheckCircle, MapPin, ArrowLeft, Clock, Package, Gift } from "lucide-react";
 import { MapPicker } from "@/components/MapPicker";
 import { useEffect, useState } from "react";
 import { fetchOrderHistory } from "@/lib/api";
@@ -86,20 +86,36 @@ const OrderConfirmation = () => {
         {order && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-foreground mb-2">Items</h3>
-            <div className="divide-y divide-border rounded-xl border border-border">
+            <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
               {order.items?.map((i: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-3">
+                <div key={idx} className={`flex items-center justify-between p-3 ${i.isFree ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
                   <div>
-                    <p className="font-medium text-foreground">{i.name || i.dish?.name}</p>
+                    <p className="font-medium text-foreground flex items-center gap-2">
+                      {i.isFree && <Gift className="w-4 h-4 text-green-600" />}
+                      {i.name || i.dish?.name}
+                      {i.isFree && (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">FREE</span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      Qty: {i.quantity} • ₹{i.price}
+                      Qty: {i.quantity} {!i.isFree && `• ₹${i.price}`}
                     </p>
                   </div>
-                  <span className="font-semibold text-foreground">
-                    ₹{(i.price * i.quantity).toFixed(2)}
+                  <span className={`font-semibold ${i.isFree ? 'text-green-600' : 'text-foreground'}`}>
+                    {i.isFree ? 'FREE' : `₹${(i.price * i.quantity).toFixed(2)}`}
                   </span>
                 </div>
               ))}
+              {/* Show discount if applied */}
+              {order.discountAmount && order.discountAmount > 0 && (
+                <div className="flex items-center justify-between p-3 bg-green-50/50 dark:bg-green-900/10">
+                  <span className="text-green-600 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Discount {order.couponCode && `(${order.couponCode})`}
+                  </span>
+                  <span className="font-semibold text-green-600">-₹{order.discountAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between p-3 bg-secondary/40">
                 <span className="text-muted-foreground">Total</span>
                 <span className="text-lg font-bold text-foreground">₹{order.totalAmount || order.totalPrice}</span>
