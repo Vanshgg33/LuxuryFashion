@@ -132,94 +132,76 @@ const AdminOrders = () => {
     totalAmount: order.totalAmount || order.total || 0,
   });
 
-  // Function to print receipt for any order in the table
+  // Function to print KOT (Kitchen Order Ticket) for any order in the table
   const handlePrintOrderReceipt = (order: any) => {
-    const receiptData: OrderReceiptData = {
-      orderId: order._id || order.id || "",
-      orderDate: order.createdAt
-        ? new Date(order.createdAt).toLocaleString("en-IN")
-        : new Date().toLocaleString("en-IN"),
-      customerName: order.user?.name || order.userName || "Guest",
-      customerEmail: order.user?.email,
-      customerPhone: order.address?.phoneNumber,
-      orderType: order.orderType || "delivery",
-      address: order.address,
-      items: (order.items || []).map((item: any) => ({
-        name: item.name || item.dish?.name || "Unknown Item",
-        quantity: item.quantity || 1,
-        price: item.price || 0,
-      })),
-      subtotal: order.subtotal || order.totalAmount || order.total || 0,
-      discountAmount: order.discountAmount,
-      couponCode: order.couponCode,
-      totalAmount: order.totalAmount || order.total || 0,
-    };
+    const items = (order.items || []).map((item: any) => ({
+      name: item.name || item.dish?.name || "Unknown Item",
+      quantity: item.quantity || 1,
+      isFree: item.isFree || false,
+    }));
 
-    // Create a temporary element to render the receipt
+    const totalItems = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+    const orderId = (order._id || order.id || "").slice(-6).toUpperCase();
+    const orderType = order.orderType === "delivery" ? "DELIVERY" : "TAKEAWAY";
+    const currentTime = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    const currentDate = new Date().toLocaleDateString("en-IN");
+
+    // Create KOT style receipt - only items, no prices
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = `
-      <div style="width: 80mm; padding: 10mm; font-family: monospace; font-size: 12px; background-color: white; color: black;">
-        <div style="text-align: center; margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 10px;">
-          <h1 style="font-size: 18px; font-weight: bold; margin: 0 0 5px 0;">Rangeela Dhaba</h1>
+      <div style="width: 80mm; padding: 8mm; font-family: monospace; font-size: 12px; background-color: white; color: black;">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px dashed #000; padding-bottom: 8px;">
+          <h1 style="font-size: 22px; font-weight: bold; margin: 0 0 4px 0; letter-spacing: 3px;">KOT</h1>
+          <p style="font-size: 10px; margin: 0; color: #333;">KITCHEN ORDER TICKET</p>
         </div>
-        <div style="margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 10px;">
-          <p style="margin: 3px 0;"><strong>Order #:</strong> ${receiptData.orderId.slice(-8).toUpperCase()}</p>
-          <p style="margin: 3px 0;"><strong>Date:</strong> ${receiptData.orderDate}</p>
-          <p style="margin: 3px 0;"><strong>Type:</strong> ${receiptData.orderType === "delivery" ? "DELIVERY" : "TAKEAWAY"}</p>
+
+        <!-- Order Info -->
+        <div style="margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed #000;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-size: 16px; font-weight: bold;">#${orderId}</span>
+            <span style="font-size: 12px; font-weight: bold; padding: 3px 10px; background-color: ${order.orderType === "delivery" ? "#000" : "#555"}; color: #fff; border-radius: 3px;">
+              ${orderType}
+            </span>
+          </div>
+          <div style="font-size: 11px; color: #333;">
+            ${currentTime} | ${currentDate}
+          </div>
         </div>
-        <div style="margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 10px;">
-          <p style="margin: 3px 0; font-weight: bold;">Customer:</p>
-          <p style="margin: 3px 0;">${receiptData.customerName}</p>
-          ${receiptData.customerPhone ? `<p style="margin: 3px 0;">Phone: ${receiptData.customerPhone}</p>` : ""}
-          ${receiptData.orderType === "delivery" && receiptData.address ? `
-            <div style="margin-top: 5px;">
-              <p style="margin: 3px 0; font-weight: bold;">Delivery Address:</p>
-              <p style="margin: 3px 0; font-size: 11px;">
-                ${receiptData.address.street || ""}<br/>
-                ${receiptData.address.city || ""}, ${receiptData.address.state || ""} ${receiptData.address.zipCode || ""}
-              </p>
-            </div>
-          ` : ""}
-        </div>
+
+        <!-- Items Table -->
         <div style="margin-bottom: 10px;">
           <table style="width: 100%; border-collapse: collapse;">
             <thead>
-              <tr style="border-bottom: 1px solid #000;">
-                <th style="text-align: left; padding: 5px 0; font-size: 11px;">Item</th>
-                <th style="text-align: center; padding: 5px 0; font-size: 11px;">Qty</th>
-                <th style="text-align: right; padding: 5px 0; font-size: 11px;">Price</th>
+              <tr style="border-bottom: 2px solid #000;">
+                <th style="text-align: center; padding: 8px 0; font-size: 14px; font-weight: bold; width: 55px;">QTY</th>
+                <th style="text-align: left; padding: 8px; font-size: 14px; font-weight: bold;">ITEM</th>
               </tr>
             </thead>
             <tbody>
-              ${receiptData.items.map(item => `
-                <tr style="border-bottom: 1px dotted #ccc;">
-                  <td style="padding: 5px 0; font-size: 11px;">${item.name}</td>
-                  <td style="text-align: center; padding: 5px 0; font-size: 11px;">${item.quantity}</td>
-                  <td style="text-align: right; padding: 5px 0; font-size: 11px;">₹${(item.price * item.quantity).toFixed(2)}</td>
+              ${items.map((item: any) => `
+                <tr style="border-bottom: 1px dashed #ccc;">
+                  <td style="text-align: center; padding: 12px 0; font-size: 20px; font-weight: bold; vertical-align: top;">
+                    ${item.quantity}x
+                  </td>
+                  <td style="padding: 12px 8px; font-size: 14px; font-weight: 600; line-height: 1.4;">
+                    ${item.name}
+                    ${item.isFree ? '<span style="margin-left: 6px; font-size: 10px; background-color: #000; color: #fff; padding: 2px 5px; border-radius: 2px;">FREE</span>' : ''}
+                  </td>
                 </tr>
               `).join("")}
             </tbody>
           </table>
         </div>
-        <div style="border-top: 1px dashed #000; padding-top: 10px;">
-          <div style="display: flex; justify-content: space-between; margin: 3px 0;">
-            <span>Subtotal:</span>
-            <span>₹${receiptData.subtotal.toFixed(2)}</span>
-          </div>
-          ${receiptData.discountAmount && receiptData.discountAmount > 0 ? `
-            <div style="display: flex; justify-content: space-between; margin: 3px 0; color: green;">
-              <span>Discount ${receiptData.couponCode ? `(${receiptData.couponCode})` : ""}:</span>
-              <span>-₹${receiptData.discountAmount.toFixed(2)}</span>
-            </div>
-          ` : ""}
-          <div style="display: flex; justify-content: space-between; margin: 8px 0 0 0; padding-top: 8px; border-top: 1px solid #000; font-weight: bold; font-size: 14px;">
-            <span>TOTAL:</span>
-            <span>₹${receiptData.totalAmount.toFixed(2)}</span>
-          </div>
+
+        <!-- Total Items -->
+        <div style="text-align: center; padding: 10px; background-color: #f0f0f0; border-radius: 4px; margin-bottom: 8px;">
+          <span style="font-size: 14px; font-weight: bold;">TOTAL ITEMS: ${totalItems}</span>
         </div>
-        <div style="text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #000;">
-          <p style="margin: 5px 0; font-size: 11px;">Thank you for your order!</p>
-          <p style="margin: 3px 0; font-size: 10px; color: #666;">${new Date().toLocaleString("en-IN")}</p>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding-top: 8px; border-top: 2px dashed #000;">
+          <p style="margin: 0; font-size: 10px; color: #666;">- - - - - - - - - - - - - - -</p>
         </div>
       </div>
     `;
