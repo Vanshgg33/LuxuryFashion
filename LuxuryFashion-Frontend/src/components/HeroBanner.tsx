@@ -196,8 +196,7 @@ export function HeroBanner() {
 
             {/* Description */}
             <p className="text-lg md:text-xl text-white/80 max-w-lg leading-relaxed">
-              Authentic Bengali flavors delivered to your doorstep. Experience
-              the warmth of home-cooked meals from Kolkata.
+              A perfect blend of Indian, Chinese, Tandoor & South Indian cuisines. Freshly cooked, full of flavor & delivered hot to your doorstep
             </p>
 
             {/* CTA Button */}
