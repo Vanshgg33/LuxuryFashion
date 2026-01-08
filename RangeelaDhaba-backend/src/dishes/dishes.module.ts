@@ -13,7 +13,7 @@ import { SettingsModule } from '../settings/settings.module';
     MongooseModule.forFeature([{ name: Dish.name, schema: DishSchema }]),
     MulterModule.register({
       storage: memoryStorage(),
-      limits: { fileSize: 2 * 1024 * 1024 },
+      limits: { fileSize: 20 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         const allowed = ['image/jpeg', 'image/png', 'image/webp'];
         if (allowed.includes(file.mimetype)) return cb(null, true);

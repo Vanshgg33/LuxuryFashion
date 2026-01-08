@@ -1334,7 +1334,7 @@ const AdminDashboard = () => {
                       Click to upload image
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      PNG, JPG up to 2MB
+                      PNG, JPG up to 20MB
                     </p>
                   </div>
                 )}
@@ -1346,7 +1346,7 @@ const AdminDashboard = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      if (file.size > 2 * 1024 * 1024) return;
+                      if (file.size > 20 * 1024 * 1024) return;
                       setEditDishForm({ ...editDishForm, image: file });
                       setEditDishPreview(URL.createObjectURL(file));
                     }

@@ -12,7 +12,7 @@ import { memoryStorage } from 'multer';
     MongooseModule.forFeature([{ name: Banner.name, schema: BannerSchema }]),
     MulterModule.register({
       storage: memoryStorage(),
-      limits: { fileSize: 2 * 1024 * 1024 },
+      limits: { fileSize: 20 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         const allowed = ['image/jpeg', 'image/png', 'image/webp'];
         if (allowed.includes(file.mimetype)) return cb(null, true);

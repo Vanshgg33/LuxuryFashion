@@ -449,10 +449,14 @@ const Index = () => {
                 About Rangeela Dhaba
               </h2>
               <p className="text-muted-foreground mb-6 leading-relaxed">
-                Welcome to Rangeela Dhaba, a vibrant multi-cuisine restaurant founded by Rahul Saha in 2020. We bring you the authentic taste of India with a colorful twist - from rich North Indian curries to sizzling tandoori dishes, Chinese delights, and classic dhaba-style meals.
+                Welcome to Rangeela Dhaba, where tradition meets taste. Founded with a passion for authentic
+                Bengali cuisine, we bring you the rich flavors of Kolkata right to your table. Our chefs,
+                with decades of experience, craft each dish using time-honored recipes and the freshest ingredients.
               </p>
               <p className="text-muted-foreground mb-8 leading-relaxed">
-                At Rangeela Dhaba, every dish is prepared with fresh ingredients, homely flavors, and a touch of love. Whether you're here for a family dinner, a casual meal with friends, or a quick takeaway, we promise great taste, warm hospitality, and a memorable dining experience.
+                From the aromatic Kosha Mangsho to the delicate Machher Jhol, every dish tells
+                a story of Bengal's diverse culinary heritage. We believe in serving not just food, but
+                an experience that transports you to the heart of Kolkata's hospitality.
               </p>
 
               {/* Info Cards */}
