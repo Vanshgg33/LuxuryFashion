@@ -82,8 +82,8 @@ const AdminBanners = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 20 * 1024 * 1024) {
-        
+      if (file.size > 8 * 1024 * 1024) {
+        alert('File size must be less than 8MB');
         return;
       }
       setUploadFile(file);
@@ -307,7 +307,7 @@ const AdminBanners = () => {
                     Click to upload or drag and drop
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG, WebP up to 20MB
+                    PNG, JPG, WebP up to 8MB
                   </p>
                 </div>
               )}

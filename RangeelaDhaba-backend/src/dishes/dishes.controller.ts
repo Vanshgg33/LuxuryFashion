@@ -47,7 +47,16 @@ export class DishesController {
   @Get()
   async list(@Query('category') category?: string, @Query('inStock') inStock?: string) {
     const filter: any = {};
-    if (category) filter.category = category;
+    
+    // Sanitize category input to prevent NoSQL injection
+    if (category && typeof category === 'string') {
+      // Only allow alphanumeric characters, spaces, and hyphens
+      const sanitizedCategory = category.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+      if (sanitizedCategory) {
+        filter.category = sanitizedCategory;
+      }
+    }
+    
     if (inStock) filter.inStock = inStock === 'true';
     const dishes = await this.dishesService.findAll(filter);
 
@@ -82,10 +91,10 @@ export class DishesController {
     const body = req.body;
     
     // Validate required fields
-    if (!body.name || !body.name.trim()) {
-      throw new BadRequestException('Name is required');
+    if (!body.name || typeof body.name !== 'string' || !body.name.trim()) {
+      throw new BadRequestException('Name is required and must be a string');
     }
-    if (!body.price) {
+    if (!body.price || (typeof body.price !== 'string' && typeof body.price !== 'number')) {
       throw new BadRequestException('Price is required');
     }
 
@@ -157,8 +166,13 @@ export class DishesController {
 
     // Upload image if provided
     if (file) {
-      const uploaded = await this.cloudinary.uploadBuffer(file, 'dishes');
-      dishData.imageUrl = uploaded.secure_url;
+      try {
+        const uploaded = await this.cloudinary.uploadBuffer(file, 'dishes');
+        dishData.imageUrl = uploaded.secure_url;
+      } catch (error) {
+        console.error('Image upload failed:', error);
+        throw new BadRequestException(`Image upload failed: ${error.message}`);
+      }
     }
 
     return this.dishesService.create(dishData as CreateDishDto);
