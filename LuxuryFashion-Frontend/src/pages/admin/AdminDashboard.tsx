@@ -110,6 +110,7 @@ const AdminDashboard = () => {
   }>({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", hasHalfPortion: false, halfPortionPrice: "" });
   const [editDishPreview, setEditDishPreview] = useState<string | null>(null);
   const [savingDish, setSavingDish] = useState(false);
+  const [compressingImage, setCompressingImage] = useState(false);
   const [showAddDish, setShowAddDish] = useState(false);
 
   // Filter dishes based on search query
