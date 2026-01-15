@@ -258,6 +258,7 @@ export const createDish = async (data: {
   hasTimeRestriction?: boolean;
   availableFrom?: string;
   availableTo?: string;
+  isBuyOneGetOne?: boolean;
 }) => {
   const form = new FormData();
   form.append("name", data.name);
@@ -270,6 +271,7 @@ export const createDish = async (data: {
   if (data.hasTimeRestriction !== undefined) form.append("hasTimeRestriction", String(data.hasTimeRestriction));
   if (data.availableFrom) form.append("availableFrom", data.availableFrom);
   if (data.availableTo) form.append("availableTo", data.availableTo);
+  if (data.isBuyOneGetOne !== undefined) form.append("isBuyOneGetOne", String(data.isBuyOneGetOne));
   return request("/dishes", { method: "POST", body: form });
 };
 
@@ -284,6 +286,7 @@ export const updateDish = async (id: string, data: {
   hasTimeRestriction?: boolean;
   availableFrom?: string;
   availableTo?: string;
+  isBuyOneGetOne?: boolean;
 }) => {
   const form = new FormData();
   if (data.name) form.append("name", data.name);
@@ -296,6 +299,7 @@ export const updateDish = async (id: string, data: {
   if (data.hasTimeRestriction !== undefined) form.append("hasTimeRestriction", String(data.hasTimeRestriction));
   if (data.availableFrom) form.append("availableFrom", data.availableFrom);
   if (data.availableTo) form.append("availableTo", data.availableTo);
+  if (data.isBuyOneGetOne !== undefined) form.append("isBuyOneGetOne", String(data.isBuyOneGetOne));
   return request(`/dishes/${id}`, { method: "PATCH", body: form });
 };
 

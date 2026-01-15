@@ -76,7 +76,7 @@ export class OrdersService {
     if (!sourceItems || sourceItems.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
-    const items = await Promise.all(
+    const items: Array<{ dish: Types.ObjectId; name: string; price: number; quantity: number; isFree?: boolean }> = await Promise.all(
       sourceItems.map(async (i: any) => {
         const dishId = i.dishId || i.dish?._id || i.dish;
         const qty = i.quantity;

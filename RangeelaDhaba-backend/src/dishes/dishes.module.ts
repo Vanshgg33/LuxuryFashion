@@ -13,7 +13,9 @@ import { SettingsModule } from '../settings/settings.module';
     MongooseModule.forFeature([{ name: Dish.name, schema: DishSchema }]),
     MulterModule.register({
       storage: memoryStorage(),
-      limits: { fileSize: 8 * 1024 * 1024 },
+      // Note: Vercel serverless functions have a 4.5MB hard limit for request body
+      // Setting to 4.5MB to maximize file size (accounting for multipart overhead)
+      limits: { fileSize: 4.5 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         const allowed = ['image/jpeg', 'image/png', 'image/webp'];
         if (allowed.includes(file.mimetype)) return cb(null, true);

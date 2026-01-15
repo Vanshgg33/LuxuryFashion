@@ -12,7 +12,8 @@ import { memoryStorage } from 'multer';
     MongooseModule.forFeature([{ name: Banner.name, schema: BannerSchema }]),
     MulterModule.register({
       storage: memoryStorage(),
-      limits: { fileSize: 8 * 1024 * 1024 },
+      // Note: Vercel serverless functions have a 4.5MB hard limit for request body
+      limits: { fileSize: 4.5 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         const allowed = ['image/jpeg', 'image/png', 'image/webp'];
         if (allowed.includes(file.mimetype)) return cb(null, true);

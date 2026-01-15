@@ -27,6 +27,7 @@ import {
 import { MapPicker } from "@/components/MapPicker";
 import { useState, useMemo, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
+import { compressImageForUpload } from "@/lib/imageUtils";
 import {
   ChartContainer,
   ChartTooltip,
@@ -71,6 +72,7 @@ const AdminDashboard = () => {
     hasTimeRestriction: false,
     availableFrom: "",
     availableTo: "",
+    isBuyOneGetOne: false,
   });
   const [settingsForm, setSettingsForm] = useState<{ lat?: number; lng?: number; address?: string; isDeliveryEnabled?: boolean; deliveryFee?: number; openingTime?: string; closingTime?: string; isOpen?: boolean; closureReason?: string }>({});
   const [isTogglingDelivery, setIsTogglingDelivery] = useState(false);
@@ -250,8 +252,9 @@ const AdminDashboard = () => {
         hasTimeRestriction: dishForm.hasTimeRestriction,
         availableFrom: dishForm.hasTimeRestriction ? dishForm.availableFrom : undefined,
         availableTo: dishForm.hasTimeRestriction ? dishForm.availableTo : undefined,
+        isBuyOneGetOne: dishForm.isBuyOneGetOne,
       });
-      setDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "" });
+      setDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", isBuyOneGetOne: false });
       setDishPreview(null);
       setShowAddDish(false);
       await loadData();
@@ -286,13 +289,14 @@ const AdminDashboard = () => {
       hasTimeRestriction: dish.hasTimeRestriction || false,
       availableFrom: dish.availableFrom || "",
       availableTo: dish.availableTo || "",
+      isBuyOneGetOne: dish.isBuyOneGetOne || false,
     });
     setEditDishPreview(dish.imageUrl || null);
   };
 
   const handleCloseEditDish = () => {
     setEditingDish(null);
-    setEditDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "" });
+    setEditDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", isBuyOneGetOne: false });
     setEditDishPreview(null);
   };
 
@@ -312,6 +316,7 @@ const AdminDashboard = () => {
         hasTimeRestriction: editDishForm.hasTimeRestriction,
         availableFrom: editDishForm.hasTimeRestriction ? editDishForm.availableFrom : undefined,
         availableTo: editDishForm.hasTimeRestriction ? editDishForm.availableTo : undefined,
+        isBuyOneGetOne: editDishForm.isBuyOneGetOne,
       });
       handleCloseEditDish();
       await loadData();
@@ -970,18 +975,69 @@ const AdminDashboard = () => {
                 )}
               </div>
 
+              {/* Buy 1 Get 1 Free Toggle */}
+              <div className="p-2 bg-secondary/50 rounded-lg space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-foreground flex items-center gap-1">
+                    <Package className="w-3 h-3" /> Buy 1 Get 1 Free
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDishForm({ ...dishForm, isBuyOneGetOne: !dishForm.isBuyOneGetOne })}
+                    className={cn(
+                      "relative w-9 h-5 rounded-full transition-colors",
+                      dishForm.isBuyOneGetOne ? "bg-primary" : "bg-gray-300"
+                    )}
+                  >
+                    <span className={cn(
+                      "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                      dishForm.isBuyOneGetOne ? "translate-x-4" : "translate-x-0.5"
+                    )} />
+                  </button>
+                </div>
+                {dishForm.isBuyOneGetOne && (
+                  <p className="text-xs text-muted-foreground">
+                    When enabled, customers will get 2 items for the price of 1
+                  </p>
+                )}
+              </div>
+
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files?.[0] || null;
-                  setDishForm({ ...dishForm, image: file });
-                  if (file) setDishPreview(URL.createObjectURL(file));
+                  if (file) {
+                    setCompressingImage(true);
+                    try {
+                      // Automatically compress image to under 4MB
+                      const compressedFile = await compressImageForUpload(file);
+                      setDishForm({ ...dishForm, image: compressedFile });
+                      setDishPreview(URL.createObjectURL(compressedFile));
+                      if (file.size > 4 * 1024 * 1024) {
+                        toast.success(`Image compressed from ${(file.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+                      }
+                    } catch (error) {
+                      console.error("Image compression failed:", error);
+                      toast.error("Failed to process image. Please try a different image.");
+                    } finally {
+                      setCompressingImage(false);
+                    }
+                  } else {
+                    setDishForm({ ...dishForm, image: null });
+                    setDishPreview(null);
+                  }
                 }}
               />
               {dishPreview && (
                 <div className="rounded-xl overflow-hidden border border-border">
                   <img src={dishPreview} alt="preview" className="w-full h-24 object-cover" />
+                </div>
+              )}
+              {compressingImage && (
+                <div className="text-xs text-muted-foreground flex items-center gap-2">
+                  <Progress value={50} className="h-1 flex-1" />
+                  <span>Compressing image...</span>
                 </div>
               )}
               {uploadingDish && <Progress value={60} className="h-2" />}
@@ -1334,7 +1390,7 @@ const AdminDashboard = () => {
                       Click to upload image
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      PNG, JPG up to 20MB
+                      PNG, JPG - Auto-compressed to 4MB
                     </p>
                   </div>
                 )}
@@ -1343,12 +1399,24 @@ const AdminDashboard = () => {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      if (file.size > 20 * 1024 * 1024) return;
-                      setEditDishForm({ ...editDishForm, image: file });
-                      setEditDishPreview(URL.createObjectURL(file));
+                      setCompressingImage(true);
+                      try {
+                        // Automatically compress image to under 4MB
+                        const compressedFile = await compressImageForUpload(file);
+                        setEditDishForm({ ...editDishForm, image: compressedFile });
+                        setEditDishPreview(URL.createObjectURL(compressedFile));
+                        if (file.size > 4 * 1024 * 1024) {
+                          toast.success(`Image compressed from ${(file.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+                        }
+                      } catch (error) {
+                        console.error("Image compression failed:", error);
+                        toast.error("Failed to process image. Please try a different image.");
+                      } finally {
+                        setCompressingImage(false);
+                      }
                     }
                   }}
                 />
@@ -1511,6 +1579,35 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Buy 1 Get 1 Free Toggle */}
+            <div className="p-3 bg-secondary/50 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground text-sm flex items-center gap-1.5">
+                    <Package className="w-4 h-4" /> Buy 1 Get 1 Free
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Customers will get 2 items for the price of 1
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditDishForm({ ...editDishForm, isBuyOneGetOne: !editDishForm.isBuyOneGetOne })}
+                  className={cn(
+                    "relative w-12 h-6 rounded-full transition-colors",
+                    editDishForm.isBuyOneGetOne ? "bg-primary" : "bg-gray-300"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                      editDishForm.isBuyOneGetOne ? "translate-x-7" : "translate-x-1"
+                    )}
+                  />
+                </button>
+              </div>
             </div>
 
             {savingDish && <Progress value={60} className="h-2" />}

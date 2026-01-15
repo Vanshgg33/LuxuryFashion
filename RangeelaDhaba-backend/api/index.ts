@@ -3,6 +3,7 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import express, { Request, Response } from 'express';
 import cookieParser from 'cookie-parser';
+import { json, urlencoded } from 'express';
 import { AppModule } from '../src/app.module';
 
 const expressApp = express();
@@ -48,6 +49,11 @@ async function createNestServer() {
     new ExpressAdapter(expressApp),
   );
 
+  // Increase body size limit for file uploads (4.5MB max for Vercel serverless)
+  // Note: Vercel has a hard limit of 4.5MB for serverless functions
+  expressApp.use(json({ limit: '4.5mb' }));
+  expressApp.use(urlencoded({ limit: '4.5mb', extended: true }));
+  
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

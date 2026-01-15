@@ -11,6 +11,7 @@ export interface FoodItem {
   isSpecial?: boolean;
   isTrending?: boolean;
   inStock?: boolean;
+  isBuyOneGetOne?: boolean;
 }
 
 export const categories = [
@@ -75,6 +76,7 @@ export async function fetchProducts(): Promise<FoodItem[]> {
         isSpecial: d.isSpecial,
         isTrending: d.isTrending,
         inStock: d.inStock !== undefined ? d.inStock : true,
+        isBuyOneGetOne: d.isBuyOneGetOne || false,
       };
     }).filter((item): item is FoodItem => item !== null);
   } catch (err) {

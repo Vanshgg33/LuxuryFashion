@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { compressImageForUpload } from "@/lib/imageUtils";
+import { toast } from "sonner";
 
 interface Banner {
   _id: string;
@@ -49,6 +51,7 @@ const AdminBanners = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [compressingImage, setCompressingImage] = useState(false);
 
   // Upload form state
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -79,15 +82,24 @@ const AdminBanners = () => {
     loadData();
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 8 * 1024 * 1024) {
-        alert('File size must be less than 8MB');
-        return;
+      setCompressingImage(true);
+      try {
+        // Automatically compress image to under 4MB
+        const compressedFile = await compressImageForUpload(file);
+        setUploadFile(compressedFile);
+        setUploadPreview(URL.createObjectURL(compressedFile));
+        if (file.size > 4 * 1024 * 1024) {
+          toast.success(`Image compressed from ${(file.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        }
+      } catch (error) {
+        console.error("Image compression failed:", error);
+        toast.error("Failed to process image. Please try a different image.");
+      } finally {
+        setCompressingImage(false);
       }
-      setUploadFile(file);
-      setUploadPreview(URL.createObjectURL(file));
     }
   };
 
@@ -307,7 +319,7 @@ const AdminBanners = () => {
                     Click to upload or drag and drop
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG, WebP up to 8MB
+                    PNG, JPG, WebP - Auto-compressed to 4MB
                   </p>
                 </div>
               )}
@@ -334,6 +346,15 @@ const AdminBanners = () => {
               />
             </div>
 
+            {/* Compression progress */}
+            {compressingImage && (
+              <div className="space-y-2">
+                <Progress value={50} className="h-2" />
+                <p className="text-xs text-center text-muted-foreground">
+                  Compressing image...
+                </p>
+              </div>
+            )}
             {/* Upload progress */}
             {uploading && (
               <div className="space-y-2">

@@ -164,6 +164,13 @@ export class DishesController {
       dishData.availableTo = body.availableTo || undefined;
     }
 
+    // Handle Buy 1 Get 1 Free field
+    if (body.isBuyOneGetOne !== undefined) {
+      dishData.isBuyOneGetOne = typeof body.isBuyOneGetOne === 'string'
+        ? body.isBuyOneGetOne.toLowerCase() === 'true' || body.isBuyOneGetOne === '1'
+        : Boolean(body.isBuyOneGetOne);
+    }
+
     // Upload image if provided
     if (file) {
       try {
@@ -171,7 +178,8 @@ export class DishesController {
         dishData.imageUrl = uploaded.secure_url;
       } catch (error) {
         console.error('Image upload failed:', error);
-        throw new BadRequestException(`Image upload failed: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        throw new BadRequestException(`Image upload failed: ${errorMessage}`);
       }
     }
 
@@ -237,6 +245,13 @@ export class DishesController {
     }
     if (body.availableTo !== undefined) {
       dto.availableTo = body.availableTo || undefined;
+    }
+
+    // Handle Buy 1 Get 1 Free field
+    if (body.isBuyOneGetOne !== undefined) {
+      dto.isBuyOneGetOne = typeof body.isBuyOneGetOne === 'string'
+        ? body.isBuyOneGetOne.toLowerCase() === 'true' || body.isBuyOneGetOne === '1'
+        : Boolean(body.isBuyOneGetOne);
     }
 
     if (file) {

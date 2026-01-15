@@ -152,13 +152,31 @@ export class CartService {
   }
 
   toResponse(cart: CartDocument) {
-    const items = cart.items.map((i: any) => ({
-      id: i._id,
-      dish: i.dish,
-      quantity: i.quantity,
-      price: i.dish?.price || 0,
-    }));
-    const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const items = cart.items.map((i: any) => {
+      const dish = i.dish;
+      const quantity = i.quantity;
+      const price = dish?.price || 0;
+      
+      // Handle Buy 1 Get 1 Free pricing
+      let itemTotal = 0;
+      if (dish?.isBuyOneGetOne && quantity > 0) {
+        // For BOGO: charge for half the quantity (rounded up)
+        // e.g., quantity 2 = charge for 1, quantity 3 = charge for 2, quantity 4 = charge for 2
+        const chargeableQuantity = Math.ceil(quantity / 2);
+        itemTotal = price * chargeableQuantity;
+      } else {
+        itemTotal = price * quantity;
+      }
+      
+      return {
+        id: i._id,
+        dish: dish,
+        quantity: quantity,
+        price: price,
+        itemTotal: itemTotal,
+      };
+    });
+    const total = items.reduce((sum, i) => sum + (i.itemTotal || i.price * i.quantity), 0);
     return { id: cart.id, cartItems: items, totalPrice: total };
   }
 }

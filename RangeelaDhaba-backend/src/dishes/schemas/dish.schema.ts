@@ -42,6 +42,9 @@ export class Dish {
 
   @Prop({ default: false })
   hasTimeRestriction: boolean;
+
+  @Prop({ default: false })
+  isBuyOneGetOne: boolean;
 }
 
 export const DishSchema = SchemaFactory.createForClass(Dish);

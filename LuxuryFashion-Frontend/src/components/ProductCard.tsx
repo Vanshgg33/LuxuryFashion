@@ -38,7 +38,9 @@ export function ProductCard({ item }: ProductCardProps) {
     setIsAdding(true);
     try {
       const dishId = String(item.id);
-      await addToCart(dishId, 1);
+      // If BOGO is enabled, add 2 quantities but charge for 1
+      const quantity = item.isBuyOneGetOne ? 2 : 1;
+      await addToCart(dishId, quantity);
     } catch (error: any) {
       console.error("Failed to add item:", error);
     } finally {
@@ -122,8 +124,17 @@ export function ProductCard({ item }: ProductCardProps) {
             </div>
           )}
 
+          {/* BOGO Badge */}
+          {item.isBuyOneGetOne && (
+            <div className="absolute bottom-3 left-3">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-primary to-accent text-white text-xs font-bold rounded-full shadow-lg">
+                🎁 Buy 1 Get 1
+              </span>
+            </div>
+          )}
+
           {/* Bestseller/Special Badge */}
-          {(item.isSpecial || item.isTrending) && (
+          {(item.isSpecial || item.isTrending) && !item.isBuyOneGetOne && (
             <div className="absolute bottom-3 left-3">
               <span className="badge-bestseller">
                 {item.isSpecial ? "Chef's Special" : "Popular"}

@@ -14,7 +14,8 @@
   ],
   "functions": {
     "api/index.ts": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "maxRequestBodySize": 4500000
     }
   }
 }
