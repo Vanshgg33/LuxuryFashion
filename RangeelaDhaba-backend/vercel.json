@@ -1,11 +1,11 @@
 {
-  "version": 3,
+  "version": 2,
   "functions": {
     "api/index.ts": {
       "runtime": "@vercel/node"
     }
   },
-  "rewrites": [
+  "routes": [
     {
       "source": "/(.*)",
       "destination": "/api/index.ts"
