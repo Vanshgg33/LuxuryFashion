@@ -16,11 +16,11 @@ export class CartController {
   @Post('items')
   add(
     @CurrentUser() user: any,
-    @Body() body: { dishId: string | number; quantity?: number },
+    @Body() body: { dishId: string | number; quantity?: number; isHalfPortion?: boolean },
   ) {
     // Ensure dishId is a string (handle both string and number inputs)
     const dishId = typeof body.dishId === 'number' ? String(body.dishId) : body.dishId;
-    return this.cartService.addItem(user.userId, dishId, body.quantity || 1);
+    return this.cartService.addItem(user.userId, dishId, body.quantity || 1, body.isHalfPortion || false);
   }
 
   @Patch('items/:itemId')

@@ -72,6 +72,8 @@ const AdminDashboard = () => {
     hasTimeRestriction: false,
     availableFrom: "",
     availableTo: "",
+    hasHalfPortion: false,
+    halfPortionPrice: "",
     isBuyOneGetOne: false,
   });
   const [settingsForm, setSettingsForm] = useState<{ lat?: number; lng?: number; address?: string; isDeliveryEnabled?: boolean; deliveryFee?: number; openingTime?: string; closingTime?: string; isOpen?: boolean; closureReason?: string }>({});
@@ -103,7 +105,9 @@ const AdminDashboard = () => {
     hasTimeRestriction: boolean;
     availableFrom: string;
     availableTo: string;
-  }>({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "" });
+    hasHalfPortion: boolean;
+    halfPortionPrice: string;
+  }>({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", hasHalfPortion: false, halfPortionPrice: "" });
   const [editDishPreview, setEditDishPreview] = useState<string | null>(null);
   const [savingDish, setSavingDish] = useState(false);
   const [showAddDish, setShowAddDish] = useState(false);
@@ -252,9 +256,11 @@ const AdminDashboard = () => {
         hasTimeRestriction: dishForm.hasTimeRestriction,
         availableFrom: dishForm.hasTimeRestriction ? dishForm.availableFrom : undefined,
         availableTo: dishForm.hasTimeRestriction ? dishForm.availableTo : undefined,
+        hasHalfPortion: dishForm.hasHalfPortion,
+        halfPortionPrice: dishForm.hasHalfPortion && dishForm.halfPortionPrice ? parseFloat(dishForm.halfPortionPrice) : undefined,
         isBuyOneGetOne: dishForm.isBuyOneGetOne,
       });
-      setDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", isBuyOneGetOne: false });
+      setDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", hasHalfPortion: false, halfPortionPrice: "", isBuyOneGetOne: false });
       setDishPreview(null);
       setShowAddDish(false);
       await loadData();
@@ -289,6 +295,8 @@ const AdminDashboard = () => {
       hasTimeRestriction: dish.hasTimeRestriction || false,
       availableFrom: dish.availableFrom || "",
       availableTo: dish.availableTo || "",
+      hasHalfPortion: dish.hasHalfPortion || false,
+      halfPortionPrice: dish.halfPortionPrice ? String(dish.halfPortionPrice) : "",
       isBuyOneGetOne: dish.isBuyOneGetOne || false,
     });
     setEditDishPreview(dish.imageUrl || null);
@@ -296,7 +304,7 @@ const AdminDashboard = () => {
 
   const handleCloseEditDish = () => {
     setEditingDish(null);
-    setEditDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", isBuyOneGetOne: false });
+    setEditDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", hasHalfPortion: false, halfPortionPrice: "" });
     setEditDishPreview(null);
   };
 
@@ -316,6 +324,8 @@ const AdminDashboard = () => {
         hasTimeRestriction: editDishForm.hasTimeRestriction,
         availableFrom: editDishForm.hasTimeRestriction ? editDishForm.availableFrom : undefined,
         availableTo: editDishForm.hasTimeRestriction ? editDishForm.availableTo : undefined,
+        hasHalfPortion: editDishForm.hasHalfPortion,
+        halfPortionPrice: editDishForm.hasHalfPortion && editDishForm.halfPortionPrice ? parseFloat(editDishForm.halfPortionPrice) : undefined,
         isBuyOneGetOne: editDishForm.isBuyOneGetOne,
       });
       handleCloseEditDish();
@@ -931,6 +941,40 @@ const AdminDashboard = () => {
                 In Stock
               </label>
 
+              {/* Half Portion Toggle */}
+              <div className="p-3 bg-secondary/50 rounded-lg space-y-2 border border-border/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">Half Portion Available</span>
+                  <button
+                    type="button"
+                    onClick={() => setDishForm({ ...dishForm, hasHalfPortion: !dishForm.hasHalfPortion })}
+                    className={cn(
+                      "relative w-11 h-6 rounded-full transition-colors",
+                      dishForm.hasHalfPortion ? "bg-primary" : "bg-gray-300"
+                    )}
+                  >
+                    <span className={cn(
+                      "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform",
+                      dishForm.hasHalfPortion ? "translate-x-5" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+                {dishForm.hasHalfPortion && (
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Half Portion Price</label>
+                    <input
+                      type="number"
+                      placeholder="Half portion price"
+                      value={dishForm.halfPortionPrice}
+                      onChange={(e) => setDishForm({ ...dishForm, halfPortionPrice: e.target.value })}
+                      className="input-styled w-full text-sm"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Time Restriction for Add Dish */}
               <div className="p-2 bg-secondary/50 rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
@@ -976,27 +1020,27 @@ const AdminDashboard = () => {
               </div>
 
               {/* Buy 1 Get 1 Free Toggle */}
-              <div className="p-2 bg-secondary/50 rounded-lg space-y-2">
+              <div className="p-3 bg-secondary/50 rounded-lg space-y-2 border border-border/50">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground flex items-center gap-1">
-                    <Package className="w-3 h-3" /> Buy 1 Get 1 Free
+                  <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Package className="w-4 h-4 text-primary" /> Buy 1 Get 1 Free
                   </span>
                   <button
                     type="button"
                     onClick={() => setDishForm({ ...dishForm, isBuyOneGetOne: !dishForm.isBuyOneGetOne })}
                     className={cn(
-                      "relative w-9 h-5 rounded-full transition-colors",
+                      "relative w-11 h-6 rounded-full transition-colors",
                       dishForm.isBuyOneGetOne ? "bg-primary" : "bg-gray-300"
                     )}
                   >
                     <span className={cn(
-                      "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
-                      dishForm.isBuyOneGetOne ? "translate-x-4" : "translate-x-0.5"
+                      "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform",
+                      dishForm.isBuyOneGetOne ? "translate-x-5" : "translate-x-0"
                     )} />
                   </button>
                 </div>
                 {dishForm.isBuyOneGetOne && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mt-1">
                     When enabled, customers will get 2 items for the price of 1
                   </p>
                 )}
@@ -1608,6 +1652,47 @@ const AdminDashboard = () => {
                   />
                 </button>
               </div>
+            </div>
+
+            {/* Half Portion Toggle */}
+            <div className="p-3 bg-secondary/50 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground text-sm">Half Portion Available</p>
+                  <p className="text-xs text-muted-foreground">
+                    Allow customers to order half portions at a different price
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditDishForm({ ...editDishForm, hasHalfPortion: !editDishForm.hasHalfPortion })}
+                  className={cn(
+                    "relative w-12 h-6 rounded-full transition-colors",
+                    editDishForm.hasHalfPortion ? "bg-primary" : "bg-gray-300"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                      editDishForm.hasHalfPortion ? "translate-x-7" : "translate-x-1"
+                    )}
+                  />
+                </button>
+              </div>
+              {editDishForm.hasHalfPortion && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Half Portion Price (₹)</label>
+                  <input
+                    type="number"
+                    value={editDishForm.halfPortionPrice}
+                    onChange={(e) => setEditDishForm({ ...editDishForm, halfPortionPrice: e.target.value })}
+                    placeholder="Half portion price"
+                    className="input-styled w-full"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              )}
             </div>
 
             {savingDish && <Progress value={60} className="h-2" />}

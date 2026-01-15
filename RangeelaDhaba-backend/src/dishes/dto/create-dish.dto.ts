@@ -61,6 +61,20 @@ export class CreateDishDto {
   })
   @IsBoolean()
   isBuyOneGetOne?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
+  @IsBoolean()
+  hasHalfPortion?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  halfPortionPrice?: number;
 }
 
 

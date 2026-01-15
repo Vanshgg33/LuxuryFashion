@@ -10,6 +10,9 @@ export class CartItem {
 
   @Prop({ default: 1 })
   quantity: number;
+
+  @Prop({ default: false })
+  isHalfPortion: boolean;
 }
 
 @Schema({ timestamps: true })

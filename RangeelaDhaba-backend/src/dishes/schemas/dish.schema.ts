@@ -45,6 +45,12 @@ export class Dish {
 
   @Prop({ default: false })
   isBuyOneGetOne: boolean;
+
+  @Prop({ default: false })
+  hasHalfPortion: boolean;
+
+  @Prop()
+  halfPortionPrice?: number;
 }
 
 export const DishSchema = SchemaFactory.createForClass(Dish);

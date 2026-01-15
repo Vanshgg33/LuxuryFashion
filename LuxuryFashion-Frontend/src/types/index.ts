@@ -36,6 +36,8 @@ export interface Dish {
   description?: string;
   imageUrl?: string;
   inStock?: boolean;
+  hasHalfPortion?: boolean;
+  halfPortionPrice?: number;
   createdAt?: string;
 }
 
@@ -46,6 +48,7 @@ export interface CartItem {
   dish: Dish;
   quantity: number;
   price: number;
+  isHalfPortion?: boolean;
 }
 
 export interface Cart {

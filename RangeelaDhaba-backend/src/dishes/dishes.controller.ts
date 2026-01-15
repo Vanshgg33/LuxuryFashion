@@ -164,6 +164,19 @@ export class DishesController {
       dishData.availableTo = body.availableTo || undefined;
     }
 
+    // Handle half portion fields
+    if (body.hasHalfPortion !== undefined) {
+      dishData.hasHalfPortion = typeof body.hasHalfPortion === 'string'
+        ? body.hasHalfPortion.toLowerCase() === 'true' || body.hasHalfPortion === '1'
+        : Boolean(body.hasHalfPortion);
+    }
+    if (body.halfPortionPrice !== undefined) {
+      const halfPrice = typeof body.halfPortionPrice === 'string' ? parseFloat(body.halfPortionPrice) : Number(body.halfPortionPrice);
+      if (!isNaN(halfPrice) && halfPrice > 0) {
+        dishData.halfPortionPrice = halfPrice;
+      }
+    }
+
     // Handle Buy 1 Get 1 Free field
     if (body.isBuyOneGetOne !== undefined) {
       dishData.isBuyOneGetOne = typeof body.isBuyOneGetOne === 'string'
@@ -245,6 +258,19 @@ export class DishesController {
     }
     if (body.availableTo !== undefined) {
       dto.availableTo = body.availableTo || undefined;
+    }
+
+    // Handle half portion fields
+    if (body.hasHalfPortion !== undefined) {
+      dto.hasHalfPortion = typeof body.hasHalfPortion === 'string'
+        ? body.hasHalfPortion.toLowerCase() === 'true' || body.hasHalfPortion === '1'
+        : Boolean(body.hasHalfPortion);
+    }
+    if (body.halfPortionPrice !== undefined) {
+      const halfPrice = typeof body.halfPortionPrice === 'string' ? parseFloat(body.halfPortionPrice) : Number(body.halfPortionPrice);
+      if (!isNaN(halfPrice) && halfPrice > 0) {
+        dto.halfPortionPrice = halfPrice;
+      }
     }
 
     // Handle Buy 1 Get 1 Free field

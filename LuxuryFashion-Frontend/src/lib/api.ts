@@ -192,8 +192,8 @@ export const reorderBanners = (orderedIds: string[]) => apiPost("/banners/reorde
 
 // Cart
 export const getCart = () => apiGet("/cart");
-export const addToCart = (dishId: number | string, quantity = 1) =>
-  apiPost("/cart/items", { dishId, quantity });
+export const addToCart = (dishId: number | string, quantity = 1, isHalfPortion = false) =>
+  apiPost("/cart/items", { dishId, quantity, isHalfPortion });
 export const updateCartItem = (itemId: number | string, quantity: number) =>
   apiPatch(`/cart/items/${itemId}`, { quantity });
 export const removeFromCart = (itemId: number | string) => apiDelete(`/cart/items/${itemId}`);
@@ -258,6 +258,8 @@ export const createDish = async (data: {
   hasTimeRestriction?: boolean;
   availableFrom?: string;
   availableTo?: string;
+  hasHalfPortion?: boolean;
+  halfPortionPrice?: number;
   isBuyOneGetOne?: boolean;
 }) => {
   const form = new FormData();
@@ -271,6 +273,8 @@ export const createDish = async (data: {
   if (data.hasTimeRestriction !== undefined) form.append("hasTimeRestriction", String(data.hasTimeRestriction));
   if (data.availableFrom) form.append("availableFrom", data.availableFrom);
   if (data.availableTo) form.append("availableTo", data.availableTo);
+  if (data.hasHalfPortion !== undefined) form.append("hasHalfPortion", String(data.hasHalfPortion));
+  if (data.halfPortionPrice !== undefined) form.append("halfPortionPrice", String(data.halfPortionPrice));
   if (data.isBuyOneGetOne !== undefined) form.append("isBuyOneGetOne", String(data.isBuyOneGetOne));
   return request("/dishes", { method: "POST", body: form });
 };
@@ -286,6 +290,8 @@ export const updateDish = async (id: string, data: {
   hasTimeRestriction?: boolean;
   availableFrom?: string;
   availableTo?: string;
+  hasHalfPortion?: boolean;
+  halfPortionPrice?: number;
   isBuyOneGetOne?: boolean;
 }) => {
   const form = new FormData();
@@ -299,6 +305,8 @@ export const updateDish = async (id: string, data: {
   if (data.hasTimeRestriction !== undefined) form.append("hasTimeRestriction", String(data.hasTimeRestriction));
   if (data.availableFrom) form.append("availableFrom", data.availableFrom);
   if (data.availableTo) form.append("availableTo", data.availableTo);
+  if (data.hasHalfPortion !== undefined) form.append("hasHalfPortion", String(data.hasHalfPortion));
+  if (data.halfPortionPrice !== undefined) form.append("halfPortionPrice", String(data.halfPortionPrice));
   if (data.isBuyOneGetOne !== undefined) form.append("isBuyOneGetOne", String(data.isBuyOneGetOne));
   return request(`/dishes/${id}`, { method: "PATCH", body: form });
 };

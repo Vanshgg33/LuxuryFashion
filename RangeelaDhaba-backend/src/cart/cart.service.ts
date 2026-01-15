@@ -74,8 +74,8 @@ export class CartService {
     return this.toResponse(cart);
   }
 
-  async addItem(userId: string, dishId: string, quantity = 1) {
-    this.logger.debug(`Adding item to cart - userId: ${userId}, dishId: ${dishId} (type: ${typeof dishId}), quantity: ${quantity}`);
+  async addItem(userId: string, dishId: string, quantity = 1, isHalfPortion = false) {
+    this.logger.debug(`Adding item to cart - userId: ${userId}, dishId: ${dishId} (type: ${typeof dishId}), quantity: ${quantity}, isHalfPortion: ${isHalfPortion}`);
     
     // Normalize dishId - ensure it's a string and trim whitespace
     const normalizedDishId = String(dishId).trim();
@@ -96,24 +96,28 @@ export class CartService {
       throw new NotFoundException('Dish out of stock');
     }
     
+    if (isHalfPortion && !dish.hasHalfPortion) {
+      throw new NotFoundException('Half portion not available for this dish');
+    }
+    
     // Get cart without populating to ensure consistent comparison
     const cart = await this.getOrCreate(userId, false);
     const dishObjectId = new Types.ObjectId(normalizedDishId);
     
-    // Find existing item by comparing dish IDs (when not populated, dish is ObjectId)
+    // Find existing item by comparing dish IDs and portion type
     const existing = cart.items.find((i: any) => {
       const itemDishId = i.dish instanceof Types.ObjectId 
         ? i.dish.toString() 
         : (i.dish?._id ? i.dish._id.toString() : i.dish?.toString());
-      return itemDishId === dishObjectId.toString();
+      return itemDishId === dishObjectId.toString() && i.isHalfPortion === isHalfPortion;
     });
     
     if (existing) {
       existing.quantity += quantity;
       this.logger.debug(`Updated existing cart item quantity to ${existing.quantity}`);
     } else {
-      cart.items.push({ dish: dishObjectId, quantity });
-      this.logger.debug(`Added new item to cart with quantity ${quantity}`);
+      cart.items.push({ dish: dishObjectId, quantity, isHalfPortion });
+      this.logger.debug(`Added new item to cart with quantity ${quantity}, isHalfPortion: ${isHalfPortion}`);
     }
     await cart.save();
     await cart.populate('items.dish');
@@ -155,7 +159,8 @@ export class CartService {
     const items = cart.items.map((i: any) => {
       const dish = i.dish;
       const quantity = i.quantity;
-      const price = dish?.price || 0;
+      const isHalfPortion = i.isHalfPortion || false;
+      const price = isHalfPortion && dish?.halfPortionPrice ? dish.halfPortionPrice : (dish?.price || 0);
       
       // Handle Buy 1 Get 1 Free pricing
       let itemTotal = 0;
@@ -172,6 +177,7 @@ export class CartService {
         id: i._id,
         dish: dish,
         quantity: quantity,
+        isHalfPortion: isHalfPortion,
         price: price,
         itemTotal: itemTotal,
       };

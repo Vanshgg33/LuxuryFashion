@@ -4,6 +4,7 @@ import { FoodItem } from "@/data/foodData";
 import { useCartContext } from "@/contexts/CartContext";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { PortionSelector } from "@/components/PortionSelector";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    KOLKATA KITCHEN — PRODUCT CARD
@@ -18,6 +19,10 @@ export function ProductCard({ item }: ProductCardProps) {
   const { addToCart, cartItems, updateQuantity, removeFromCart } = useCartContext();
   const [isAdding, setIsAdding] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedPortion, setSelectedPortion] = useState<{ isHalf: boolean; price: number }>({ 
+    isHalf: false, 
+    price: item.price 
+  });
 
   // Check if item is already in cart (safely handle undefined)
   const cart = cartItems || [];
@@ -40,7 +45,7 @@ export function ProductCard({ item }: ProductCardProps) {
       const dishId = String(item.id);
       // If BOGO is enabled, add 2 quantities but charge for 1
       const quantity = item.isBuyOneGetOne ? 2 : 1;
-      await addToCart(dishId, quantity);
+      await addToCart(dishId, quantity, selectedPortion.isHalf);
     } catch (error: any) {
       console.error("Failed to add item:", error);
     } finally {
@@ -79,7 +84,7 @@ export function ProductCard({ item }: ProductCardProps) {
     setIsAdding(true);
     try {
       const dishId = String(item.id);
-      await addToCart(dishId, 1);
+      await addToCart(dishId, 1, selectedPortion.isHalf);
     } catch (error: any) {
       console.error("Failed to increase quantity:", error);
     } finally {
@@ -167,10 +172,23 @@ export function ProductCard({ item }: ProductCardProps) {
           {/* Price & Add Button */}
           <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/50 gap-2">
             <div className="flex-shrink-0">
-              <p className="text-base sm:text-lg font-bold text-foreground">₹{item.price}</p>
-              {item.originalPrice && item.originalPrice > item.price && (
+              <p className="text-base sm:text-lg font-bold text-foreground">₹{selectedPortion.price}</p>
+              {item.hasHalfPortion && item.halfPortionPrice && !selectedPortion.isHalf && (
+                <p className="text-xs text-muted-foreground">Half: ₹{item.halfPortionPrice}</p>
+              )}
+              {item.originalPrice && item.originalPrice > selectedPortion.price && (
                 <p className="text-[10px] sm:text-xs text-muted-foreground line-through">₹{item.originalPrice}</p>
               )}
+            </div>
+
+            {/* Portion Selector */}
+            <div className="flex-1 max-w-[120px]">
+              <PortionSelector
+                hasHalfPortion={item.hasHalfPortion || false}
+                fullPrice={item.price}
+                halfPrice={item.halfPortionPrice}
+                onPortionChange={(isHalf, price) => setSelectedPortion({ isHalf, price })}
+              />
             </div>
 
             {/* Add to Cart Button */}
