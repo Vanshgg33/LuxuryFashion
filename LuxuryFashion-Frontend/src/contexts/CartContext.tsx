@@ -6,7 +6,7 @@ interface CartContextType {
   cartItems: BackendCartItem[];
   cartCount: number;
   cartTotal: number;
-  addToCart: (item: FoodItem | number | string, quantity?: number, size?: string) => Promise<void>;
+  addToCart: (item: FoodItem | number | string, quantity?: number, isHalfPortion?: boolean) => Promise<void>;
   removeFromCart: (id: number | string) => Promise<void>;
   updateQuantity: (id: number | string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -44,7 +44,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCartWrapper = async (
     item: FoodItem | number | string,
     quantity: number = 1,
-    size?: string
+    isHalfPortion: boolean = false
   ) => {
     let dishId: string | number;
     if (typeof item === "number" || typeof item === "string") {
@@ -54,7 +54,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // If it's a FoodItem, extract the ID
       dishId = item.id;
     }
-    await cart.addToCart(dishId, quantity, size);
+    await cart.addToCart(dishId, quantity, isHalfPortion);
   };
 
   // Wrapper to handle both number and string IDs

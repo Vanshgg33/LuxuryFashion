@@ -107,7 +107,8 @@ const AdminDashboard = () => {
     availableTo: string;
     hasHalfPortion: boolean;
     halfPortionPrice: string;
-  }>({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", hasHalfPortion: false, halfPortionPrice: "" });
+    isBuyOneGetOne: boolean;
+  }>({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", hasHalfPortion: false, halfPortionPrice: "", isBuyOneGetOne: false });
   const [editDishPreview, setEditDishPreview] = useState<string | null>(null);
   const [savingDish, setSavingDish] = useState(false);
   const [compressingImage, setCompressingImage] = useState(false);
@@ -305,7 +306,7 @@ const AdminDashboard = () => {
 
   const handleCloseEditDish = () => {
     setEditingDish(null);
-    setEditDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", hasHalfPortion: false, halfPortionPrice: "" });
+    setEditDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", hasHalfPortion: false, halfPortionPrice: "", isBuyOneGetOne: false });
     setEditDishPreview(null);
   };
 

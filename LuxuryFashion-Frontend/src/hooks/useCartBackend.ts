@@ -51,6 +51,7 @@ export interface BackendOrder {
 interface GuestCartItem {
   dishId: string;
   quantity: number;
+  isHalfPortion?: boolean;
   dish?: any; // Populated from products
 }
 
@@ -121,18 +122,23 @@ export function useCartBackend() {
         );
         if (!product) return null;
 
+        // Use half portion price if applicable
+        const price = item.isHalfPortion && product.halfPortionPrice
+          ? product.halfPortionPrice
+          : product.price;
+
         return {
-          id: item.dishId,
+          id: item.isHalfPortion ? `${item.dishId}-half` : item.dishId,
           dish: {
             _id: product._id || product.id,
-            name: product.name,
-            price: product.price,
+            name: item.isHalfPortion ? `${product.name} (Half)` : product.name,
+            price: price,
             imageUrl: product.imageUrl,
             category: product.dishCategory,
             inStock: product.inStock,
           },
           quantity: item.quantity,
-          price: product.price,
+          price: price,
         };
       })
       .filter(Boolean) as BackendCartItem[];
@@ -218,7 +224,7 @@ export function useCartBackend() {
       // Add each guest cart item to backend cart
       for (const item of guestCart) {
         try {
-          await apiAddToCart(item.dishId, item.quantity);
+          await apiAddToCart(item.dishId, item.quantity, item.isHalfPortion || false);
         } catch (err) {
           console.error("Error syncing item:", item.dishId, err);
         }
@@ -256,7 +262,7 @@ export function useCartBackend() {
         if (guestCart.length > 0) {
           for (const item of guestCart) {
             try {
-              await apiAddToCart(item.dishId, item.quantity);
+              await apiAddToCart(item.dishId, item.quantity, item.isHalfPortion || false);
             } catch (err) {
               console.error("Error syncing item:", item.dishId, err);
             }
@@ -301,14 +307,14 @@ export function useCartBackend() {
 
   // Add item to cart (guest or backend)
   const addToCart = useCallback(
-    async (productId: number | string, quantity: number = 1) => {
+    async (productId: number | string, quantity: number = 1, isHalfPortion: boolean = false) => {
       const dishId = String(productId);
 
       if (isLoggedIn) {
         // Use backend API for logged-in users
         try {
           setError(null);
-          const cart = await apiAddToCart(productId, quantity);
+          const cart = await apiAddToCart(productId, quantity, isHalfPortion);
           setCartItems(cart.cartItems || []);
           setCartTotal(cart.totalPrice || 0);
           setCartCount(
@@ -322,12 +328,15 @@ export function useCartBackend() {
       } else {
         // Use localStorage for guest users
         const guestCart = getGuestCart();
-        const existingIndex = guestCart.findIndex((item) => item.dishId === dishId);
+        // Find existing item with same dishId AND same portion type
+        const existingIndex = guestCart.findIndex(
+          (item) => item.dishId === dishId && item.isHalfPortion === isHalfPortion
+        );
 
         if (existingIndex >= 0) {
           guestCart[existingIndex].quantity += quantity;
         } else {
-          guestCart.push({ dishId, quantity });
+          guestCart.push({ dishId, quantity, isHalfPortion });
         }
 
         saveGuestCart(guestCart);
