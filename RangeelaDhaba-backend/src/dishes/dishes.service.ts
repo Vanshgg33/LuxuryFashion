@@ -101,8 +101,29 @@ export class DishesService {
   }
 
   async update(id: string, dto: UpdateDishDto) {
-    const dish = await this.dishModel.findByIdAndUpdate(id, dto, { new: true });
+    console.log('💾 Updating dish:', id);
+    console.log('💾 DTO received:', JSON.stringify(dto, null, 2));
+
+    // Build the update operation
+    const updateOp: any = { $set: {} };
+
+    // Copy all defined fields to $set
+    for (const [key, value] of Object.entries(dto)) {
+      if (value !== undefined) {
+        updateOp.$set[key] = value;
+      }
+    }
+
+    // If hasHalfPortion is explicitly set to false, clear halfPortionPrice
+    if (dto.hasHalfPortion === false && dto.halfPortionPrice === undefined) {
+      updateOp.$unset = { halfPortionPrice: 1 };
+    }
+
+    console.log('💾 Update operation:', JSON.stringify(updateOp, null, 2));
+
+    const dish = await this.dishModel.findByIdAndUpdate(id, updateOp, { new: true });
     if (!dish) throw new NotFoundException('Dish not found');
+    console.log('💾 Dish after update:', { hasHalfPortion: dish.hasHalfPortion, isBuyOneGetOne: dish.isBuyOneGetOne, halfPortionPrice: dish.halfPortionPrice });
     return dish;
   }
 

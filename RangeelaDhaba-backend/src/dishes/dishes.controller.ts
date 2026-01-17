@@ -261,6 +261,7 @@ export class DishesController {
     }
 
     // Handle half portion fields
+    console.log('📥 Raw body values:', { hasHalfPortion: body.hasHalfPortion, halfPortionPrice: body.halfPortionPrice, isBuyOneGetOne: body.isBuyOneGetOne });
     if (body.hasHalfPortion !== undefined) {
       dto.hasHalfPortion = typeof body.hasHalfPortion === 'string'
         ? body.hasHalfPortion.toLowerCase() === 'true' || body.hasHalfPortion === '1'
@@ -279,6 +280,7 @@ export class DishesController {
         ? body.isBuyOneGetOne.toLowerCase() === 'true' || body.isBuyOneGetOne === '1'
         : Boolean(body.isBuyOneGetOne);
     }
+    console.log('📤 Parsed DTO values:', { hasHalfPortion: dto.hasHalfPortion, halfPortionPrice: dto.halfPortionPrice, isBuyOneGetOne: dto.isBuyOneGetOne });
 
     if (file) {
       const uploaded = await this.cloudinary.uploadBuffer(file, 'dishes');

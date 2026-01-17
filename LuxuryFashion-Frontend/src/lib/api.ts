@@ -308,6 +308,13 @@ export const updateDish = async (id: string, data: {
   if (data.hasHalfPortion !== undefined) form.append("hasHalfPortion", String(data.hasHalfPortion));
   if (data.halfPortionPrice !== undefined) form.append("halfPortionPrice", String(data.halfPortionPrice));
   if (data.isBuyOneGetOne !== undefined) form.append("isBuyOneGetOne", String(data.isBuyOneGetOne));
+
+  // Debug: Log FormData contents
+  console.log('📋 FormData being sent:');
+  for (const [key, value] of form.entries()) {
+    console.log(`  ${key}: ${value}`);
+  }
+
   return request(`/dishes/${id}`, { method: "PATCH", body: form });
 };
 

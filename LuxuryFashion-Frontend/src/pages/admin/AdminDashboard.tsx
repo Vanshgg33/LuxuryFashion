@@ -315,7 +315,7 @@ const AdminDashboard = () => {
     if (!editDishForm.name || !editDishForm.price) return;
     setSavingDish(true);
     try {
-      await updateDish(editingDish._id, {
+      const updateData = {
         name: editDishForm.name,
         price: parseFloat(editDishForm.price),
         foodCategory: editDishForm.foodCategory || undefined,
@@ -329,7 +329,10 @@ const AdminDashboard = () => {
         hasHalfPortion: editDishForm.hasHalfPortion,
         halfPortionPrice: editDishForm.hasHalfPortion && editDishForm.halfPortionPrice ? parseFloat(editDishForm.halfPortionPrice) : undefined,
         isBuyOneGetOne: editDishForm.isBuyOneGetOne,
-      });
+      };
+      console.log('📤 Saving dish update:', { hasHalfPortion: updateData.hasHalfPortion, isBuyOneGetOne: updateData.isBuyOneGetOne, halfPortionPrice: updateData.halfPortionPrice });
+      const result = await updateDish(editingDish._id, updateData);
+      console.log('📥 Update result:', result);
       handleCloseEditDish();
       await loadData();
     } catch (err: any) {
