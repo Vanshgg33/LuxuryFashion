@@ -20,6 +20,8 @@ export interface OrderEmailData {
     quantity: number;
     price: number;
     isFree?: boolean;
+    isHalfPortion?: boolean;
+    isBuyOneGetOne?: boolean;
   }>;
   subtotal: number;
   discountAmount?: number;

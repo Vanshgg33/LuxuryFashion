@@ -61,6 +61,8 @@ interface OrderItem {
   quantity: number;
   price: number;
   isFree?: boolean;
+  isHalfPortion?: boolean;
+  isBuyOneGetOne?: boolean;
 }
 
 interface OrderDetails {
@@ -196,25 +198,37 @@ export const otpEmailTemplate = (name: string, otp: string): string => `
  * Order Placed/Confirmation Email Template
  */
 export const orderPlacedEmailTemplate = (order: OrderDetails): string => {
-  const itemsHtml = order.items.map(item => `
+  const itemsHtml = order.items.map(item => {
+    // Calculate price for BOGO items (charge for half, rounded up)
+    const chargeableQty = item.isBuyOneGetOne ? Math.ceil(item.quantity / 2) : item.quantity;
+    const itemTotal = item.price * chargeableQty;
+
+    // Build badges
+    const badges = [];
+    if (item.isFree) badges.push(`<span style="background-color: ${brandColors.success}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px;">FREE</span>`);
+    if (item.isHalfPortion) badges.push(`<span style="background-color: ${brandColors.accent}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px;">Half Portion</span>`);
+    if (item.isBuyOneGetOne) badges.push(`<span style="background-color: ${brandColors.primary}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px;">Buy 1 Get 1</span>`);
+
+    return `
     <tr>
       <td style="padding: 15px; border-bottom: 1px solid #f0f0f0;">
         <div style="display: flex; align-items: center;">
-          <span style="font-size: 24px; margin-right: 12px;">${item.isFree ? '🎁' : '🍽️'}</span>
+          <span style="font-size: 24px; margin-right: 12px;">${item.isFree ? '🎁' : item.isBuyOneGetOne ? '🎉' : '🍽️'}</span>
           <div>
             <p style="margin: 0; color: ${brandColors.dark}; font-weight: 600; font-size: 15px;">
               ${item.name}
-              ${item.isFree ? `<span style="background-color: ${brandColors.success}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px;">FREE</span>` : ''}
+              ${badges.join('')}
             </p>
-            <p style="margin: 5px 0 0 0; color: ${brandColors.gray}; font-size: 13px;">Qty: ${item.quantity}</p>
+            <p style="margin: 5px 0 0 0; color: ${brandColors.gray}; font-size: 13px;">Qty: ${item.quantity}${item.isBuyOneGetOne ? ` (Pay for ${chargeableQty})` : ''}</p>
           </div>
         </div>
       </td>
       <td style="padding: 15px; border-bottom: 1px solid #f0f0f0; text-align: right;">
-        <p style="margin: 0; color: ${item.isFree ? brandColors.success : brandColors.dark}; font-weight: 600; font-size: 15px;">${item.isFree ? 'FREE' : `₹${(item.price * item.quantity).toFixed(2)}`}</p>
+        <p style="margin: 0; color: ${item.isFree ? brandColors.success : brandColors.dark}; font-weight: 600; font-size: 15px;">${item.isFree ? 'FREE' : `₹${itemTotal.toFixed(2)}`}</p>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   const addressHtml = order.orderType === 'delivery' && order.address ? `
     <div style="background-color: ${brandColors.lightGray}; border-radius: 10px; padding: 20px; margin-top: 20px;">

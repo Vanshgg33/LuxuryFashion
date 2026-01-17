@@ -19,6 +19,12 @@ export class OrderItem {
 
   @Prop({ default: false })
   isFree?: boolean;
+
+  @Prop({ default: false })
+  isHalfPortion?: boolean;
+
+  @Prop({ default: false })
+  isBuyOneGetOne?: boolean;
 }
 
 @Schema({ timestamps: true })

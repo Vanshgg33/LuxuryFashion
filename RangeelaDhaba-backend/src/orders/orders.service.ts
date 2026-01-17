@@ -38,6 +38,8 @@ export class OrdersService {
         quantity: item.quantity,
         price: item.price,
         isFree: item.isFree,
+        isHalfPortion: item.isHalfPortion,
+        isBuyOneGetOne: item.isBuyOneGetOne,
       })),
       subtotal: order.subtotal,
       discountAmount: order.discountAmount,
@@ -76,17 +78,40 @@ export class OrdersService {
     if (!sourceItems || sourceItems.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
-    const items: Array<{ dish: Types.ObjectId; name: string; price: number; quantity: number; isFree?: boolean }> = await Promise.all(
+    const items: Array<{ dish: Types.ObjectId; name: string; price: number; quantity: number; isFree?: boolean; isHalfPortion?: boolean; isBuyOneGetOne?: boolean }> = await Promise.all(
       sourceItems.map(async (i: any) => {
         const dishId = i.dishId || i.dish?._id || i.dish;
         const qty = i.quantity;
+        const isHalfPortion = i.isHalfPortion || false;
         const dish = await this.dishesService.findOne(dishId);
         if (!dish) throw new NotFoundException('Dish not found');
         if (!dish.inStock) throw new BadRequestException('Dish is out of stock');
-        return { dish: dish._id, name: dish.name, price: dish.price, quantity: qty };
+
+        // Use half portion price if applicable
+        const price = isHalfPortion && dish.hasHalfPortion && dish.halfPortionPrice
+          ? dish.halfPortionPrice
+          : dish.price;
+
+        return {
+          dish: dish._id,
+          name: dish.name,
+          price,
+          quantity: qty,
+          isHalfPortion,
+          isBuyOneGetOne: dish.isBuyOneGetOne || false,
+        };
       }),
     );
-    let subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+    // Calculate subtotal with BOGO pricing
+    let subtotal = items.reduce((sum, item) => {
+      if (item.isBuyOneGetOne && item.quantity > 0) {
+        // For BOGO: charge for half the quantity (rounded up)
+        const chargeableQuantity = Math.ceil(item.quantity / 2);
+        return sum + item.price * chargeableQuantity;
+      }
+      return sum + item.price * item.quantity;
+    }, 0);
     let discountAmount = 0;
     let couponCode = null;
 
