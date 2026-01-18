@@ -20,9 +20,11 @@ export interface BackendCartItem {
     imageUrl?: string;
     category?: string;
     inStock?: boolean;
+    isBuyOneGetOne?: boolean;
   };
   quantity: number;
   price: number;
+  itemTotal?: number; // Backend-calculated total (includes BOGO discount)
 }
 
 export interface BackendCart {
@@ -127,6 +129,14 @@ export function useCartBackend() {
           ? product.halfPortionPrice
           : product.price;
 
+        // Calculate item total with BOGO discount
+        let itemTotal = price * item.quantity;
+        if (product.isBuyOneGetOne && item.quantity > 0) {
+          // For BOGO: charge for half the quantity (rounded up)
+          const chargeableQuantity = Math.ceil(item.quantity / 2);
+          itemTotal = price * chargeableQuantity;
+        }
+
         return {
           id: item.isHalfPortion ? `${item.dishId}-half` : item.dishId,
           dish: {
@@ -136,15 +146,18 @@ export function useCartBackend() {
             imageUrl: product.imageUrl,
             category: product.dishCategory,
             inStock: product.inStock,
+            isBuyOneGetOne: product.isBuyOneGetOne,
           },
           quantity: item.quantity,
           price: price,
+          itemTotal: itemTotal,
         };
       })
       .filter(Boolean) as BackendCartItem[];
 
     setCartItems(items);
-    setCartTotal(items.reduce((sum, item) => sum + item.price * item.quantity, 0));
+    // Use itemTotal for cart total (includes BOGO discount)
+    setCartTotal(items.reduce((sum, item) => sum + (item.itemTotal || item.price * item.quantity), 0));
     setCartCount(items.reduce((sum, item) => sum + item.quantity, 0));
   }, [products]);
 

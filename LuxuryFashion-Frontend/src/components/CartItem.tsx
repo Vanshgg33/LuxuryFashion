@@ -16,6 +16,14 @@ export function CartItem({ item }: CartItemProps) {
   const productName = item.dish?.name || "Dish";
   const productPrice = item.dish?.price || item.price;
   const isVeg = item.dish?.isVeg;
+  const isBogo = item.dish?.isBuyOneGetOne;
+
+  // Calculate item total with BOGO discount
+  const itemTotal = item.itemTotal !== undefined
+    ? item.itemTotal
+    : (isBogo && item.quantity > 0
+        ? productPrice * Math.ceil(item.quantity / 2)
+        : productPrice * item.quantity);
 
   const handleQuantityChange = async (newQuantity: number) => {
     if (isUpdating) return;
@@ -127,9 +135,16 @@ export function CartItem({ item }: CartItemProps) {
             </div>
 
             {/* Total Price */}
-            <p className="text-lg font-bold text-foreground tabular-nums">
-              ₹{(item.price * item.quantity).toFixed(2)}
-            </p>
+            <div className="text-right">
+              <p className="text-lg font-bold text-foreground tabular-nums">
+                ₹{itemTotal.toFixed(2)}
+              </p>
+              {isBogo && item.quantity >= 2 && (
+                <p className="text-xs text-green-600 font-medium">
+                  Buy 1 Get 1 Free!
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

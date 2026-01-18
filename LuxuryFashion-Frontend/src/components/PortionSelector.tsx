@@ -22,7 +22,11 @@ export function PortionSelector({
     return null;
   }
 
-  const handlePortionSelect = (portion: 'full' | 'half') => {
+  const handlePortionSelect = (e: React.MouseEvent, portion: 'full' | 'half') => {
+    // Prevent click from propagating to parent Link
+    e.preventDefault();
+    e.stopPropagation();
+
     setSelectedPortion(portion);
     const isHalf = portion === 'half';
     const price = isHalf ? halfPrice : fullPrice;
@@ -30,9 +34,9 @@ export function PortionSelector({
   };
 
   return (
-    <div className={cn("flex gap-1 mb-2", className)}>
+    <div className={cn("flex gap-1 mb-2", className)} onClick={(e) => e.stopPropagation()}>
       <button
-        onClick={() => handlePortionSelect('full')}
+        onClick={(e) => handlePortionSelect(e, 'full')}
         className={cn(
           "flex-1 px-2 py-1 text-xs rounded border transition-colors",
           selectedPortion === 'full'
@@ -43,7 +47,7 @@ export function PortionSelector({
         Full ₹{fullPrice}
       </button>
       <button
-        onClick={() => handlePortionSelect('half')}
+        onClick={(e) => handlePortionSelect(e, 'half')}
         className={cn(
           "flex-1 px-2 py-1 text-xs rounded border transition-colors",
           selectedPortion === 'half'

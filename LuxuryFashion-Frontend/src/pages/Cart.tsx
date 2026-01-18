@@ -122,11 +122,21 @@ const Cart = () => {
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [userPreferredOrderType, setUserPreferredOrderType] = useState<"delivery" | "takeaway">("delivery");
 
-  // Calculate totals
+  // Calculate totals - use itemTotal from backend (includes BOGO discount)
   const uniqueCartTotal = useMemo(() => {
     return uniqueCartItems.reduce((sum, item) => {
+      // Use itemTotal if available (includes BOGO discount), otherwise calculate
+      if (item.itemTotal !== undefined) {
+        return sum + item.itemTotal;
+      }
+      // Fallback: Calculate with BOGO discount if applicable
       const price = item.dish?.price || item.price || 0;
-      return sum + price * item.quantity;
+      const quantity = item.quantity || 0;
+      if (item.dish?.isBuyOneGetOne && quantity > 0) {
+        const chargeableQuantity = Math.ceil(quantity / 2);
+        return sum + price * chargeableQuantity;
+      }
+      return sum + price * quantity;
     }, 0);
   }, [uniqueCartItems]);
 
