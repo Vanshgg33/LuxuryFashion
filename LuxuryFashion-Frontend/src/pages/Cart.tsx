@@ -69,7 +69,7 @@ const Cart = () => {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const isPlacingOrderRef = useRef(false); // Prevent double submission
 
-  // Deduplicate cart items by dish ID
+  // Deduplicate cart items by dish ID and recalculate totals
   const uniqueCartItems = useMemo(() => {
     const itemMap = new Map<string, typeof cartItems[0]>();
     cartItems.forEach((item, index) => {
@@ -86,9 +86,24 @@ const Cart = () => {
 
       if (itemMap.has(dishIdStr)) {
         const existing = itemMap.get(dishIdStr)!;
-        itemMap.set(dishIdStr, { ...existing, quantity: existing.quantity + item.quantity });
+        const newQuantity = existing.quantity + item.quantity;
+        const price = existing.dish?.price || existing.price || 0;
+        // Recalculate itemTotal with BOGO discount if applicable
+        const isBogo = existing.dish?.isBuyOneGetOne;
+        const newItemTotal = isBogo && newQuantity > 0
+          ? price * Math.ceil(newQuantity / 2)
+          : price * newQuantity;
+        itemMap.set(dishIdStr, { ...existing, quantity: newQuantity, itemTotal: newItemTotal });
       } else {
-        itemMap.set(dishIdStr, { ...item });
+        // For new items, calculate itemTotal if not present
+        const price = item.dish?.price || item.price || 0;
+        const isBogo = item.dish?.isBuyOneGetOne;
+        const itemTotal = item.itemTotal !== undefined
+          ? item.itemTotal
+          : (isBogo && item.quantity > 0
+              ? price * Math.ceil(item.quantity / 2)
+              : price * item.quantity);
+        itemMap.set(dishIdStr, { ...item, itemTotal });
       }
     });
     return Array.from(itemMap.values());

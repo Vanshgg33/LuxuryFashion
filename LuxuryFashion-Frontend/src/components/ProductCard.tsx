@@ -182,7 +182,11 @@ export function ProductCard({ item }: ProductCardProps) {
             </div>
 
             {/* Portion Selector */}
-            <div className="flex-1 max-w-[120px]">
+            <div
+              className="flex-1 max-w-[120px]"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
               <PortionSelector
                 hasHalfPortion={item.hasHalfPortion || false}
                 fullPrice={item.price}
@@ -196,7 +200,8 @@ export function ProductCard({ item }: ProductCardProps) {
               // Show quantity controls if already in cart
               <div
                 className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-primary to-accent rounded-lg sm:rounded-xl overflow-hidden shadow-md"
-                onClick={(e) => e.preventDefault()}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onMouseDown={(e) => e.stopPropagation()}
               >
                 <button
                   onClick={handleDecreaseQuantity}

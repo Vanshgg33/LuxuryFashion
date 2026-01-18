@@ -34,9 +34,15 @@ export function PortionSelector({
   };
 
   return (
-    <div className={cn("flex gap-1 mb-2", className)} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={cn("flex gap-1 mb-2", className)}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       <button
+        type="button"
         onClick={(e) => handlePortionSelect(e, 'full')}
+        onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           "flex-1 px-2 py-1 text-xs rounded border transition-colors",
           selectedPortion === 'full'
@@ -47,7 +53,9 @@ export function PortionSelector({
         Full ₹{fullPrice}
       </button>
       <button
+        type="button"
         onClick={(e) => handlePortionSelect(e, 'half')}
+        onMouseDown={(e) => e.stopPropagation()}
         className={cn(
           "flex-1 px-2 py-1 text-xs rounded border transition-colors",
           selectedPortion === 'half'
