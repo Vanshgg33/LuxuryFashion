@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
           <h1 className="text-2xl font-display font-bold text-foreground">Login required</h1>
           <p className="text-muted-foreground">Please sign in to continue.</p>
           <Link
-            to="/login"
+            to="/auth"
             state={{ from: location.pathname }}
             className="btn-primary inline-flex items-center justify-center gap-2"
           >

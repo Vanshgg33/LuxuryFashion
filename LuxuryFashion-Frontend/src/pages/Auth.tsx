@@ -1,18 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const AuthPage = () => {
   const { loginUser, registerUser } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const location = useLocation();
+  const locationState = location.state as { from?: string; mode?: "login" | "register" } | null;
+  const [mode, setMode] = useState<"login" | "register">(locationState?.mode || "login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Update mode when location state changes (e.g., navigating from cart)
+  useEffect(() => {
+    if (locationState?.mode) {
+      setMode(locationState.mode);
+    }
+  }, [locationState?.mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +33,9 @@ const AuthPage = () => {
       } else {
         await registerUser(form.name, form.email, form.password, remember);
       }
-      navigate("/");
+      // Redirect to the original page or home
+      const redirectTo = locationState?.from || "/";
+      navigate(redirectTo);
     } catch (err: any) {
       // Extract error message from API response
       let errorMessage = "An error occurred. Please try again.";

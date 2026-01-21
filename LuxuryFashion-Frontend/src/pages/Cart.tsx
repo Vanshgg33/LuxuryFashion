@@ -1001,7 +1001,7 @@ const Cart = () => {
               </p>
               <div className="flex flex-col gap-3">
                 <Link
-                  to="/login"
+                  to="/auth"
                   state={{ from: "/cart" }}
                   className="btn-primary justify-center"
                 >
@@ -1009,8 +1009,8 @@ const Cart = () => {
                   Login to Continue
                 </Link>
                 <Link
-                  to="/register"
-                  state={{ from: "/cart" }}
+                  to="/auth"
+                  state={{ from: "/cart", mode: "register" }}
                   className="btn-secondary justify-center"
                 >
                   Create Account
