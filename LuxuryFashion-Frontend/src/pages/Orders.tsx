@@ -129,7 +129,7 @@ const Orders = () => {
               className="animate-fade-in-up"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <OrderCard order={order} />
+              <OrderCard order={order} onOrderCancelled={() => loadOrders(true)} />
             </div>
           ))}
         </div>

@@ -61,6 +61,41 @@ export class ReviewsService {
     ]);
     return result[0] || { averageRating: 0, totalReviews: 0 };
   }
+
+  // Admin methods
+  async findAll() {
+    return this.reviewModel
+      .find()
+      .populate('user', 'name email')
+      .populate('dish', 'name imageUrl')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async toggleVisibility(reviewId: string) {
+    const review = await this.reviewModel.findById(reviewId);
+    if (!review) throw new NotFoundException('Review not found');
+    review.isVisible = !review.isVisible;
+    await review.save();
+    return review.populate(['user', 'dish']);
+  }
+
+  async adminDelete(reviewId: string) {
+    const review = await this.reviewModel.findByIdAndDelete(reviewId);
+    if (!review) throw new NotFoundException('Review not found');
+    return review;
+  }
+
+  // Get top reviews for homepage testimonials
+  async getTopReviews(limit: number = 6) {
+    return this.reviewModel
+      .find({ isVisible: true, rating: { $gte: 4 }, comment: { $ne: '', $exists: true } })
+      .populate('user', 'name')
+      .populate('dish', 'name')
+      .sort({ rating: -1, createdAt: -1 })
+      .limit(limit)
+      .exec();
+  }
 }
 
 

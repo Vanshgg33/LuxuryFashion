@@ -128,7 +128,7 @@ const Cart = () => {
     country: "India",
     phoneNumber: "",
   });
-  const [settings, setSettings] = useState<{ lat?: number; lng?: number; isDeliveryEnabled?: boolean; deliveryFee?: number }>({});
+  const [settings, setSettings] = useState<{ lat?: number; lng?: number; isDeliveryEnabled?: boolean; deliveryFee?: number; minOrderValue?: number }>({});
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [showCouponInput, setShowCouponInput] = useState(false);
   const [activeCoupons, setActiveCoupons] = useState<any[]>([]);
@@ -155,8 +155,8 @@ const Cart = () => {
     }, 0);
   }, [uniqueCartItems]);
 
-  // Determine if delivery is available (delivery enabled AND distance <= 5km)
-  const isDeliveryAvailable = settings.isDeliveryEnabled && (distanceKm === null || distanceKm <= 5);
+  // Determine if delivery is available (delivery enabled AND distance <= 2km)
+  const isDeliveryAvailable = settings.isDeliveryEnabled && (distanceKm === null || distanceKm <= 2);
 
   // Final order type based on availability and user preference
   const finalOrderType = !isDeliveryAvailable ? "takeaway" : userPreferredOrderType;
@@ -171,6 +171,11 @@ const Cart = () => {
   const discount = appliedCoupon?.valid ? (appliedCoupon.discount || 0) : 0;
   const grandTotal = uniqueCartTotal + deliveryFee - discount;
 
+  // Minimum order validation
+  const minOrderValue = settings.minOrderValue || 0;
+  const isMinOrderMet = minOrderValue === 0 || uniqueCartTotal >= minOrderValue;
+  const amountNeededForMinOrder = minOrderValue > 0 ? minOrderValue - uniqueCartTotal : 0;
+
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -183,6 +188,7 @@ const Cart = () => {
           lng: settingsData.lng,
           isDeliveryEnabled: settingsData.isDeliveryEnabled ?? true,
           deliveryFee: settingsData.deliveryFee ?? 40,
+          minOrderValue: settingsData.minOrderValue ?? 0,
         });
         setRestaurantStatus(openStatus);
       } catch (err) {
@@ -532,6 +538,21 @@ const Cart = () => {
                 </div>
               )}
 
+              {/* Minimum Order Value Notice */}
+              {minOrderValue > 0 && !isMinOrderMet && (
+                <div className="mb-5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag className="w-4 h-4 text-amber-600" />
+                    <p className="text-sm font-medium text-amber-700">
+                      Minimum Order: ₹{minOrderValue}
+                    </p>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-1">
+                    Add ₹{amountNeededForMinOrder.toFixed(2)} more to place your order
+                  </p>
+                </div>
+              )}
+
               {/* Delivery Status Notice */}
               {restaurantStatus?.isOpen && settings.isDeliveryEnabled === false && (
                 <div className="mb-5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -593,9 +614,9 @@ const Cart = () => {
                       <span className="text-xs text-muted-foreground">15-20 min</span>
                     </button>
                   </div>
-                  {!isDeliveryAvailable && settings.isDeliveryEnabled && distanceKm !== null && distanceKm > 5 && (
+                  {!isDeliveryAvailable && settings.isDeliveryEnabled && distanceKm !== null && distanceKm > 2 && (
                     <p className="text-xs text-amber-600 mt-2 text-center">
-                      Delivery not available for distance &gt; 5km
+                      Delivery not available for distance &gt; 2km
                     </p>
                   )}
                 </div>
@@ -866,11 +887,11 @@ const Cart = () => {
                     ) : distanceKm !== null && (
                       <div className={cn(
                         "p-2.5 rounded-lg text-xs",
-                        distanceKm > 5
+                        distanceKm > 2
                           ? "bg-mustard/20 text-mustard-dark"
                           : "bg-bengali-green/10 text-bengali-green"
                       )}>
-                        {distanceKm > 5 ? `Takeaway only (${distanceKm.toFixed(1)} km)` : `Delivery available (${distanceKm.toFixed(1)} km)`}
+                        {distanceKm > 2 ? `Takeaway only (${distanceKm.toFixed(1)} km)` : `Delivery available (${distanceKm.toFixed(1)} km)`}
                       </div>
                     )}
 
@@ -951,7 +972,7 @@ const Cart = () => {
                     setShowAddressForm(true);
                   }
                 }}
-                disabled={isPlacingOrder || cartLoading || (restaurantStatus && !restaurantStatus.isOpen)}
+                disabled={isPlacingOrder || cartLoading || (restaurantStatus && !restaurantStatus.isOpen) || !isMinOrderMet}
                 className="w-full btn-primary justify-center mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPlacingOrder ? (
@@ -960,6 +981,11 @@ const Cart = () => {
                   <>
                     <Clock className="w-4 h-4" />
                     Restaurant Closed
+                  </>
+                ) : !isMinOrderMet ? (
+                  <>
+                    <ShoppingBag className="w-4 h-4" />
+                    Add ₹{amountNeededForMinOrder.toFixed(0)} more
                   </>
                 ) : !isLoggedIn ? (
                   <>

@@ -22,6 +22,10 @@ export class UpdateSettingsDto {
   deliveryFee?: number;
 
   @IsOptional()
+  @IsNumber()
+  minOrderValue?: number;
+
+  @IsOptional()
   @IsString()
   openingTime?: string;
 

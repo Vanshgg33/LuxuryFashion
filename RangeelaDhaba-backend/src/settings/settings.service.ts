@@ -21,6 +21,7 @@ export class SettingsService {
       supportPhone: process.env.SUPPORT_PHONE || '+91 89812 60291',
       isDeliveryEnabled: true,
       deliveryFee: 40,
+      minOrderValue: 0,
       openingTime: '09:00',
       closingTime: '22:00',
       isOpen: true,

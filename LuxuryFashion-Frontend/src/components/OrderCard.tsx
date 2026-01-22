@@ -1,10 +1,14 @@
-import { Package, Clock, CheckCircle, Truck, ArrowRight, XCircle, ChefHat, Gift } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, ArrowRight, XCircle, ChefHat, Gift, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 import { BackendOrder } from "@/hooks/useCartBackend";
 import { cn } from "@/lib/utils";
+import { cancelOrder } from "@/lib/api";
+import { toast } from "sonner";
 
 interface OrderCardProps {
   order: BackendOrder;
+  onOrderCancelled?: () => void;
 }
 
 // Backend status values: placed, preparing, ready_for_pickup, out_for_delivery, delivered, cancelled
@@ -75,7 +79,7 @@ const statusConfig: Record<
   },
 };
 
-export function OrderCard({ order }: OrderCardProps) {
+export function OrderCard({ order, onOrderCancelled }: OrderCardProps) {
   const statusKey = order.status?.toUpperCase() || "PENDING";
   const status = statusConfig[statusKey] || statusConfig.PENDING;
   const StatusIcon = status.icon;
@@ -99,6 +103,66 @@ export function OrderCard({ order }: OrderCardProps) {
   const orderId = order.id || order._id;
   const shortOrderId = typeof orderId === 'string' ? orderId.slice(-8).toUpperCase() : orderId;
   const itemCount = order.items?.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0) || 0;
+
+  // Cancellation state
+  const [cancelTimeRemaining, setCancelTimeRemaining] = useState(0);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  // Calculate time remaining for cancellation
+  const calculateTimeRemaining = useCallback(() => {
+    if (!rawDate) return 0;
+    const orderTimeMs = new Date(rawDate).getTime();
+    const now = Date.now();
+    const twoMinutesInMs = 2 * 60 * 1000;
+    return Math.max(0, twoMinutesInMs - (now - orderTimeMs));
+  }, [rawDate]);
+
+  // Check if order can be cancelled
+  const canCancel = ['placed', 'preparing'].includes(order.status?.toLowerCase() || '') && cancelTimeRemaining > 0;
+
+  // Update countdown timer
+  useEffect(() => {
+    setCancelTimeRemaining(calculateTimeRemaining());
+
+    const interval = setInterval(() => {
+      const remaining = calculateTimeRemaining();
+      setCancelTimeRemaining(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [calculateTimeRemaining]);
+
+  // Format time remaining
+  const formatTimeRemaining = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Handle cancel
+  const handleCancel = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!orderId || !confirm("Are you sure you want to cancel this order?")) return;
+
+    setIsCancelling(true);
+    try {
+      await cancelOrder(orderId.toString());
+      toast.success("Order cancelled successfully");
+      if (onOrderCancelled) {
+        onOrderCancelled();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel order");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   return (
     <Link to={`/order/${orderId}`} className="block group">
@@ -187,6 +251,25 @@ export function OrderCard({ order }: OrderCardProps) {
               </div>
             )}
           </div>
+
+          {/* Cancel Button - Show when order can be cancelled */}
+          {canCancel && (
+            <div className="flex items-center justify-between p-3 mb-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-xs text-red-600 dark:text-red-400">
+                  Cancel within <span className="font-bold tabular-nums">{formatTimeRemaining(cancelTimeRemaining)}</span>
+                </span>
+              </div>
+              <button
+                onClick={handleCancel}
+                disabled={isCancelling}
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isCancelling ? "..." : "Cancel Order"}
+              </button>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-border/50">

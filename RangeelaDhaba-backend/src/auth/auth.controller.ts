@@ -51,13 +51,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   me(@CurrentUser() user: any) {
-    return user;
+    // Fetch full user profile from database (includes address)
+    return this.authService.getProfile(user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('me')
   updateProfile(@CurrentUser() user: any, @Body() dto: { name?: string; phone?: string; address?: Record<string, any> }) {
-    return this.authService.updateProfile(user._id, dto);
+    return this.authService.updateProfile(user.userId, dto);
   }
 
   @Get('google')

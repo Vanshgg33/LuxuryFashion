@@ -112,6 +112,15 @@ export class OrdersService {
       }
       return sum + item.price * item.quantity;
     }, 0);
+
+    // Check minimum order value
+    const minOrderValue = settings.minOrderValue || 0;
+    if (minOrderValue > 0 && subtotal < minOrderValue) {
+      throw new BadRequestException(
+        `Minimum order value is ₹${minOrderValue}. Please add ₹${(minOrderValue - subtotal).toFixed(2)} more to place your order.`
+      );
+    }
+
     let discountAmount = 0;
     let couponCode = null;
 
@@ -164,7 +173,7 @@ export class OrdersService {
       orderType = 'takeaway';
     } else {
       // Normal distance-based logic
-      orderType = distance <= 5 ? 'delivery' : 'takeaway';
+      orderType = distance <= 2 ? 'delivery' : 'takeaway';
     }
 
     const order = await this.orderModel.create({
@@ -268,6 +277,113 @@ export class OrdersService {
     }
 
     return order;
+  }
+
+  /**
+   * Cancel order - only allowed within 2 minutes of placing
+   */
+  async cancelOrder(orderId: string, userId: string) {
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(orderId)) {
+      throw new BadRequestException('Invalid order ID format');
+    }
+
+    const order = await this.orderModel.findOne({ _id: orderId, user: userId }).populate('user', 'name email');
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Check if order is already cancelled or delivered
+    if (order.status === 'cancelled') {
+      throw new BadRequestException('Order is already cancelled');
+    }
+
+    if (order.status === 'delivered') {
+      throw new BadRequestException('Cannot cancel a delivered order');
+    }
+
+    // Check if order is still within cancellation window (2 minutes)
+    const orderTime = new Date((order as any).createdAt).getTime();
+    const now = Date.now();
+    const twoMinutesInMs = 2 * 60 * 1000;
+    const timeElapsed = now - orderTime;
+
+    if (timeElapsed > twoMinutesInMs) {
+      throw new BadRequestException(
+        'Cancellation window has expired. Orders can only be cancelled within 2 minutes of placing.'
+      );
+    }
+
+    // Only allow cancellation if status is 'placed' or 'preparing'
+    if (!['placed', 'preparing'].includes(order.status)) {
+      throw new BadRequestException(
+        `Cannot cancel order with status "${order.status}". Please contact support.`
+      );
+    }
+
+    // Update order status to cancelled
+    order.status = 'cancelled';
+    await order.save();
+
+    const user = order.user as any;
+
+    // Notify user
+    await this.notificationsService.notifyOrderStatus(
+      user._id.toString(),
+      orderId,
+      'cancelled',
+    );
+
+    // Send cancellation email
+    try {
+      const emailData = await this.buildOrderEmailData(order, user);
+      await this.mailerService.sendOrderCancelled(emailData, 'Cancelled by customer');
+    } catch (error) {
+      console.error('Failed to send cancellation email:', error);
+    }
+
+    return {
+      success: true,
+      message: 'Order cancelled successfully',
+      order,
+    };
+  }
+
+  /**
+   * Check if order can be cancelled (within 2 min window)
+   */
+  async canCancelOrder(orderId: string, userId: string) {
+    if (!Types.ObjectId.isValid(orderId)) {
+      return { canCancel: false, reason: 'Invalid order ID', timeRemaining: 0 };
+    }
+
+    const order = await this.orderModel.findOne({ _id: orderId, user: userId });
+    if (!order) {
+      return { canCancel: false, reason: 'Order not found', timeRemaining: 0 };
+    }
+
+    if (order.status === 'cancelled') {
+      return { canCancel: false, reason: 'Order already cancelled', timeRemaining: 0 };
+    }
+
+    if (order.status === 'delivered') {
+      return { canCancel: false, reason: 'Order already delivered', timeRemaining: 0 };
+    }
+
+    if (!['placed', 'preparing'].includes(order.status)) {
+      return { canCancel: false, reason: `Order is ${order.status}`, timeRemaining: 0 };
+    }
+
+    const orderTime = new Date((order as any).createdAt).getTime();
+    const now = Date.now();
+    const twoMinutesInMs = 2 * 60 * 1000;
+    const timeRemaining = Math.max(0, twoMinutesInMs - (now - orderTime));
+
+    if (timeRemaining <= 0) {
+      return { canCancel: false, reason: 'Cancellation window expired', timeRemaining: 0 };
+    }
+
+    return { canCancel: true, reason: null, timeRemaining };
   }
 
   async summary() {

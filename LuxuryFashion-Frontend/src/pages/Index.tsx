@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { fetchProducts } from "@/data/foodData";
-import { fetchGallery } from "@/lib/api";
+import { fetchGallery, getTopReviews } from "@/lib/api";
 import type { FoodItem } from "@/data/foodData";
 import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/ProductCard";
@@ -68,16 +68,19 @@ const Index = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [foodFilter, setFoodFilter] = useState<'all' | 'veg' | 'nonveg' | 'southindian'>('all');
+  const [testimonials, setTestimonials] = useState<any[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [prods, bannerData] = await Promise.all([
+        const [prods, bannerData, reviewsData] = await Promise.all([
           fetchProducts(),
           fetchGallery().catch(() => []),
+          getTopReviews(6).catch(() => []),
         ]);
         setProducts(prods);
         setBanners(bannerData || []);
+        setTestimonials(Array.isArray(reviewsData) ? reviewsData : []);
       } catch (err) {
         console.error("Error loading data:", err);
       } finally {
@@ -433,8 +436,8 @@ const Index = () => {
                     <ChefHat className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <p className="font-serif font-semibold text-foreground">15+ Years</p>
-                    <p className="text-sm text-muted-foreground">of Excellence</p>
+                    <p className="font-serif font-semibold text-foreground">Since 2020</p>
+                    <p className="text-sm text-muted-foreground">Serving with Love</p>
                   </div>
                 </div>
               </div>
@@ -449,14 +452,14 @@ const Index = () => {
                 About Rangeela Dhaba
               </h2>
               <p className="text-muted-foreground mb-6 leading-relaxed">
-                Welcome to Rangeela Dhaba, where tradition meets taste. Founded with a passion for authentic
-                Bengali cuisine, we bring you the rich flavors of Kolkata right to your table. Our chefs,
-                with decades of experience, craft each dish using time-honored recipes and the freshest ingredients.
+                Welcome to Rangeela Dhaba, a vibrant multi-cuisine restaurant founded by Rahul Saha in 2020.
+                We bring you the authentic taste of India with a colorful twist - from rich North Indian curries
+                to sizzling tandoori dishes, Chinese delights, and classic dhaba-style meals.
               </p>
               <p className="text-muted-foreground mb-8 leading-relaxed">
-                From the aromatic Kosha Mangsho to the delicate Machher Jhol, every dish tells
-                a story of Bengal's diverse culinary heritage. We believe in serving not just food, but
-                an experience that transports you to the heart of Kolkata's hospitality.
+                At Rangeela Dhaba, every dish is prepared with fresh ingredients, homely flavors, and a touch of love.
+                Whether you're here for a family dinner, a casual meal with friends, or a quick takeaway, we promise
+                great taste, warm hospitality, and a memorable dining experience.
               </p>
 
               {/* Info Cards */}
@@ -522,26 +525,34 @@ const Index = () => {
 
           {/* Reviews Grid */}
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                name: "Anindita Roy",
-                text: "The Kosha Mangsho reminds me of my grandmother's cooking. Absolutely authentic Bengali taste!",
-                rating: 5,
-                dish: "Kosha Mangsho",
-              },
-              {
-                name: "Rajesh Banerjee",
-                text: "Best fish curry in the area. The mustard oil and spices are perfectly balanced.",
-                rating: 5,
-                dish: "Machher Jhol",
-              },
-              {
-                name: "Suchitra Das",
-                text: "Quick delivery, hot food, and the Mishti Doi is to die for. My family's favorite!",
-                rating: 5,
-                dish: "Mishti Doi",
-              },
-            ].map((review, index) => (
+            {(testimonials.length > 0
+              ? testimonials.slice(0, 3).map((review) => ({
+                  name: review.user?.name || "Happy Customer",
+                  text: review.comment || "Great food and service!",
+                  rating: review.rating,
+                  dish: review.dish?.name || "Delicious Dish",
+                }))
+              : [
+                  {
+                    name: "Anindita Roy",
+                    text: "The Kosha Mangsho reminds me of my grandmother's cooking. Absolutely authentic Bengali taste!",
+                    rating: 5,
+                    dish: "Kosha Mangsho",
+                  },
+                  {
+                    name: "Rajesh Banerjee",
+                    text: "Best fish curry in the area. The mustard oil and spices are perfectly balanced.",
+                    rating: 5,
+                    dish: "Machher Jhol",
+                  },
+                  {
+                    name: "Suchitra Das",
+                    text: "Quick delivery, hot food, and the Mishti Doi is to die for. My family's favorite!",
+                    rating: 5,
+                    dish: "Mishti Doi",
+                  },
+                ]
+            ).map((review, index) => (
               <div
                 key={index}
                 className="feature-card text-left animate-fade-in-up"

@@ -35,6 +35,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminBanners from "./pages/admin/AdminBanners";
+import AdminReviews from "./pages/admin/AdminReviews";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -195,6 +196,14 @@ const App = () => {
                   element={
                     <AdminRoute>
                       <AdminBanners />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/reviews"
+                  element={
+                    <AdminRoute>
+                      <AdminReviews />
                     </AdminRoute>
                   }
                 />

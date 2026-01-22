@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, Users, ShoppingBag, ArrowLeft, Ticket, Image, Bell, Volume2, VolumeX } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, ArrowLeft, Ticket, Image, Bell, Volume2, VolumeX, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminOrderNotifications } from "@/hooks/useAdminOrderNotifications";
 import { useState } from "react";
@@ -10,6 +10,7 @@ const adminNavItems = [
   { path: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { path: "/admin/coupons", label: "Coupons", icon: Ticket },
   { path: "/admin/banners", label: "Banners", icon: Image },
+  { path: "/admin/reviews", label: "Reviews", icon: MessageSquare },
 ];
 
 export function AdminLayout() {

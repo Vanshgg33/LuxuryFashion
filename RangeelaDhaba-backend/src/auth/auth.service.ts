@@ -137,6 +137,12 @@ export class AuthService {
     return { message: 'Password reset successful' };
   }
 
+  async getProfile(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new UnauthorizedException('User not found');
+    return this.safeUser(user);
+  }
+
   async updateProfile(userId: string, dto: { name?: string; phone?: string; address?: Record<string, any> }) {
     const updateData: any = {};
     if (dto.name) updateData.name = dto.name;

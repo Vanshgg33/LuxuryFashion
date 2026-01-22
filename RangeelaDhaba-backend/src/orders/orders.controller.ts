@@ -42,6 +42,18 @@ export class OrdersController {
   ) {
     return this.ordersService.updateStatus(id, status, reason);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/cancel')
+  cancelOrder(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.ordersService.cancelOrder(id, user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/can-cancel')
+  canCancelOrder(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.ordersService.canCancelOrder(id, user.userId);
+  }
 }
 
 

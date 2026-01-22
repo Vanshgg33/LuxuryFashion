@@ -226,12 +226,14 @@ export const deleteCoupon = (id: string) => apiDelete(`/coupons/${id}`);
 // Settings
 export const fetchSettings = () => apiGet("/settings");
 export const checkRestaurantOpen = () => apiGet("/settings/is-open");
-export const updateSettings = (body: { lat?: number; lng?: number; address?: string; isDeliveryEnabled?: boolean; deliveryFee?: number; openingTime?: string; closingTime?: string; isOpen?: boolean; closureReason?: string }) =>
+export const updateSettings = (body: { lat?: number; lng?: number; address?: string; isDeliveryEnabled?: boolean; deliveryFee?: number; minOrderValue?: number; openingTime?: string; closingTime?: string; isOpen?: boolean; closureReason?: string }) =>
   apiPatch("/settings", body);
 export const toggleDelivery = (isDeliveryEnabled: boolean) =>
   apiPatch("/settings", { isDeliveryEnabled });
 export const updateDeliveryFee = (deliveryFee: number) =>
   apiPatch("/settings", { deliveryFee });
+export const updateMinOrderValue = (minOrderValue: number) =>
+  apiPatch("/settings", { minOrderValue });
 export const updateOperatingHours = (openingTime: string, closingTime: string) =>
   apiPatch("/settings", { openingTime, closingTime });
 export const toggleRestaurantOpen = (isOpen: boolean, closureReason?: string) =>
@@ -346,9 +348,17 @@ export const createReview = (dishId: string, body: { rating: number; comment?: s
 export const updateReview = (dishId: string, body: { rating?: number; comment?: string }) =>
   apiPatch(`/reviews/dish/${dishId}`, body);
 export const deleteReview = (dishId: string) => apiDelete(`/reviews/dish/${dishId}`);
+export const getTopReviews = (limit?: number) => apiGet(`/reviews/top${limit ? `?limit=${limit}` : ''}`);
+
+// Admin Reviews
+export const getAdminReviews = () => apiGet("/reviews/admin/all");
+export const toggleReviewVisibility = (reviewId: string) => apiPatch(`/reviews/admin/${reviewId}/toggle-visibility`, {});
+export const adminDeleteReview = (reviewId: string) => apiDelete(`/reviews/admin/${reviewId}`);
 
 // Orders
 export const getOrder = (id: string) => apiGet(`/orders/${id}`);
+export const cancelOrder = (id: string) => apiPost(`/orders/${id}/cancel`, {});
+export const canCancelOrder = (id: string) => apiGet(`/orders/${id}/can-cancel`);
 
 // Payments
 export const createPaymentOrder = (body: { amount: number; orderId: string }) =>

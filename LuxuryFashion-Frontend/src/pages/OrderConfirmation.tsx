@@ -74,7 +74,7 @@ const OrderConfirmation = () => {
                 .join(", ")}
             </p>
             {orderType === "takeaway" && (
-              <p className="text-xs text-amber-600 mt-1">Outside 5 km radius — set to Takeaway</p>
+              <p className="text-xs text-amber-600 mt-1">Outside 2 km radius — set to Takeaway</p>
             )}
           </div>
         </div>

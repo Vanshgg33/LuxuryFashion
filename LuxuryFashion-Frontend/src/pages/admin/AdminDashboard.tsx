@@ -14,6 +14,7 @@ import {
   updateSettings,
   toggleDelivery,
   updateDeliveryFee,
+  updateMinOrderValue,
   updateOperatingHours,
   toggleRestaurantOpen,
   updateCategoryTimeRestrictions,
@@ -76,9 +77,10 @@ const AdminDashboard = () => {
     halfPortionPrice: "",
     isBuyOneGetOne: false,
   });
-  const [settingsForm, setSettingsForm] = useState<{ lat?: number; lng?: number; address?: string; isDeliveryEnabled?: boolean; deliveryFee?: number; openingTime?: string; closingTime?: string; isOpen?: boolean; closureReason?: string }>({});
+  const [settingsForm, setSettingsForm] = useState<{ lat?: number; lng?: number; address?: string; isDeliveryEnabled?: boolean; deliveryFee?: number; minOrderValue?: number; openingTime?: string; closingTime?: string; isOpen?: boolean; closureReason?: string }>({});
   const [isTogglingDelivery, setIsTogglingDelivery] = useState(false);
   const [isSavingDeliveryFee, setIsSavingDeliveryFee] = useState(false);
+  const [isSavingMinOrder, setIsSavingMinOrder] = useState(false);
   const [isSavingHours, setIsSavingHours] = useState(false);
   const [isTogglingRestaurant, setIsTogglingRestaurant] = useState(false);
   const [showClosureReason, setShowClosureReason] = useState(false);
@@ -167,6 +169,7 @@ const AdminDashboard = () => {
         address: settingsRes?.address,
         isDeliveryEnabled: settingsRes?.isDeliveryEnabled ?? true,
         deliveryFee: settingsRes?.deliveryFee ?? 40,
+        minOrderValue: settingsRes?.minOrderValue ?? 0,
         openingTime: settingsRes?.openingTime ?? '09:00',
         closingTime: settingsRes?.closingTime ?? '22:00',
         isOpen: settingsRes?.isOpen ?? true,
@@ -442,6 +445,25 @@ const AdminDashboard = () => {
       toast.error(err.message || "Failed to update delivery fee");
     } finally {
       setIsSavingDeliveryFee(false);
+    }
+  };
+
+  const handleSaveMinOrderValue = async () => {
+    if (settingsForm.minOrderValue === undefined || settingsForm.minOrderValue < 0) {
+      toast.error("Please enter a valid minimum order value");
+      return;
+    }
+    setIsSavingMinOrder(true);
+    try {
+      await updateMinOrderValue(settingsForm.minOrderValue);
+      toast.success(settingsForm.minOrderValue > 0
+        ? `Minimum order value set to ₹${settingsForm.minOrderValue}`
+        : "Minimum order value removed");
+    } catch (err: any) {
+      console.error("Failed to update minimum order value:", err);
+      toast.error(err.message || "Failed to update minimum order value");
+    } finally {
+      setIsSavingMinOrder(false);
     }
   };
 
@@ -1362,6 +1384,36 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {/* Minimum Order Value Setting */}
+          <div className="p-3 rounded-xl border border-border bg-secondary/30">
+            <p className="text-sm font-medium text-foreground mb-2">Minimum Order Value</p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={settingsForm.minOrderValue ?? 0}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, minOrderValue: parseFloat(e.target.value) || 0 })}
+                  className="input-styled pl-7 w-full"
+                  placeholder="0"
+                />
+              </div>
+              <button
+                onClick={handleSaveMinOrderValue}
+                disabled={isSavingMinOrder}
+                className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {isSavingMinOrder ? "..." : "Save"}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              {settingsForm.minOrderValue && settingsForm.minOrderValue > 0
+                ? `Customers must order at least ₹${settingsForm.minOrderValue} to place an order`
+                : "Set to 0 to disable minimum order requirement"}
+            </p>
+          </div>
+
           <div className="border-t border-border pt-3 mt-3">
             <p className="text-sm font-medium text-foreground mb-3">Restaurant Location</p>
             <input
@@ -1390,7 +1442,7 @@ const AdminDashboard = () => {
             Save Location
           </button>
           <p className="text-xs text-muted-foreground">
-            Used for the 5 km delivery rule. Ensure coordinates are accurate.
+            Used for the 2 km delivery rule. Ensure coordinates are accurate.
           </p>
           <MapPicker
             lat={settingsForm.lat || 19.076}

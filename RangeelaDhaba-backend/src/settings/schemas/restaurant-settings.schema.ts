@@ -26,6 +26,9 @@ export class RestaurantSettings {
   @Prop({ default: 40 })
   deliveryFee: number;
 
+  @Prop({ default: 0 })
+  minOrderValue: number;
+
   @Prop({ default: '09:00' })
   openingTime: string;
 
