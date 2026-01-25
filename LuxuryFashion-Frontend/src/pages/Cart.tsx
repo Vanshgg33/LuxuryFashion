@@ -19,7 +19,7 @@ import {
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen, fetchProfile, updateProfile, getAddresses, createAddress } from "@/lib/api";
+import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen, fetchProfile, updateProfile, getAddresses, createAddress, fetchOrderHistory } from "@/lib/api";
 import { reverseGeocode } from "@/lib/geocode";
 import { getAccurateLocation } from "@/lib/geolocation";
 import { MapPicker } from "@/components/MapPicker";
@@ -244,7 +244,7 @@ const Cart = () => {
       }
 
       // Step 3: Fallback to profile.address
-      if (profile?.address) {
+      if (profile?.address && profile.address.street) {
         const savedAddr = profile.address;
         setAddress({
           street: savedAddr.street || "",
@@ -259,6 +259,40 @@ const Cart = () => {
         if (savedAddr.street && savedAddr.city) {
           setShowAddressForm(true);
         }
+        return; // Found address, done
+      }
+
+      // Step 4: Last resort - try to get address from order history
+      try {
+        const orders = await fetchOrderHistory();
+        if (orders && orders.length > 0) {
+          // Get the most recent order with an address
+          const recentOrder = orders.find((o: any) => o.address?.street);
+          if (recentOrder?.address) {
+            const orderAddr = recentOrder.address;
+            setAddress({
+              street: orderAddr.street || "",
+              city: orderAddr.city || "",
+              state: orderAddr.state || "",
+              zipCode: orderAddr.zipCode || "",
+              country: orderAddr.country || "India",
+              phoneNumber: orderAddr.phoneNumber || recentOrder.phone || profilePhone,
+              lat: orderAddr.lat,
+              lng: orderAddr.lng,
+            });
+            if (orderAddr.street && orderAddr.city) {
+              setShowAddressForm(true);
+            }
+            // Also save this address to profile for future use
+            try {
+              await updateProfile({ address: orderAddr });
+            } catch (e) {
+              // Ignore save error
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch order history:", err);
       }
     };
 
