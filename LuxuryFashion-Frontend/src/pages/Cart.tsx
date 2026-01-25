@@ -208,18 +208,22 @@ const Cart = () => {
     const loadSavedAddress = async () => {
       if (!isLoggedIn) return;
 
+      let profile: any = null;
+      let profilePhone = "";
+
+      // Step 1: Get profile (for phone fallback and address fallback)
       try {
-        // Get profile for phone number fallback
-        const profile = await fetchProfile();
-        const profilePhone = profile?.phone || "";
+        profile = await fetchProfile();
+        profilePhone = profile?.phone || "";
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+      }
 
-        // First, try to get saved addresses from the addresses collection
+      // Step 2: Try addresses collection first
+      try {
         const savedAddresses = await getAddresses();
-
         if (savedAddresses && savedAddresses.length > 0) {
-          // Find default address, or use the first one
           const defaultAddr = savedAddresses.find((addr: any) => addr.isDefault) || savedAddresses[0];
-
           setAddress({
             street: defaultAddr.street || "",
             city: defaultAddr.city || "",
@@ -230,34 +234,31 @@ const Cart = () => {
             lat: defaultAddr.lat,
             lng: defaultAddr.lng,
           });
-
-          // If address is complete, expand the address form
-          if (defaultAddr.street && defaultAddr.city && defaultAddr.lat && defaultAddr.lng) {
+          if (defaultAddr.street && defaultAddr.city) {
             setShowAddressForm(true);
           }
-          return; // Found saved address, no need to check profile address
-        }
-
-        // Fallback: Try to get address from user profile (for backward compatibility)
-        if (profile?.address) {
-          const savedAddr = profile.address;
-          setAddress({
-            street: savedAddr.street || "",
-            city: savedAddr.city || "",
-            state: savedAddr.state || "",
-            zipCode: savedAddr.zipCode || "",
-            country: savedAddr.country || "India",
-            phoneNumber: savedAddr.phoneNumber || profilePhone,
-            lat: savedAddr.lat,
-            lng: savedAddr.lng,
-          });
-          // If address is complete, expand the address form
-          if (savedAddr.street && savedAddr.city && savedAddr.lat && savedAddr.lng) {
-            setShowAddressForm(true);
-          }
+          return; // Found address, done
         }
       } catch (err) {
-        console.error("Failed to load saved address:", err);
+        console.error("Failed to fetch addresses:", err);
+      }
+
+      // Step 3: Fallback to profile.address
+      if (profile?.address) {
+        const savedAddr = profile.address;
+        setAddress({
+          street: savedAddr.street || "",
+          city: savedAddr.city || "",
+          state: savedAddr.state || "",
+          zipCode: savedAddr.zipCode || "",
+          country: savedAddr.country || "India",
+          phoneNumber: savedAddr.phoneNumber || profilePhone,
+          lat: savedAddr.lat,
+          lng: savedAddr.lng,
+        });
+        if (savedAddr.street && savedAddr.city) {
+          setShowAddressForm(true);
+        }
       }
     };
 
@@ -427,12 +428,19 @@ const Cart = () => {
         specialInstructions.trim() || undefined
       );
       if (orderId) {
-        // Save address for future orders
+        // Save address for future orders (independent try-catches so one failure doesn't block the other)
+
+        // 1. Always save to profile first (most reliable)
         try {
-          // Check if user has any saved addresses
+          await updateProfile({ address });
+        } catch (err) {
+          console.error("Failed to save address to profile:", err);
+        }
+
+        // 2. Try to save to addresses collection
+        try {
           const existingAddresses = await getAddresses();
           if (!existingAddresses || existingAddresses.length === 0) {
-            // Create a saved address for future auto-fill
             await createAddress({
               label: "Delivery Address",
               street: address.street,
@@ -446,12 +454,10 @@ const Cart = () => {
               isDefault: true,
             });
           }
-          // Also save to profile for backward compatibility
-          await updateProfile({ address });
-        } catch (saveErr) {
-          console.error("Failed to save address:", saveErr);
-          // Don't block the order flow if address save fails
+        } catch (err) {
+          console.error("Failed to save to addresses collection:", err);
         }
+
         navigate("/order-confirmation", { state: { orderId, orderType, address } });
       }
     } catch (error: any) {
