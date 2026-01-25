@@ -101,7 +101,7 @@ const AuthPage = () => {
 
           {/* Google Sign-In Button */}
           <a
-            href={`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/auth/google`}
+            href={`${import.meta.env.VITE_API_BASE || 'http://localhost:8080'}/auth/google`}
             className={cn(
               "w-full flex items-center justify-center gap-3",
               "py-3.5 rounded-xl",
