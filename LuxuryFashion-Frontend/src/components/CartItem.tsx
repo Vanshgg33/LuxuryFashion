@@ -1,4 +1,4 @@
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Trash2, Gift } from "lucide-react";
 import { useCartContext } from "@/contexts/CartContext";
 import { BackendCartItem } from "@/hooks/useCartBackend";
 import { cn } from "@/lib/utils";
@@ -18,11 +18,15 @@ export function CartItem({ item }: CartItemProps) {
   const isVeg = item.dish?.isVeg;
   const isBogo = item.dish?.isBuyOneGetOne;
 
+  // Calculate paid and free quantities for BOGO
+  const paidQuantity = isBogo ? Math.ceil(item.quantity / 2) : item.quantity;
+  const freeQuantity = isBogo ? Math.floor(item.quantity / 2) : 0;
+
   // Calculate item total with BOGO discount
   const itemTotal = item.itemTotal !== undefined
     ? item.itemTotal
     : (isBogo && item.quantity > 0
-        ? productPrice * Math.ceil(item.quantity / 2)
+        ? productPrice * paidQuantity
         : productPrice * item.quantity);
 
   const handleQuantityChange = async (newQuantity: number) => {
@@ -139,13 +143,42 @@ export function CartItem({ item }: CartItemProps) {
               <p className="text-lg font-bold text-foreground tabular-nums">
                 ₹{itemTotal.toFixed(2)}
               </p>
-              {isBogo && item.quantity >= 2 && (
-                <p className="text-xs text-green-600 font-medium">
-                  Buy 1 Get 1 Free!
-                </p>
-              )}
             </div>
           </div>
+
+          {/* BOGO Breakdown - Show paid and free items separately */}
+          {isBogo && item.quantity >= 1 && (
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Gift className="w-4 h-4 text-green-600" />
+                <span className="text-xs font-semibold text-green-600 uppercase tracking-wide">
+                  Buy 1 Get 1 Free
+                </span>
+              </div>
+              <div className="space-y-1.5 text-sm">
+                {/* Paid items */}
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">
+                    {paidQuantity}x {productName}
+                  </span>
+                  <span className="font-medium">₹{(productPrice * paidQuantity).toFixed(2)}</span>
+                </div>
+                {/* Free items */}
+                {freeQuantity > 0 && (
+                  <div className="flex justify-between items-center bg-green-50 -mx-2 px-2 py-1.5 rounded-lg">
+                    <span className="text-green-700 flex items-center gap-1.5">
+                      <Gift className="w-3.5 h-3.5" />
+                      {freeQuantity}x {productName}
+                      <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded font-semibold">
+                        FREE
+                      </span>
+                    </span>
+                    <span className="font-medium text-green-600">₹0.00</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </article>

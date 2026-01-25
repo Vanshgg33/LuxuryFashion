@@ -19,7 +19,7 @@ import {
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen, fetchProfile, updateProfile } from "@/lib/api";
+import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen, fetchProfile, updateProfile, getAddresses, createAddress } from "@/lib/api";
 import { reverseGeocode } from "@/lib/geocode";
 import { getAccurateLocation } from "@/lib/geolocation";
 import { MapPicker } from "@/components/MapPicker";
@@ -203,13 +203,42 @@ const Cart = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Load saved address from user profile
+  // Load saved address from user's saved addresses or profile
   useEffect(() => {
     const loadSavedAddress = async () => {
       if (!isLoggedIn) return;
 
       try {
+        // Get profile for phone number fallback
         const profile = await fetchProfile();
+        const profilePhone = profile?.phone || "";
+
+        // First, try to get saved addresses from the addresses collection
+        const savedAddresses = await getAddresses();
+
+        if (savedAddresses && savedAddresses.length > 0) {
+          // Find default address, or use the first one
+          const defaultAddr = savedAddresses.find((addr: any) => addr.isDefault) || savedAddresses[0];
+
+          setAddress({
+            street: defaultAddr.street || "",
+            city: defaultAddr.city || "",
+            state: defaultAddr.state || "",
+            zipCode: defaultAddr.zipCode || "",
+            country: defaultAddr.country || "India",
+            phoneNumber: defaultAddr.phoneNumber || profilePhone,
+            lat: defaultAddr.lat,
+            lng: defaultAddr.lng,
+          });
+
+          // If address is complete, expand the address form
+          if (defaultAddr.street && defaultAddr.city && defaultAddr.lat && defaultAddr.lng) {
+            setShowAddressForm(true);
+          }
+          return; // Found saved address, no need to check profile address
+        }
+
+        // Fallback: Try to get address from user profile (for backward compatibility)
         if (profile?.address) {
           const savedAddr = profile.address;
           setAddress({
@@ -218,7 +247,7 @@ const Cart = () => {
             state: savedAddr.state || "",
             zipCode: savedAddr.zipCode || "",
             country: savedAddr.country || "India",
-            phoneNumber: savedAddr.phoneNumber || profile.phone || "",
+            phoneNumber: savedAddr.phoneNumber || profilePhone,
             lat: savedAddr.lat,
             lng: savedAddr.lng,
           });
@@ -398,11 +427,29 @@ const Cart = () => {
         specialInstructions.trim() || undefined
       );
       if (orderId) {
-        // Save address to user profile for future orders
+        // Save address for future orders
         try {
+          // Check if user has any saved addresses
+          const existingAddresses = await getAddresses();
+          if (!existingAddresses || existingAddresses.length === 0) {
+            // Create a saved address for future auto-fill
+            await createAddress({
+              label: "Delivery Address",
+              street: address.street,
+              city: address.city,
+              state: address.state,
+              zipCode: address.zipCode,
+              country: address.country,
+              phoneNumber: address.phoneNumber,
+              lat: address.lat,
+              lng: address.lng,
+              isDefault: true,
+            });
+          }
+          // Also save to profile for backward compatibility
           await updateProfile({ address });
         } catch (saveErr) {
-          console.error("Failed to save address to profile:", saveErr);
+          console.error("Failed to save address:", saveErr);
           // Don't block the order flow if address save fails
         }
         navigate("/order-confirmation", { state: { orderId, orderType, address } });

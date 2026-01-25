@@ -53,8 +53,33 @@ import { Button } from "@/components/ui/button";
 import { FOOD_CATEGORY_OPTIONS, DISH_CATEGORY_OPTIONS } from "@/constants/dishCategories";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { MobileAdminLayout } from "@/components/Admin/MobileAdminLayout";
+
+// Hook to detect mobile viewport
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  return isMobile;
+};
 
 const AdminDashboard = () => {
+  const isMobile = useIsMobile();
+
+  // Show mobile layout on mobile devices
+  if (isMobile) {
+    return <MobileAdminLayout />;
+  }
+
+  // Desktop layout below
   const [orders, setOrders] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({});
   const [statusData, setStatusData] = useState<any[]>([]);
