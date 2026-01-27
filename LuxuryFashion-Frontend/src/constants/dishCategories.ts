@@ -21,6 +21,10 @@ export enum DishCategory {
   TANDOORI = 'Tandoori',
   TADKA = 'Tadka',
   DESSERTS_BEVERAGES = 'Desserts & Beverages',
+  DOSA = 'Dosa',
+  IDLI_VADA = 'Idli Vada',
+  UTTAPAM = 'Uttapam',
+  JUICE = 'Juice',
 }
 
 // Array of all food categories
