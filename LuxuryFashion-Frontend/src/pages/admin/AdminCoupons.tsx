@@ -124,9 +124,18 @@ export default function AdminCoupons() {
         })),
       };
 
-      // Only include dates if they have valid values
-      if (!form.validFrom) delete payload.validFrom;
-      if (!form.validUntil) delete payload.validUntil;
+      // Handle dates properly
+      if (form.validFrom) {
+        payload.validFrom = new Date(form.validFrom).toISOString();
+      } else {
+        delete payload.validFrom;
+      }
+      
+      if (form.validUntil) {
+        payload.validUntil = new Date(form.validUntil).toISOString();
+      } else {
+        delete payload.validUntil;
+      }
 
       // Ensure usageLimit is a number (0 means unlimited)
       payload.usageLimit = form.usageLimit || 0;
@@ -282,7 +291,13 @@ export default function AdminCoupons() {
                         <button
                           onClick={() => {
                             setEditing(coupon);
-                            setForm(coupon);
+                            // Properly populate form with coupon data
+                            setForm({
+                              ...coupon,
+                              validFrom: coupon.validFrom ? new Date(coupon.validFrom).toISOString() : "",
+                              validUntil: coupon.validUntil ? new Date(coupon.validUntil).toISOString() : "",
+                              freeItems: coupon.freeItems || [],
+                            });
                             setDialogOpen(true);
                           }}
                           className="btn-secondary text-xs"
@@ -376,7 +391,7 @@ export default function AdminCoupons() {
                 <input
                   type="datetime-local"
                   value={form.validFrom ? new Date(form.validFrom).toISOString().slice(0, 16) : ""}
-                  onChange={(e) => setForm({ ...form, validFrom: e.target.value ? new Date(e.target.value).toISOString() : "" })}
+                  onChange={(e) => setForm({ ...form, validFrom: e.target.value || "" })}
                   className="input-styled w-full"
                 />
               </div>
@@ -385,7 +400,7 @@ export default function AdminCoupons() {
                 <input
                   type="datetime-local"
                   value={form.validUntil ? new Date(form.validUntil).toISOString().slice(0, 16) : ""}
-                  onChange={(e) => setForm({ ...form, validUntil: e.target.value ? new Date(e.target.value).toISOString() : "" })}
+                  onChange={(e) => setForm({ ...form, validUntil: e.target.value || "" })}
                   className="input-styled w-full"
                 />
               </div>
