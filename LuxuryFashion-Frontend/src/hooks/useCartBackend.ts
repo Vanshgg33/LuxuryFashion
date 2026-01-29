@@ -5,6 +5,8 @@ import {
   updateCartItem as apiUpdateCartItem,
   removeFromCart as apiRemoveFromCart,
   clearCart as apiClearCart,
+  addFreeItemsToCart,
+  removeFreeItemsFromCart,
   placeOrder as apiPlaceOrder,
   fetchOrderHistory,
   fetchProducts,
@@ -25,6 +27,8 @@ export interface BackendCartItem {
   quantity: number;
   price: number;
   itemTotal?: number; // Backend-calculated total (includes BOGO discount)
+  isFreeItem?: boolean;
+  couponCode?: string;
 }
 
 export interface BackendCart {
@@ -448,7 +452,49 @@ export function useCartBackend() {
     }
   }, [isLoggedIn]);
 
-  // Place order (requires login)
+  // Add free items to cart
+  const addFreeItems = useCallback(
+    async (freeItems: any[], couponCode: string) => {
+      if (!isLoggedIn) return;
+      
+      try {
+        setError(null);
+        const cart = await addFreeItemsToCart(freeItems, couponCode);
+        setCartItems(cart.cartItems || []);
+        setCartTotal(cart.totalPrice || 0);
+        setCartCount(
+          cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
+        );
+      } catch (err: any) {
+        console.error("Error adding free items:", err);
+        setError(err.message);
+        throw err;
+      }
+    },
+    [isLoggedIn]
+  );
+
+  // Remove free items from cart
+  const removeFreeItems = useCallback(
+    async (couponCode?: string) => {
+      if (!isLoggedIn) return;
+      
+      try {
+        setError(null);
+        const cart = await removeFreeItemsFromCart(couponCode);
+        setCartItems(cart.cartItems || []);
+        setCartTotal(cart.totalPrice || 0);
+        setCartCount(
+          cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
+        );
+      } catch (err: any) {
+        console.error("Error removing free items:", err);
+        setError(err.message);
+        throw err;
+      }
+    },
+    [isLoggedIn]
+  );
   const placeOrder = useCallback(
     async (
       address: {
@@ -509,6 +555,8 @@ export function useCartBackend() {
     updateQuantity,
     removeFromCart,
     clearCart,
+    addFreeItems,
+    removeFreeItems,
     placeOrder,
     loadCart,
     loadOrders,

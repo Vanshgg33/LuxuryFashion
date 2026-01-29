@@ -64,7 +64,7 @@ interface AddressForm {
 }
 
 const Cart = () => {
-  const { cartItems, clearCart, placeOrder, loading: cartLoading, loadCart, isLoggedIn } = useCartContext();
+  const { cartItems, clearCart, placeOrder, loading: cartLoading, loadCart, isLoggedIn, addFreeItems, removeFreeItems } = useCartContext();
   const navigate = useNavigate();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const isPlacingOrderRef = useRef(false); // Prevent double submission
@@ -382,6 +382,16 @@ const Cart = () => {
       if (result.valid) {
         setAppliedCoupon(result);
         setCouponCode(codeToApply);
+        
+        // Add free items to cart if any
+        if (result.freeItems && result.freeItems.length > 0) {
+          try {
+            await addFreeItems(result.freeItems, codeToApply);
+          } catch (err) {
+            console.error('Failed to add free items:', err);
+          }
+        }
+        
         toast.success(`Coupon ${codeToApply} applied successfully!`);
       } else {
         setAppliedCoupon(null);
@@ -397,9 +407,19 @@ const Cart = () => {
     }
   };
 
-  const handleRemoveCoupon = () => {
+  const handleRemoveCoupon = async () => {
+    const currentCouponCode = couponCode;
     setCouponCode("");
     setAppliedCoupon(null);
+    
+    // Remove free items from cart
+    if (currentCouponCode && isLoggedIn) {
+      try {
+        await removeFreeItems(currentCouponCode);
+      } catch (err) {
+        console.error('Failed to remove free items:', err);
+      }
+    }
   };
 
   const handlePlaceOrder = async () => {

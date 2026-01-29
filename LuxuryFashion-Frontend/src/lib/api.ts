@@ -198,6 +198,16 @@ export const updateCartItem = (itemId: number | string, quantity: number) =>
   apiPatch(`/cart/items/${itemId}`, { quantity });
 export const removeFromCart = (itemId: number | string) => apiDelete(`/cart/items/${itemId}`);
 export const clearCart = () => apiDelete("/cart");
+export const addFreeItemsToCart = (freeItems: any[], couponCode: string) =>
+  apiPost("/cart/free-items", { freeItems, couponCode });
+export const removeFreeItemsFromCart = (couponCode?: string) => {
+  const body = couponCode ? { couponCode } : {};
+  return request("/cart/free-items", { 
+    method: "DELETE", 
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+};
 
 // Orders
 export const placeOrder = (body: any) => apiPost("/orders", body);

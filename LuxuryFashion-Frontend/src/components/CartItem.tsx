@@ -17,6 +17,7 @@ export function CartItem({ item }: CartItemProps) {
   const productPrice = item.dish?.price || item.price;
   const isVeg = item.dish?.isVeg;
   const isBogo = item.dish?.isBuyOneGetOne;
+  const isFreeItem = item.isFreeItem || false;
 
   // Calculate paid and free quantities for BOGO
   const paidQuantity = isBogo ? Math.ceil(item.quantity / 2) : item.quantity;
@@ -40,7 +41,10 @@ export function CartItem({ item }: CartItemProps) {
   };
 
   return (
-    <article className="group card-premium p-4 md:p-5 hover:shadow-medium transition-all duration-300">
+    <article className={cn(
+      "group card-premium p-4 md:p-5 hover:shadow-medium transition-all duration-300",
+      isFreeItem && "bg-green-50 border-green-200"
+    )}>
       <div className="flex gap-4 md:gap-5">
         {/* Image */}
         <div className="relative flex-shrink-0">
@@ -70,13 +74,33 @@ export function CartItem({ item }: CartItemProps) {
           {/* Header Row */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-terracotta transition-colors duration-300">
+              <h3 className={cn(
+                "font-semibold line-clamp-1 group-hover:text-terracotta transition-colors duration-300",
+                isFreeItem ? "text-green-700" : "text-foreground"
+              )}>
                 {productName}
+                {isFreeItem && (
+                  <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded">
+                    <Gift className="w-3 h-3" />
+                    FREE
+                  </span>
+                )}
               </h3>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm text-muted-foreground">
+                <span className={cn(
+                  "text-sm",
+                  isFreeItem ? "text-green-600 line-through" : "text-muted-foreground"
+                )}>
                   ₹{productPrice}
                 </span>
+                {isFreeItem && (
+                  <span className="text-sm font-bold text-green-600">₹0</span>
+                )}
+                {item.couponCode && (
+                  <span className="text-xs text-green-600 bg-green-100 px-1.5 py-0.5 rounded">
+                    {item.couponCode}
+                  </span>
+                )}
                 {item.dish?.category && (
                   <>
                     <span className="text-border">•</span>
@@ -87,61 +111,75 @@ export function CartItem({ item }: CartItemProps) {
                 )}
               </div>
             </div>
-            {/* Remove Button */}
-            <button
-              onClick={() => removeFromCart(item.id)}
-              className={cn(
-                "p-2 rounded-xl transition-all duration-300",
-                "text-muted-foreground hover:text-destructive",
-                "hover:bg-destructive/10 opacity-0 group-hover:opacity-100"
-              )}
-              aria-label="Remove item"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {/* Remove Button - Hide for free items */}
+            {!isFreeItem && (
+              <button
+                onClick={() => removeFromCart(item.id)}
+                className={cn(
+                  "p-2 rounded-xl transition-all duration-300",
+                  "text-muted-foreground hover:text-destructive",
+                  "hover:bg-destructive/10 opacity-0 group-hover:opacity-100"
+                )}
+                aria-label="Remove item"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Footer Row */}
           <div className="flex items-center justify-between mt-4">
-            {/* Quantity Stepper */}
-            <div className={cn(
-              "inline-flex items-center rounded-xl",
-              "bg-secondary border border-border/50",
-              isUpdating && "opacity-50 pointer-events-none"
-            )}>
-              <button
-                onClick={() => handleQuantityChange(item.quantity - 1)}
-                disabled={isUpdating || item.quantity <= 1}
-                className={cn(
-                  "p-2.5 rounded-l-xl transition-all duration-300",
-                  "hover:bg-terracotta hover:text-white",
-                  "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-current"
-                )}
-                aria-label="Decrease quantity"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="w-10 text-center text-sm font-bold tabular-nums">
-                {item.quantity}
-              </span>
-              <button
-                onClick={() => handleQuantityChange(item.quantity + 1)}
-                disabled={isUpdating}
-                className={cn(
-                  "p-2.5 rounded-r-xl transition-all duration-300",
-                  "hover:bg-terracotta hover:text-white",
-                  "disabled:opacity-30 disabled:cursor-not-allowed"
-                )}
-                aria-label="Increase quantity"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
+            {/* Quantity Stepper - Hide for free items */}
+            {!isFreeItem ? (
+              <div className={cn(
+                "inline-flex items-center rounded-xl",
+                "bg-secondary border border-border/50",
+                isUpdating && "opacity-50 pointer-events-none"
+              )}>
+                <button
+                  onClick={() => handleQuantityChange(item.quantity - 1)}
+                  disabled={isUpdating || item.quantity <= 1}
+                  className={cn(
+                    "p-2.5 rounded-l-xl transition-all duration-300",
+                    "hover:bg-terracotta hover:text-white",
+                    "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-current"
+                  )}
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="w-10 text-center text-sm font-bold tabular-nums">
+                  {item.quantity}
+                </span>
+                <button
+                  onClick={() => handleQuantityChange(item.quantity + 1)}
+                  disabled={isUpdating}
+                  className={cn(
+                    "p-2.5 rounded-r-xl transition-all duration-300",
+                    "hover:bg-terracotta hover:text-white",
+                    "disabled:opacity-30 disabled:cursor-not-allowed"
+                  )}
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2 bg-green-100 rounded-xl">
+                <Gift className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700">
+                  Qty: {item.quantity}
+                </span>
+              </div>
+            )}
 
             {/* Total Price */}
             <div className="text-right">
-              <p className="text-lg font-bold text-foreground tabular-nums">
-                ₹{itemTotal.toFixed(2)}
+              <p className={cn(
+                "text-lg font-bold tabular-nums",
+                isFreeItem ? "text-green-600" : "text-foreground"
+              )}>
+                {isFreeItem ? "FREE" : `₹${itemTotal.toFixed(2)}`}
               </p>
             </div>
           </div>

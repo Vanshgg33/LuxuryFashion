@@ -13,6 +13,12 @@ export class CartItem {
 
   @Prop({ default: false })
   isHalfPortion: boolean;
+
+  @Prop({ default: false })
+  isFreeItem: boolean;
+
+  @Prop()
+  couponCode?: string;
 }
 
 @Schema({ timestamps: true })
@@ -22,6 +28,9 @@ export class Cart {
 
   @Prop({ type: [CartItem], default: [] })
   items: CartItem[];
+
+  @Prop()
+  appliedCoupon?: string;
 }
 
 export const CartSchema = SchemaFactory.createForClass(Cart);

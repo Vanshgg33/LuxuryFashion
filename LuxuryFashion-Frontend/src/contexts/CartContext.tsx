@@ -10,6 +10,8 @@ interface CartContextType {
   removeFromCart: (id: number | string) => Promise<void>;
   updateQuantity: (id: number | string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
+  addFreeItems: (freeItems: any[], couponCode: string) => Promise<void>;
+  removeFreeItems: (couponCode?: string) => Promise<void>;
   orders: BackendOrder[];
   placeOrder: (
     address: {

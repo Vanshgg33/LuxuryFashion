@@ -148,11 +148,49 @@ export class CartService {
     return this.toResponse(cart);
   }
 
-  async clear(userId: string) {
-    const cart = await this.getOrCreate(userId);
-    cart.items = [];
+  async addFreeItems(userId: string, freeItems: any[], couponCode: string) {
+    const cart = await this.getOrCreate(userId, false);
+    
+    // Remove existing free items from this coupon
+    cart.items = cart.items.filter((item: any) => 
+      !(item.isFreeItem && item.couponCode === couponCode)
+    );
+    
+    // Add new free items
+    for (const freeItem of freeItems) {
+      const dishObjectId = new Types.ObjectId(freeItem.dish._id);
+      cart.items.push({
+        dish: dishObjectId,
+        quantity: freeItem.quantity,
+        isHalfPortion: false,
+        isFreeItem: true,
+        couponCode: couponCode
+      });
+    }
+    
+    cart.appliedCoupon = couponCode;
     await cart.save();
-    return { cleared: true };
+    await cart.populate('items.dish');
+    return this.toResponse(cart);
+  }
+
+  async removeFreeItems(userId: string, couponCode?: string) {
+    const cart = await this.getOrCreate(userId, false);
+    
+    if (couponCode) {
+      // Remove free items from specific coupon
+      cart.items = cart.items.filter((item: any) => 
+        !(item.isFreeItem && item.couponCode === couponCode)
+      );
+    } else {
+      // Remove all free items
+      cart.items = cart.items.filter((item: any) => !item.isFreeItem);
+    }
+    
+    cart.appliedCoupon = undefined;
+    await cart.save();
+    await cart.populate('items.dish');
+    return this.toResponse(cart);
   }
 
   toResponse(cart: CartDocument) {
@@ -160,16 +198,16 @@ export class CartService {
       const dish = i.dish;
       const quantity = i.quantity;
       const isHalfPortion = i.isHalfPortion || false;
-      const price = isHalfPortion && dish?.halfPortionPrice ? dish.halfPortionPrice : (dish?.price || 0);
+      const isFreeItem = i.isFreeItem || false;
+      const price = isFreeItem ? 0 : (isHalfPortion && dish?.halfPortionPrice ? dish.halfPortionPrice : (dish?.price || 0));
       
       // Handle Buy 1 Get 1 Free pricing
       let itemTotal = 0;
-      if (dish?.isBuyOneGetOne && quantity > 0) {
+      if (!isFreeItem && dish?.isBuyOneGetOne && quantity > 0) {
         // For BOGO: charge for half the quantity (rounded up)
-        // e.g., quantity 2 = charge for 1, quantity 3 = charge for 2, quantity 4 = charge for 2
         const chargeableQuantity = Math.ceil(quantity / 2);
         itemTotal = price * chargeableQuantity;
-      } else {
+      } else if (!isFreeItem) {
         itemTotal = price * quantity;
       }
       
@@ -178,12 +216,22 @@ export class CartService {
         dish: dish,
         quantity: quantity,
         isHalfPortion: isHalfPortion,
+        isFreeItem: isFreeItem,
+        couponCode: i.couponCode,
         price: price,
         itemTotal: itemTotal,
       };
     });
-    const total = items.reduce((sum, i) => sum + (i.itemTotal || i.price * i.quantity), 0);
-    return { id: cart.id, cartItems: items, totalPrice: total };
+    const total = items.reduce((sum, i) => sum + (i.itemTotal || 0), 0);
+    return { id: cart.id, cartItems: items, totalPrice: total, appliedCoupon: cart.appliedCoupon };
+  }
+
+  async clear(userId: string) {
+    const cart = await this.getOrCreate(userId);
+    cart.items = [];
+    cart.appliedCoupon = undefined;
+    await cart.save();
+    return { cleared: true };
   }
 }
 

@@ -41,6 +41,22 @@ export class CartController {
   clear(@CurrentUser() user: any) {
     return this.cartService.clear(user.userId);
   }
+
+  @Post('free-items')
+  addFreeItems(
+    @CurrentUser() user: any,
+    @Body() body: { freeItems: any[]; couponCode: string }
+  ) {
+    return this.cartService.addFreeItems(user.userId, body.freeItems, body.couponCode);
+  }
+
+  @Delete('free-items')
+  removeFreeItems(
+    @CurrentUser() user: any,
+    @Body() body: { couponCode?: string }
+  ) {
+    return this.cartService.removeFreeItems(user.userId, body.couponCode);
+  }
 }
 
 
