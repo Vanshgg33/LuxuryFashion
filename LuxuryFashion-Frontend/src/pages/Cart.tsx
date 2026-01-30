@@ -63,47 +63,59 @@ interface AddressForm {
   lng?: number;
 }
 
+interface ActiveCoupon {
+  _id?: string;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  description?: string;
+  freeItems?: Array<{
+    quantity: number;
+    dish?: { _id: string; name: string; price: number; imageUrl?: string };
+  }>;
+}
+
 const Cart = () => {
   const { cartItems, clearCart, placeOrder, loading: cartLoading, loadCart, isLoggedIn, addFreeItems, removeFreeItems } = useCartContext();
   const navigate = useNavigate();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const isPlacingOrderRef = useRef(false); // Prevent double submission
 
-  // Deduplicate cart items by dish ID and recalculate totals
+  // Deduplicate cart items by dish ID + isFreeItem status and recalculate totals
+  // Free items from coupons should be displayed separately from paid items
   const uniqueCartItems = useMemo(() => {
     const itemMap = new Map<string, typeof cartItems[0]>();
     cartItems.forEach((item, index) => {
-      let dishIdStr: string;
-      if (item.dish?._id) {
-        dishIdStr = typeof item.dish._id === 'string' ? item.dish._id : item.dish._id.toString();
-      } else if (item.dish?.id) {
-        dishIdStr = typeof item.dish.id === 'string' ? item.dish.id : item.dish.id.toString();
-      } else if (item.dish) {
-        dishIdStr = typeof item.dish === 'string' ? item.dish : item.dish.toString();
-      } else {
-        dishIdStr = item.id || `item-${index}-${Date.now()}`;
-      }
+      // Get dish ID - use _id from dish object, or fall back to item.id
+      const dishIdStr = item.dish?._id || item.id || `item-${index}-${Date.now()}`;
 
-      if (itemMap.has(dishIdStr)) {
-        const existing = itemMap.get(dishIdStr)!;
+      // Create a unique key that includes dish ID and whether it's a free item
+      // This ensures free items from coupons are kept separate from paid items
+      const isFreeItem = item.isFreeItem || false;
+      const uniqueKey = `${dishIdStr}-${isFreeItem ? 'free' : 'paid'}`;
+
+      if (itemMap.has(uniqueKey)) {
+        const existing = itemMap.get(uniqueKey)!;
         const newQuantity = existing.quantity + item.quantity;
-        const price = existing.dish?.price || existing.price || 0;
-        // Recalculate itemTotal with BOGO discount if applicable
+        const price = isFreeItem ? 0 : (existing.dish?.price || existing.price || 0);
+        // Recalculate itemTotal with BOGO discount if applicable (only for paid items)
         const isBogo = existing.dish?.isBuyOneGetOne;
-        const newItemTotal = isBogo && newQuantity > 0
+        const newItemTotal = isFreeItem ? 0 : (isBogo && newQuantity > 0
           ? price * Math.ceil(newQuantity / 2)
-          : price * newQuantity;
-        itemMap.set(dishIdStr, { ...existing, quantity: newQuantity, itemTotal: newItemTotal });
+          : price * newQuantity);
+        itemMap.set(uniqueKey, { ...existing, quantity: newQuantity, itemTotal: newItemTotal });
       } else {
         // For new items, calculate itemTotal if not present
-        const price = item.dish?.price || item.price || 0;
+        const price = isFreeItem ? 0 : (item.dish?.price || item.price || 0);
         const isBogo = item.dish?.isBuyOneGetOne;
-        const itemTotal = item.itemTotal !== undefined
+        const itemTotal = isFreeItem ? 0 : (item.itemTotal !== undefined
           ? item.itemTotal
           : (isBogo && item.quantity > 0
               ? price * Math.ceil(item.quantity / 2)
-              : price * item.quantity);
-        itemMap.set(dishIdStr, { ...item, itemTotal });
+              : price * item.quantity));
+        itemMap.set(uniqueKey, { ...item, itemTotal });
       }
     });
     return Array.from(itemMap.values());
@@ -131,15 +143,46 @@ const Cart = () => {
   const [settings, setSettings] = useState<{ lat?: number; lng?: number; isDeliveryEnabled?: boolean; deliveryFee?: number; minOrderValue?: number }>({});
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [showCouponInput, setShowCouponInput] = useState(false);
-  const [activeCoupons, setActiveCoupons] = useState<any[]>([]);
+  const [activeCoupons, setActiveCoupons] = useState<ActiveCoupon[]>([]);
   const [loadingCoupons, setLoadingCoupons] = useState(false);
   const [restaurantStatus, setRestaurantStatus] = useState<{ isOpen: boolean; openingTime: string; closingTime: string; isManuallyClosed?: boolean; closureReason?: string } | null>(null);
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [userPreferredOrderType, setUserPreferredOrderType] = useState<"delivery" | "takeaway">("delivery");
 
+  // Phone number validation helper
+  const phoneValidation = useMemo(() => {
+    const phone = address.phoneNumber;
+    if (!phone) return { isValid: false, message: "" };
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 0) return { isValid: false, message: "" };
+    if (digits.length < 10) return { isValid: false, message: `${10 - digits.length} more digits needed` };
+    if (digits.length > 10) return { isValid: false, message: "Too many digits" };
+    return { isValid: true, message: "Valid phone number" };
+  }, [address.phoneNumber]);
+
+  // Address completeness check
+  const addressValidation = useMemo(() => {
+    const missing: string[] = [];
+    if (!address.street.trim()) missing.push("street");
+    if (!address.city.trim()) missing.push("city");
+    if (!address.state.trim()) missing.push("state");
+    if (!address.zipCode.trim()) missing.push("zip code");
+    if (!address.lat || !address.lng) missing.push("location on map");
+    if (!phoneValidation.isValid && address.phoneNumber) missing.push("valid phone");
+    return {
+      isComplete: missing.length === 0 && phoneValidation.isValid,
+      missing
+    };
+  }, [address, phoneValidation]);
+
   // Calculate totals - use itemTotal from backend (includes BOGO discount)
+  // Free items from coupons should not be counted in the total
   const uniqueCartTotal = useMemo(() => {
     return uniqueCartItems.reduce((sum, item) => {
+      // Free items don't contribute to the total
+      if (item.isFreeItem) {
+        return sum;
+      }
       // Use itemTotal if available (includes BOGO discount), otherwise calculate
       if (item.itemTotal !== undefined) {
         return sum + item.itemTotal;
@@ -389,10 +432,17 @@ const Cart = () => {
             await addFreeItems(result.freeItems, codeToApply);
           } catch (err) {
             console.error('Failed to add free items:', err);
+            toast.warning("Coupon applied but free items couldn't be added to cart. They will be included in your order.");
           }
         }
         
-        toast.success(`Coupon ${codeToApply} applied successfully!`);
+        // Build detailed success message
+        let successMsg = `Coupon ${codeToApply} applied! You save ₹${result.discount?.toFixed(2) || 0}`;
+        if (result.freeItems && result.freeItems.length > 0) {
+          const freeItemNames = result.freeItems.map((item: FreeItemInfo) => item.dish.name).join(', ');
+          successMsg += ` + FREE: ${freeItemNames}`;
+        }
+        toast.success(successMsg);
       } else {
         setAppliedCoupon(null);
         toast.error(result.message || "Invalid coupon code");
@@ -458,12 +508,37 @@ const Cart = () => {
       try {
         const revalidation = await validateCoupon(couponCode.trim(), uniqueCartTotal);
         if (!revalidation.valid) {
+          // Coupon is no longer valid - remove it and notify user
+          const currentCouponCode = couponCode.trim();
           setAppliedCoupon(null);
+          setCouponCode("");
+          // Remove free items from cart
+          if (currentCouponCode && isLoggedIn) {
+            try {
+              await removeFreeItems(currentCouponCode);
+            } catch (err) {
+              console.error('Failed to remove free items:', err);
+            }
+          }
+          toast.error(revalidation.message || "Coupon is no longer valid. Please try again.");
           return;
         }
         finalCouponCode = couponCode.trim();
-      } catch {
+      } catch (error: any) {
+        // Coupon validation failed - remove it and notify user
+        const currentCouponCode = couponCode.trim();
         setAppliedCoupon(null);
+        setCouponCode("");
+        // Remove free items from cart
+        if (currentCouponCode && isLoggedIn) {
+          try {
+            await removeFreeItems(currentCouponCode);
+          } catch (err) {
+            console.error('Failed to remove free items:', err);
+          }
+        }
+        const errorMsg = error.message || error.response?.data?.message || "Coupon validation failed. Please try again.";
+        toast.error(errorMsg);
         return;
       }
     }
@@ -603,7 +678,7 @@ const Cart = () => {
           <div className="lg:col-span-3 space-y-3">
             {uniqueCartItems.map((item, index) => (
               <div
-                key={item.id || `${item.dish?._id || item.dish?.id || index}`}
+                key={item.id || `${item.dish?._id || index}`}
                 className="animate-fade-in-up"
                 style={{ animationDelay: `${index * 80}ms` }}
               >
@@ -884,7 +959,7 @@ const Cart = () => {
                                           <div className="mt-1.5 flex items-center gap-1 text-xs">
                                             <Gift className="w-3 h-3 text-green-600" />
                                             <span className="text-green-600 font-medium">
-                                              Free: {coupon.freeItems.map((item: any) =>
+                                              Free: {coupon.freeItems.map((item) =>
                                                 `${item.quantity}x ${item.dish?.name || 'Item'}`
                                               ).join(', ')}
                                             </span>
@@ -922,7 +997,7 @@ const Cart = () => {
                               placeholder="Enter code"
                               value={couponCode}
                               onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                              onKeyPress={(e) => e.key === "Enter" && handleApplyCoupon()}
+                              onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
                               className="flex-1 px-3 py-2 bg-cream border border-border/50 rounded-lg text-sm focus:outline-none focus:border-terracotta/50"
                             />
                             <button
@@ -1041,15 +1116,34 @@ const Cart = () => {
                         className="input-field"
                       />
                     </div>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input
-                        type="tel"
-                        placeholder="Phone Number"
-                        value={address.phoneNumber}
-                        onChange={(e) => setAddress({ ...address, phoneNumber: e.target.value })}
-                        className="input-field pl-10"
-                      />
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                          type="tel"
+                          placeholder="Phone Number (10 digits)"
+                          value={address.phoneNumber}
+                          onChange={(e) => setAddress({ ...address, phoneNumber: e.target.value })}
+                          className={cn(
+                            "input-field pl-10",
+                            address.phoneNumber && (phoneValidation.isValid
+                              ? "border-bengali-green/50 focus:border-bengali-green"
+                              : "border-red-300 focus:border-red-400")
+                          )}
+                        />
+                        {address.phoneNumber && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            {phoneValidation.isValid ? (
+                              <Check className="w-4 h-4 text-bengali-green" />
+                            ) : (
+                              <X className="w-4 h-4 text-red-500" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {address.phoneNumber && !phoneValidation.isValid && phoneValidation.message && (
+                        <p className="text-xs text-red-500 pl-1">{phoneValidation.message}</p>
+                      )}
                     </div>
 
                     <div className="rounded-lg overflow-hidden border border-border/50">

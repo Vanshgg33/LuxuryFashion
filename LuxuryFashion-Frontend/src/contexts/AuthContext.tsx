@@ -1,19 +1,40 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { fetchProfile, login, register, setTokens, clearTokens, refresh } from "@/lib/api";
 
+// User type definition
+export interface User {
+  _id: string;
+  id?: string;
+  name: string;
+  email: string;
+  role?: string;
+  phone?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+    lat?: number;
+    lng?: number;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface AuthContextType {
-  user: any;
+  user: User | null;
   loading: boolean;
   loginUser: (email: string, password: string, remember?: boolean) => Promise<void>;
   registerUser: (name: string, email: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => void;
-  setUser: (u: any) => void;
+  setUser: (u: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

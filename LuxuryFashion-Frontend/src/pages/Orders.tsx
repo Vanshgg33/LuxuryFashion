@@ -2,18 +2,28 @@ import { Link, useLocation } from "react-router-dom";
 import { Package, ArrowRight, ShoppingBag } from "lucide-react";
 import { OrderCard } from "@/components/OrderCard";
 import { useCartContext } from "@/contexts/CartContext";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 const Orders = () => {
   const { orders, loadOrders, ordersLoading } = useCartContext();
   const location = useLocation();
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   // Check if there are any active (non-completed) orders
   const hasActiveOrders = useMemo(() =>
     orders.some(o => !['delivered', 'cancelled'].includes(o.status?.toLowerCase() || '')),
     [orders]
   );
+
+  // Track mount state to prevent updates after unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Force refresh when page is visited
   useEffect(() => {
@@ -23,13 +33,26 @@ const Orders = () => {
 
   // Poll for updates when there are active orders
   useEffect(() => {
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+
     if (!hasActiveOrders) return;
 
-    const interval = setInterval(() => {
-      loadOrders(true);
+    pollingIntervalRef.current = setInterval(() => {
+      if (isMountedRef.current) {
+        loadOrders(true);
+      }
     }, 10000); // Refresh every 10 seconds for active orders
 
-    return () => clearInterval(interval);
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasActiveOrders]);
 

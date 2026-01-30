@@ -132,11 +132,14 @@ const OrderDetails = () => {
 
     checkCancellation();
 
-    // Set up countdown interval
+    // Set up countdown interval - only if there's time remaining
+    if (cancelTimeRemaining <= 0) return;
+
     const interval = setInterval(() => {
       setCancelTimeRemaining((prev) => {
         if (prev <= 1000) {
           setCanCancel(false);
+          clearInterval(interval); // Stop the interval when time reaches 0
           return 0;
         }
         return prev - 1000;
@@ -144,7 +147,7 @@ const OrderDetails = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [order, id]);
+  }, [order, id, cancelTimeRemaining]);
 
   // Handle order cancellation
   const handleCancelOrder = async () => {

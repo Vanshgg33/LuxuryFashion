@@ -26,6 +26,20 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+// Review type definition
+interface Review {
+  _id?: string;
+  id?: string;
+  user?: {
+    _id?: string;
+    id?: string;
+    name?: string;
+  };
+  rating: number;
+  comment?: string;
+  createdAt?: string;
+}
+
 const ProductDetails = () => {
   const { id } = useParams();
   const { addToCart, cartItems } = useCartContext();
@@ -33,7 +47,7 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [item, setItem] = useState<FoodItem | undefined>(undefined);
   const [relatedItems, setRelatedItems] = useState<FoodItem[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [rating, setRating] = useState({ averageRating: 0, totalReviews: 0 });
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
@@ -110,7 +124,7 @@ const ProductDetails = () => {
     }
   };
 
-  const handleEditReview = (review: any) => {
+  const handleEditReview = (review: Review) => {
     setEditingReview(review._id || review.id);
     setEditForm({ rating: review.rating, comment: review.comment || "" });
   };
@@ -608,7 +622,7 @@ const ProductDetails = () => {
                 <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
               </div>
             ) : (
-              reviews.map((review: any, index: number) => {
+              reviews.map((review: Review, index: number) => {
                 const isOwnReview = user && (review.user?._id === user._id || review.user?.id === user._id || review.user === user._id);
                 const isEditing = editingReview === (review._id || review.id);
 

@@ -139,21 +139,31 @@ export class CouponsService {
 
     this.logger.log(`Coupon validated successfully: ${normalizedCode} - Discount: ₹${finalDiscount}, Final: ₹${finalAmount}`);
 
-    // Get free items with dish details
+    // Get free items with dish details and validate stock
     let freeItems: any[] = [];
     if (coupon.freeItems && coupon.freeItems.length > 0) {
       const dishIds = coupon.freeItems.map((item) => item.dish);
       const dishes = await this.dishModel
         .find({ _id: { $in: dishIds } })
-        .select('_id name price imageUrl')
+        .select('_id name price imageUrl inStock')
         .exec();
 
       const dishMap = new Map(dishes.map((d) => [d._id.toString(), d]));
+
+      // Check if any free item is out of stock
+      const outOfStockItems: string[] = [];
 
       freeItems = coupon.freeItems
         .map((item) => {
           const dish = dishMap.get(item.dish.toString());
           if (!dish) return null;
+
+          // Track out of stock items but still include them (they'll be filtered)
+          if (dish.inStock === false) {
+            outOfStockItems.push(dish.name);
+            return null; // Don't include out of stock items
+          }
+
           return {
             dish: {
               _id: dish._id,
@@ -165,6 +175,11 @@ export class CouponsService {
           };
         })
         .filter(Boolean);
+
+      // Log warning if some free items are unavailable
+      if (outOfStockItems.length > 0) {
+        this.logger.warn(`Some free items are out of stock for coupon ${normalizedCode}: ${outOfStockItems.join(', ')}`);
+      }
     }
 
     return {

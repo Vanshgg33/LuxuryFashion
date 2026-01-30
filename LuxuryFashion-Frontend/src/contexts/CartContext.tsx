@@ -2,6 +2,17 @@ import React, { createContext, useContext, ReactNode } from "react";
 import { useCartBackend, BackendCartItem, BackendOrder } from "@/hooks/useCartBackend";
 import { FoodItem } from "@/data/foodData";
 
+// Type for free items from coupon validation
+interface FreeItem {
+  dish: {
+    _id: string;
+    name: string;
+    price: number;
+    imageUrl?: string;
+  };
+  quantity: number;
+}
+
 interface CartContextType {
   cartItems: BackendCartItem[];
   cartCount: number;
@@ -10,7 +21,7 @@ interface CartContextType {
   removeFromCart: (id: number | string) => Promise<void>;
   updateQuantity: (id: number | string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
-  addFreeItems: (freeItems: any[], couponCode: string) => Promise<void>;
+  addFreeItems: (freeItems: FreeItem[], couponCode: string) => Promise<void>;
   removeFreeItems: (couponCode?: string) => Promise<void>;
   orders: BackendOrder[];
   placeOrder: (
@@ -61,12 +72,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Wrapper to handle both number and string IDs
   const removeFromCartWrapper = async (id: number | string) => {
-    await cart.removeFromCart(id as any);
+    await cart.removeFromCart(String(id));
   };
 
   // Wrapper to handle both number and string IDs
   const updateQuantityWrapper = async (id: number | string, quantity: number) => {
-    await cart.updateQuantity(id as any, quantity);
+    await cart.updateQuantity(String(id), quantity);
   };
 
   const contextValue: CartContextType = {

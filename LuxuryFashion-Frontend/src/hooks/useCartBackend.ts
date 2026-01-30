@@ -67,8 +67,37 @@ const GUEST_CART_KEY = "rd_guest_cart";
 const getGuestCart = (): GuestCartItem[] => {
   try {
     const cart = localStorage.getItem(GUEST_CART_KEY);
-    return cart ? JSON.parse(cart) : [];
-  } catch {
+    if (!cart) return [];
+
+    const parsed = JSON.parse(cart);
+
+    // Validate that it's an array with valid items
+    if (!Array.isArray(parsed)) {
+      console.warn("Invalid guest cart format, clearing...");
+      localStorage.removeItem(GUEST_CART_KEY);
+      return [];
+    }
+
+    // Filter out invalid items
+    const validItems = parsed.filter(
+      (item): item is GuestCartItem =>
+        item &&
+        typeof item === "object" &&
+        typeof item.dishId === "string" &&
+        typeof item.quantity === "number" &&
+        item.quantity > 0
+    );
+
+    // If some items were invalid, save the cleaned cart
+    if (validItems.length !== parsed.length) {
+      console.warn(`Cleaned ${parsed.length - validItems.length} invalid items from guest cart`);
+      localStorage.setItem(GUEST_CART_KEY, JSON.stringify(validItems));
+    }
+
+    return validItems;
+  } catch (err) {
+    console.error("Failed to parse guest cart, clearing:", err);
+    localStorage.removeItem(GUEST_CART_KEY);
     return [];
   }
 };

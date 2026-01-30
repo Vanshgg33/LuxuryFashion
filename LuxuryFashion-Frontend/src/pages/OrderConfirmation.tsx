@@ -5,10 +5,35 @@ import { useEffect, useState } from "react";
 import { fetchOrderHistory } from "@/lib/api";
 import type { BackendOrder } from "@/hooks/useCartBackend";
 
+// Type for location state passed from Cart
+interface LocationState {
+  orderId?: string;
+  orderType?: "delivery" | "takeaway";
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+    lat?: number;
+    lng?: number;
+    phoneNumber?: string;
+  };
+}
+
+// Type for order items
+interface OrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+  isFree?: boolean;
+  dish?: { name: string };
+}
+
 const OrderConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const state = (location.state as any) || {};
+  const state = (location.state as LocationState) || {};
   const address = state.address || {};
   const orderType = state.orderType || "delivery";
   const orderId = state.orderId;
@@ -19,7 +44,7 @@ const OrderConfirmation = () => {
     (async () => {
       try {
         const history = await fetchOrderHistory();
-        const found = history.find((o: any) => o._id === orderId || o.id === orderId);
+        const found = history.find((o: BackendOrder) => o._id === orderId || o.id === orderId);
         if (found) setOrder(found);
       } catch (err) {
         console.error("Failed to load order for confirmation", err);
@@ -87,7 +112,7 @@ const OrderConfirmation = () => {
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-foreground mb-2">Items</h3>
             <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-              {order.items?.map((i: any, idx: number) => (
+              {order.items?.map((i: OrderItem, idx: number) => (
                 <div key={idx} className={`flex items-center justify-between p-3 ${i.isFree ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
                   <div>
                     <p className="font-medium text-foreground flex items-center gap-2">
