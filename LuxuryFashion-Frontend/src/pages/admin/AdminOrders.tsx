@@ -1,4 +1,4 @@
-import { Search, Filter, CheckCircle, Clock, Truck, ArrowUpDown, Package, XCircle, Loader2, Printer, Bell, BellOff, Volume2, VolumeX } from "lucide-react";
+import { Search, Filter, CheckCircle, Clock, Truck, ArrowUpDown, Package, XCircle, Loader2, Printer, Bell, Volume2, VolumeX, MapPin, Phone, Copy, ExternalLink } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { fetchAdminOrders, updateOrderStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -6,8 +6,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useAdminOrderNotifications, NewOrderData } from "@/hooks/useAdminOrderNotifications";
 import { OrderReceipt, OrderReceiptData, printReceipt } from "@/components/OrderReceipt";
+import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   placed: "bg-blue-100 text-blue-700",
@@ -415,9 +417,114 @@ const AdminOrders = () => {
                       <td className="py-4 px-6">
                         <p className="font-medium text-foreground">{order.user?.name || order.userName}</p>
                         <p className="text-xs text-muted-foreground">{order.user?.email || order.userId}</p>
-                        {(order.address?.phoneNumber || order.user?.phone) && (
-                          <p className="text-xs text-muted-foreground">📞 {order.address?.phoneNumber || order.user?.phone}</p>
-                        )}
+                        {order.orderType === "delivery" && order.address ? (
+                          <HoverCard openDelay={200} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                              <button className="flex items-center gap-1.5 mt-1 text-xs text-primary hover:text-primary/80 transition-colors group">
+                                <MapPin className="w-3.5 h-3.5" />
+                                <span className="underline decoration-dotted underline-offset-2">
+                                  {order.address?.street?.slice(0, 20)}{order.address?.street?.length > 20 ? '...' : ''}, {order.address?.city}
+                                </span>
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80" side="right" align="start">
+                              <div className="space-y-3">
+                                <div className="flex items-start justify-between">
+                                  <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-primary" />
+                                    Delivery Address
+                                  </h4>
+                                  <span className={cn(
+                                    "px-2 py-0.5 rounded text-[10px] font-medium",
+                                    order.orderType === "delivery" ? "bg-indigo-100 text-indigo-700" : "bg-purple-100 text-purple-700"
+                                  )}>
+                                    {order.orderType === "delivery" ? "Delivery" : "Takeaway"}
+                                  </span>
+                                </div>
+
+                                <div className="bg-secondary/50 rounded-lg p-3 text-sm text-foreground space-y-1">
+                                  {order.address?.label && (
+                                    <p className="text-xs font-medium text-primary">{order.address.label}</p>
+                                  )}
+                                  <p>
+                                    {order.address?.houseNumber && `${order.address.houseNumber}, `}
+                                    {order.address?.apartment && `${order.address.apartment}, `}
+                                    {order.address?.floor && `Floor ${order.address.floor}`}
+                                  </p>
+                                  <p>
+                                    {order.address?.street}
+                                    {order.address?.area && `, ${order.address.area}`}
+                                  </p>
+                                  <p>
+                                    {order.address?.city}
+                                    {order.address?.state && `, ${order.address.state}`}
+                                    {order.address?.zipCode && ` - ${order.address.zipCode}`}
+                                  </p>
+                                  {order.address?.landmark && (
+                                    <p className="text-xs text-muted-foreground italic">
+                                      Landmark: {order.address.landmark}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {order.address?.phoneNumber && (
+                                  <a
+                                    href={`tel:${order.address.phoneNumber}`}
+                                    className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                                  >
+                                    <Phone className="w-4 h-4" />
+                                    {order.address.phoneNumber}
+                                  </a>
+                                )}
+
+                                <div className="flex gap-2 pt-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 h-8 text-xs"
+                                    onClick={() => {
+                                      const fullAddress = [
+                                        order.address?.houseNumber,
+                                        order.address?.apartment,
+                                        order.address?.street,
+                                        order.address?.area,
+                                        order.address?.city,
+                                        order.address?.state,
+                                        order.address?.zipCode
+                                      ].filter(Boolean).join(', ');
+                                      navigator.clipboard.writeText(fullAddress);
+                                      toast.success("Address copied to clipboard");
+                                    }}
+                                  >
+                                    <Copy className="w-3 h-3 mr-1" />
+                                    Copy
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 h-8 text-xs"
+                                    onClick={() => {
+                                      const fullAddress = [
+                                        order.address?.street,
+                                        order.address?.city,
+                                        order.address?.state
+                                      ].filter(Boolean).join(', ');
+                                      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`, '_blank');
+                                    }}
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                    Maps
+                                  </Button>
+                                </div>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
+                        ) : order.orderType === "takeaway" ? (
+                          <span className="flex items-center gap-1.5 mt-1 text-xs text-purple-600">
+                            <Package className="w-3.5 h-3.5" />
+                            Takeaway Order
+                          </span>
+                        ) : null}
                       </td>
                       <td className="py-4 px-6">
                         <p className="text-sm text-muted-foreground max-w-xs truncate">

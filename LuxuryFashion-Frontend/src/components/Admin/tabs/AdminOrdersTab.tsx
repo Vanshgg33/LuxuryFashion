@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, Phone, MapPin, ChevronDown, ChevronUp, Check, X, Truck, ShoppingBag, RefreshCw } from "lucide-react";
+import { Package, Clock, Phone, MapPin, ChevronDown, ChevronUp, Check, X, Truck, ShoppingBag, RefreshCw, Copy, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchAdminOrders, updateOrderStatus } from "@/lib/api";
 import { toast } from "sonner";
@@ -265,23 +265,90 @@ export const AdminOrdersTab = () => {
 
                     {/* Customer Info */}
                     {order.orderType === "delivery" && order.address && (
-                      <div className="px-4 pb-4 space-y-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Delivery</p>
-                        <div className="flex items-start gap-2 text-sm">
-                          <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                          <span className="text-foreground">
-                            {order.address?.street}, {order.address?.city}
-                          </span>
+                      <div className="px-4 pb-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Delivery Address</p>
+                          {order.address?.label && (
+                            <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
+                              {order.address.label}
+                            </span>
+                          )}
                         </div>
-                        {order.address?.phoneNumber && (
-                          <a
-                            href={`tel:${order.address?.phoneNumber}`}
-                            className="flex items-center gap-2 text-sm text-primary"
+
+                        <div className="bg-secondary/30 rounded-lg p-3 space-y-2">
+                          <div className="flex items-start gap-2 text-sm">
+                            <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                            <div className="text-foreground space-y-0.5">
+                              {(order.address?.houseNumber || order.address?.apartment || order.address?.floor) && (
+                                <p>
+                                  {order.address?.houseNumber && `${order.address.houseNumber}`}
+                                  {order.address?.apartment && `, ${order.address.apartment}`}
+                                  {order.address?.floor && `, Floor ${order.address.floor}`}
+                                </p>
+                              )}
+                              <p>
+                                {order.address?.street}
+                                {order.address?.area && `, ${order.address.area}`}
+                              </p>
+                              <p className="text-muted-foreground">
+                                {order.address?.city}
+                                {order.address?.state && `, ${order.address.state}`}
+                                {order.address?.zipCode && ` - ${order.address.zipCode}`}
+                              </p>
+                            </div>
+                          </div>
+
+                          {order.address?.landmark && (
+                            <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded ml-6">
+                              📍 Landmark: {order.address.landmark}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {order.address?.phoneNumber && (
+                            <a
+                              href={`tel:${order.address?.phoneNumber}`}
+                              className="flex-1 flex items-center justify-center gap-2 text-sm text-white bg-primary hover:bg-primary/90 py-2 px-3 rounded-lg transition-colors"
+                            >
+                              <Phone className="w-4 h-4" />
+                              {order.address?.phoneNumber}
+                            </a>
+                          )}
+                          <button
+                            onClick={() => {
+                              const fullAddress = [
+                                order.address?.houseNumber,
+                                order.address?.apartment,
+                                order.address?.street,
+                                order.address?.area,
+                                order.address?.city,
+                                order.address?.state,
+                                order.address?.zipCode
+                              ].filter(Boolean).join(', ');
+                              navigator.clipboard.writeText(fullAddress);
+                              toast.success("Address copied!");
+                            }}
+                            className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+                            title="Copy address"
                           >
-                            <Phone className="w-4 h-4" />
-                            {order.address?.phoneNumber}
-                          </a>
-                        )}
+                            <Copy className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const fullAddress = [
+                                order.address?.street,
+                                order.address?.city,
+                                order.address?.state
+                              ].filter(Boolean).join(', ');
+                              window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`, '_blank');
+                            }}
+                            className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+                            title="Open in Maps"
+                          >
+                            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        </div>
                       </div>
                     )}
 
