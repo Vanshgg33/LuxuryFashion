@@ -415,6 +415,9 @@ const AdminOrders = () => {
                       <td className="py-4 px-6">
                         <p className="font-medium text-foreground">{order.user?.name || order.userName}</p>
                         <p className="text-xs text-muted-foreground">{order.user?.email || order.userId}</p>
+                        {(order.address?.phoneNumber || order.user?.phone) && (
+                          <p className="text-xs text-muted-foreground">📞 {order.address?.phoneNumber || order.user?.phone}</p>
+                        )}
                       </td>
                       <td className="py-4 px-6">
                         <p className="text-sm text-muted-foreground max-w-xs truncate">
@@ -646,14 +649,14 @@ const AdminOrders = () => {
                 <div className="bg-secondary/50 rounded-lg p-3">
                   <p className="text-sm font-medium text-foreground mb-1">Delivery Address:</p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedNewOrder.address.street && <>{selectedNewOrder.address.street}, </>}
-                    {selectedNewOrder.address.city && <>{selectedNewOrder.address.city}, </>}
-                    {selectedNewOrder.address.state && <>{selectedNewOrder.address.state} </>}
-                    {selectedNewOrder.address.zipCode}
+                    {selectedNewOrder.address?.street && <>{selectedNewOrder.address.street}, </>}
+                    {selectedNewOrder.address?.city && <>{selectedNewOrder.address.city}, </>}
+                    {selectedNewOrder.address?.state && <>{selectedNewOrder.address.state} </>}
+                    {selectedNewOrder.address?.zipCode}
                   </p>
-                  {selectedNewOrder.address.phoneNumber && (
+                  {selectedNewOrder.address?.phoneNumber && (
                     <p className="text-sm text-muted-foreground mt-1">
-                      Phone: {selectedNewOrder.address.phoneNumber}
+                      Phone: {selectedNewOrder.address?.phoneNumber}
                     </p>
                   )}
                 </div>

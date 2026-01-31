@@ -37,12 +37,34 @@ export interface BackendCart {
   totalPrice: number;
 }
 
+export interface BackendOrderItem {
+  dish?: string | { _id: string; name: string; imageUrl?: string };
+  name: string;
+  price: number;
+  quantity: number;
+  isFree?: boolean;
+  isHalfPortion?: boolean;
+  isBuyOneGetOne?: boolean;
+}
+
+export interface BackendOrderAddress {
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  phoneNumber?: string;
+  lat?: number;
+  lng?: number;
+}
+
 export interface BackendOrder {
   id: string;
   _id?: string;
-  items: any[];
+  items: BackendOrderItem[];
   totalPrice?: number;
   totalAmount?: number;
+  total?: number;
   orderDate?: string;
   createdAt?: string;
   status: string;
@@ -50,7 +72,13 @@ export interface BackendOrder {
   discountAmount?: number;
   subtotal?: number;
   orderType?: "delivery" | "takeaway";
-  address?: any;
+  address?: BackendOrderAddress;
+  user?: {
+    _id?: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
 }
 
 // Guest cart stored in localStorage
@@ -266,6 +294,8 @@ export function useCartBackend() {
 
     console.log("Syncing guest cart to backend...", guestCart);
 
+    const failedItems: typeof guestCart = [];
+
     try {
       // Add each guest cart item to backend cart
       for (const item of guestCart) {
@@ -273,10 +303,20 @@ export function useCartBackend() {
           await apiAddToCart(item.dishId, item.quantity, item.isHalfPortion || false);
         } catch (err) {
           console.error("Error syncing item:", item.dishId, err);
+          failedItems.push(item); // Track failed items
         }
       }
-      // Clear guest cart after sync
-      clearGuestCart();
+
+      // Only clear successfully synced items, keep failed ones
+      if (failedItems.length === 0) {
+        clearGuestCart();
+      } else if (failedItems.length < guestCart.length) {
+        // Some items synced, some failed - update guest cart with only failed items
+        localStorage.setItem("rd_guest_cart", JSON.stringify(failedItems));
+        console.warn("Some items failed to sync, kept in guest cart:", failedItems);
+      }
+      // If all items failed, don't clear guest cart
+
       // Reload backend cart
       await loadBackendCart();
     } catch (err) {

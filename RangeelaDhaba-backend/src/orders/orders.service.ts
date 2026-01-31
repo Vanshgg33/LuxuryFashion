@@ -152,6 +152,9 @@ export class OrdersService {
 
           // Increment usage count when coupon is applied
           await this.couponsService.applyCoupon(normalizedCouponCode);
+        } else {
+          // Coupon validation returned invalid - throw error
+          throw new BadRequestException(couponResult.message || 'Coupon is not valid');
         }
       } catch (error: any) {
         // Coupon validation failed - throw error so frontend can show message

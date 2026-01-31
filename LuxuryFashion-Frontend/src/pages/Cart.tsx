@@ -343,7 +343,7 @@ const Cart = () => {
   }, [isLoggedIn]);
 
   useEffect(() => {
-    if (address.lat && address.lng && settings.lat && settings.lng) {
+    if (address.lat != null && address.lng != null && settings.lat != null && settings.lng != null) {
       const dist = haversine(settings.lat, settings.lng, address.lat, address.lng);
       setDistanceKm(dist);
     }

@@ -15,8 +15,8 @@ export function CartItem({ item }: CartItemProps) {
   const productImage = item.dish?.imageUrl || "/placeholder.svg";
   const productName = item.dish?.name || "Dish";
   const productPrice = item.dish?.price || item.price;
-  const isVeg = item.dish?.isVeg;
-  const isBogo = item.dish?.isBuyOneGetOne;
+  const isVeg = item.dish?.isVeg ?? undefined;
+  const isBogo = item.dish?.isBuyOneGetOne ?? false;
   const isFreeItem = item.isFreeItem || false;
 
   // Calculate paid and free quantities for BOGO

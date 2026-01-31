@@ -270,16 +270,16 @@ export const AdminOrdersTab = () => {
                         <div className="flex items-start gap-2 text-sm">
                           <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                           <span className="text-foreground">
-                            {order.address.street}, {order.address.city}
+                            {order.address?.street}, {order.address?.city}
                           </span>
                         </div>
-                        {order.phoneNumber && (
+                        {order.address?.phoneNumber && (
                           <a
-                            href={`tel:${order.phoneNumber}`}
+                            href={`tel:${order.address?.phoneNumber}`}
                             className="flex items-center gap-2 text-sm text-primary"
                           >
                             <Phone className="w-4 h-4" />
-                            {order.phoneNumber}
+                            {order.address?.phoneNumber}
                           </a>
                         )}
                       </div>

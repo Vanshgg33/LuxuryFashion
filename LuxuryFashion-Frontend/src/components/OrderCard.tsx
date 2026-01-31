@@ -100,8 +100,8 @@ export function OrderCard({ order, onOrderCancelled }: OrderCardProps) {
       })
     : "";
 
-  const orderId = order.id || order._id;
-  const shortOrderId = typeof orderId === 'string' ? orderId.slice(-8).toUpperCase() : orderId;
+  const orderId = order.id || order._id || '';
+  const shortOrderId = orderId ? orderId.toString().slice(-8).toUpperCase() : 'N/A';
   const itemCount = order.items?.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0) || 0;
 
   // Cancellation state

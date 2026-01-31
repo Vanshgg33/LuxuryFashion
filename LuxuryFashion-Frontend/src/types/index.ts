@@ -36,9 +36,15 @@ export interface Dish {
   description?: string;
   imageUrl?: string;
   inStock?: boolean;
+  isVeg?: boolean;
   hasHalfPortion?: boolean;
   halfPortionPrice?: number;
+  isBuyOneGetOne?: boolean;
+  isFeatured?: boolean;
+  averageRating?: number;
+  totalReviews?: number;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 // Cart Types
@@ -60,10 +66,13 @@ export interface Cart {
 
 // Order Types
 export interface OrderItem {
-  dish: string;
+  dish?: string | { _id: string; name: string; imageUrl?: string };
   name: string;
   price: number;
   quantity: number;
+  isFree?: boolean;
+  isHalfPortion?: boolean;
+  isBuyOneGetOne?: boolean;
 }
 
 export interface Order {
@@ -76,11 +85,13 @@ export interface Order {
   couponCode?: string;
   totalAmount: number;
   totalPrice?: number;
+  total?: number;
   orderType: "delivery" | "takeaway";
-  address: Address;
-  status: "placed" | "preparing" | "out_for_delivery" | "delivered";
+  address?: Address;
+  status: "placed" | "preparing" | "ready_for_pickup" | "out_for_delivery" | "delivered" | "cancelled";
   paymentStatus?: "pending" | "paid" | "failed" | "refunded";
   paymentId?: string;
+  specialInstructions?: string;
   createdAt?: string;
   updatedAt?: string;
 }

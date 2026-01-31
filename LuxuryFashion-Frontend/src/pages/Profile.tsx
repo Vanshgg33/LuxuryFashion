@@ -174,9 +174,9 @@ const Profile = () => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
-                      {order.items?.[0]?.image ? (
+                      {order.items?.[0]?.dish?.imageUrl ? (
                         <img
-                          src={order.items[0].image}
+                          src={order.items?.[0]?.dish?.imageUrl}
                           alt=""
                           className="w-full h-full object-cover"
                         />

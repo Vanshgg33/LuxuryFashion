@@ -472,15 +472,15 @@ const OrderDetails = () => {
                   Delivery Address
                 </h2>
                 <div className="space-y-2 text-muted-foreground">
-                  <p className="font-medium text-foreground">{order.address.street}</p>
+                  <p className="font-medium text-foreground">{order.address?.street || "N/A"}</p>
                   <p>
-                    {order.address.city}, {order.address.state} {order.address.zipCode}
+                    {order.address?.city}{order.address?.city && order.address?.state ? ", " : ""}{order.address?.state} {order.address?.zipCode}
                   </p>
-                  <p>{order.address.country || "India"}</p>
-                  {order.address.phoneNumber && (
+                  <p>{order.address?.country || "India"}</p>
+                  {order.address?.phoneNumber && (
                     <p className="flex items-center gap-2 mt-3">
                       <Phone className="w-4 h-4" />
-                      {order.address.phoneNumber}
+                      {order.address?.phoneNumber}
                     </p>
                   )}
                 </div>
