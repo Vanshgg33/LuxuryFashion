@@ -16,8 +16,8 @@ export class ReviewsService {
         ...dto,
       });
       return review.populate('user', 'name email');
-    } catch (error: any) {
-      if (error.code === 11000) {
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
         throw new BadRequestException('You have already reviewed this dish');
       }
       throw error;

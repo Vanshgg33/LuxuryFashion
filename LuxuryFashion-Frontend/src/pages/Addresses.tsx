@@ -67,7 +67,7 @@ export default function Addresses() {
       setLoading(true);
       const data = await getAddresses();
       setAddresses(Array.isArray(data) ? data : []);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to load addresses", err);
       setAddresses([]);
     } finally {
@@ -109,8 +109,8 @@ export default function Addresses() {
         lng: undefined 
       });
       loadAddresses();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save address");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save address");
       console.error("Failed to save address:", err);
     }
   };
@@ -142,9 +142,9 @@ export default function Addresses() {
         console.error("Failed to reverse geocode:", err);
         toast.warning("Location set, but address details couldn't be fetched automatically");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Geolocation error:", err);
-      toast.error(err.message || "Unable to get your location. Please allow location access or select on map.");
+      toast.error(err instanceof Error ? err.message : "Unable to get your location. Please allow location access or select on map.");
     } finally {
       setIsGettingLocation(false);
     }
@@ -169,9 +169,9 @@ export default function Addresses() {
       await deleteAddress(id);
       toast.success("Address deleted successfully");
       await loadAddresses();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to delete address:", err);
-      toast.error(err.message || "Failed to delete address");
+      toast.error(err instanceof Error ? err.message : "Failed to delete address");
     }
   };
 
@@ -180,9 +180,9 @@ export default function Addresses() {
       await setDefaultAddress(id);
       toast.success("Default address updated");
       await loadAddresses();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to set default address:", err);
-      toast.error(err.message || "Failed to set default address");
+      toast.error(err instanceof Error ? err.message : "Failed to set default address");
     }
   };
 

@@ -64,10 +64,10 @@ const Profile = () => {
                 <Mail className="w-4 h-4 text-primary" />
                 {user?.email || "No email"}
               </span>
-              {user?.phone && (
+              {(user?.phoneNumber || user?.phone) && (
                 <span className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-primary" />
-                  {user.phone}
+                  {user?.phoneNumber || user?.phone}
                 </span>
               )}
             </div>

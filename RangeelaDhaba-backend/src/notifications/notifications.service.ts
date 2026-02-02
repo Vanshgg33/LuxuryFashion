@@ -11,7 +11,7 @@ export class NotificationsService {
     private usersService: UsersService,
   ) {}
 
-  async create(userId: string, message: string, type: string, metadata?: any, link?: string) {
+  async create(userId: string, message: string, type: string, metadata?: Record<string, unknown>, link?: string) {
     return this.notificationModel.create({
       user: userId,
       message,

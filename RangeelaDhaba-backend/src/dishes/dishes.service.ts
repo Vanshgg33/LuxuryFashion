@@ -5,6 +5,14 @@ import { Dish, DishDocument } from './schemas/dish.schema';
 import { CreateDishDto } from './dto/create-dish.dto';
 import { UpdateDishDto } from './dto/update-dish.dto';
 
+// Dish availability check input type
+interface DishAvailabilityInput {
+  hasTimeRestriction?: boolean;
+  availableFrom?: string;
+  availableTo?: string;
+  dishCategory?: string;
+}
+
 @Injectable()
 export class DishesService {
   constructor(@InjectModel(Dish.name) private dishModel: Model<DishDocument>) {}
@@ -46,7 +54,7 @@ export class DishesService {
   /**
    * Check if a dish is currently available based on time restrictions
    */
-  isDishAvailableNow(dish: any, categoryRestrictions?: Record<string, { availableFrom: string; availableTo: string; isEnabled: boolean }>): {
+  isDishAvailableNow(dish: DishAvailabilityInput, categoryRestrictions?: Record<string, { availableFrom: string; availableTo: string; isEnabled: boolean }>): {
     isAvailable: boolean;
     reason?: string;
     availableFrom?: string;
@@ -88,7 +96,7 @@ export class DishesService {
     return new this.dishModel(dto).save();
   }
 
-  findAll(filter: any = {}) {
+  findAll(filter: Record<string, unknown> = {}) {
     return this.dishModel.find(filter).exec();
   }
 
@@ -105,7 +113,7 @@ export class DishesService {
     console.log('💾 DTO received:', JSON.stringify(dto, null, 2));
 
     // Build the update operation
-    const updateOp: any = { $set: {} };
+    const updateOp: { $set: Record<string, unknown>; $unset?: Record<string, number> } = { $set: {} };
 
     // Copy all defined fields to $set
     for (const [key, value] of Object.entries(dto)) {
@@ -155,7 +163,7 @@ export class DishesService {
     const dishes = await this.dishModel.find().exec();
     const categoryStatus: Record<string, { total: number; inStock: number; outOfStock: number }> = {};
 
-    dishes.forEach((dish: any) => {
+    dishes.forEach((dish) => {
       const category = dish.dishCategory || 'Uncategorized';
       if (!categoryStatus[category]) {
         categoryStatus[category] = { total: 0, inStock: 0, outOfStock: 0 };

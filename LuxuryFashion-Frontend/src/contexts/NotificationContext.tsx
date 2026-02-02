@@ -16,7 +16,7 @@ export interface Notification {
   read: boolean;
   timestamp?: string;
   createdAt?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   link?: string;
 }
 
@@ -81,7 +81,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       setNotifications(formatted);
       setUnreadCount(typeof count === "number" ? count : count.count || 0);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to load notifications", err);
       if (isMountedRef.current) {
         setNotifications([]);
@@ -121,7 +121,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         })
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to mark notification as read", err);
     }
   }, []);
@@ -131,7 +131,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       await markAllNotificationsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to mark all as read", err);
     }
   }, []);
@@ -141,7 +141,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       await clearAllNotifications();
       setNotifications([]);
       setUnreadCount(0);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to clear notifications", err);
     }
   }, []);

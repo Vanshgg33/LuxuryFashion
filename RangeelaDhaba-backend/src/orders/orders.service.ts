@@ -10,7 +10,23 @@ import { CouponsService } from '../coupons/coupons.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MailerService, OrderEmailData } from '../mailer/mailer.service';
 import { UsersService } from '../users/users.service';
+import { AddressesService } from '../addresses/addresses.service';
 import { distanceInKm } from '../common/utils/haversine';
+
+// User type for order operations
+interface OrderUser {
+  _id: Types.ObjectId;
+  name: string;
+  email: string;
+}
+
+// Source item type from cart or DTO
+interface SourceItem {
+  dishId?: string;
+  dish?: { _id: Types.ObjectId | string } | string;
+  quantity: number;
+  isHalfPortion?: boolean;
+}
 
 @Injectable()
 export class OrdersService {
@@ -23,12 +39,13 @@ export class OrdersService {
     private notificationsService: NotificationsService,
     private mailerService: MailerService,
     private usersService: UsersService,
+    private addressesService: AddressesService,
   ) {}
 
   /**
    * Helper method to build order email data
    */
-  private async buildOrderEmailData(order: OrderDocument, user: any): Promise<OrderEmailData> {
+  private async buildOrderEmailData(order: OrderDocument, user: OrderUser): Promise<OrderEmailData> {
     return {
       orderId: order._id.toString(),
       customerName: user.name || 'Customer',
@@ -78,9 +95,11 @@ export class OrdersService {
     if (!sourceItems || sourceItems.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
+
     const items: Array<{ dish: Types.ObjectId; name: string; price: number; quantity: number; isFree?: boolean; isHalfPortion?: boolean; isBuyOneGetOne?: boolean }> = await Promise.all(
-      sourceItems.map(async (i: any) => {
-        const dishId = i.dishId || i.dish?._id || i.dish;
+      sourceItems.map(async (i: SourceItem) => {
+        const dishRef = i.dish;
+        const dishId = i.dishId || (typeof dishRef === 'object' && dishRef?._id ? String(dishRef._id) : dishRef);
         const qty = i.quantity;
         const isHalfPortion = i.isHalfPortion || false;
         const dish = await this.dishesService.findOne(dishId);
@@ -156,9 +175,9 @@ export class OrdersService {
           // Coupon validation returned invalid - throw error
           throw new BadRequestException(couponResult.message || 'Coupon is not valid');
         }
-      } catch (error: any) {
+      } catch (error) {
         // Coupon validation failed - throw error so frontend can show message
-        throw new BadRequestException(error.message || 'Invalid coupon code');
+        throw new BadRequestException(error instanceof Error ? error.message : 'Invalid coupon code');
       }
     }
 
@@ -192,6 +211,35 @@ export class OrdersService {
       specialInstructions: dto.specialInstructions,
     });
     await this.cartService.clear(userId);
+
+    // Save address to addresses collection for future auto-fill
+    try {
+      const existingAddresses = await this.addressesService.findAll(userId);
+      const addressExists = existingAddresses.some(
+        (addr) =>
+          addr.street?.toLowerCase().trim() === dto.address.street?.toLowerCase().trim() &&
+          addr.city?.toLowerCase().trim() === dto.address.city?.toLowerCase().trim() &&
+          addr.zipCode?.trim() === dto.address.zipCode?.trim(),
+      );
+
+      if (!addressExists) {
+        await this.addressesService.create(userId, {
+          label: 'Delivery Address',
+          street: dto.address.street,
+          city: dto.address.city,
+          state: dto.address.state,
+          zipCode: dto.address.zipCode,
+          country: dto.address.country || 'India',
+          phoneNumber: dto.address.phoneNumber,
+          lat: dto.address.lat,
+          lng: dto.address.lng,
+          isDefault: existingAddresses.length === 0, // First address becomes default
+        });
+      }
+    } catch (err) {
+      // Log error but don't fail the order - address save is not critical
+      console.error('Failed to save address to addresses collection:', err);
+    }
 
     // Create notification for user
     await this.notificationsService.notifyOrderStatus(userId, order._id.toString(), 'placed');
@@ -244,7 +292,7 @@ export class OrdersService {
     const order = await this.orderModel.findByIdAndUpdate(id, { status }, { new: true }).populate('user', 'name email');
     if (!order) throw new NotFoundException('Order not found');
 
-    const user = order.user as any;
+    const user = order.user as unknown as OrderUser;
 
     // Notify user of status change
     await this.notificationsService.notifyOrderStatus(
@@ -328,7 +376,7 @@ export class OrdersService {
     order.status = 'cancelled';
     await order.save();
 
-    const user = order.user as any;
+    const user = order.user as unknown as OrderUser;
 
     // Notify user
     await this.notificationsService.notifyOrderStatus(

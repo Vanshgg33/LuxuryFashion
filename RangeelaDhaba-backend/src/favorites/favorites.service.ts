@@ -11,8 +11,8 @@ export class FavoritesService {
     try {
       const favorite = await this.favoriteModel.create({ user: userId, dish: dishId });
       return favorite;
-    } catch (error: any) {
-      if (error.code === 11000) {
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
         throw new BadRequestException('Dish already in favorites');
       }
       throw error;

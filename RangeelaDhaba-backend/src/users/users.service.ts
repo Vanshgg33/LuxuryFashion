@@ -35,7 +35,7 @@ export class UsersService {
     return this.userModel.findByIdAndUpdate(id, { role }, { new: true }).select('-password -otpCode -otpExpires');
   }
 
-  updateAddress(id: string, address: Record<string, any>) {
+  updateAddress(id: string, address: Record<string, unknown>) {
     return this.userModel.findByIdAndUpdate(id, { address }, { new: true }).exec();
   }
 

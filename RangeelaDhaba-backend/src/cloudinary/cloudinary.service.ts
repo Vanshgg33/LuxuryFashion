@@ -50,8 +50,8 @@ export class CloudinaryService {
             return;
           }
         }
-      } catch (error: any) {
-        this.logger.warn(`Failed to parse CLOUDINARY_URL: ${error.message}`);
+      } catch (error) {
+        this.logger.warn(`Failed to parse CLOUDINARY_URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -78,8 +78,8 @@ export class CloudinaryService {
         this.logger.log(`Cloudinary configured via individual variables - cloud_name: ${cloudName}, api_key: ${apiKey.substring(0, 4)}***`);
         this.configured = true;
         return;
-      } catch (error: any) {
-        this.logger.error(`Failed to configure Cloudinary: ${error.message}`);
+      } catch (error) {
+        this.logger.error(`Failed to configure Cloudinary: ${error instanceof Error ? error.message : 'Unknown error'}`);
         this.configured = true; // Set to true to prevent repeated attempts
         return;
       }

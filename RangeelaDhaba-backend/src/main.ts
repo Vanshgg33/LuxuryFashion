@@ -39,8 +39,20 @@ function isOriginAllowed(origin: string | undefined): boolean {
   return false;
 }
 
+// Request/Response types for CORS middleware
+interface CorsRequest {
+  headers: { origin?: string };
+  method: string;
+}
+
+interface CorsResponse {
+  setHeader: (name: string, value: string) => void;
+  statusCode: number;
+  end: () => void;
+}
+
 // Manual CORS middleware for serverless
-function corsMiddleware(req: any, res: any, next: any) {
+function corsMiddleware(req: CorsRequest, res: CorsResponse, next: () => void) {
   const origin = req.headers.origin;
 
   // Check if origin is allowed (including Vercel preview URLs)
@@ -101,9 +113,9 @@ async function createNestServer(expressInstance: express.Express) {
 }
 
 // For Vercel serverless
-let cachedServer: any;
+let cachedServer: express.Express | null = null;
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: CorsRequest & Record<string, unknown>, res: CorsResponse) {
   // Handle CORS preflight immediately
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin;
@@ -127,7 +139,7 @@ export default async function handler(req: any, res: any) {
     await createNestServer(expressApp);
     cachedServer = expressApp;
   }
-  return cachedServer(req, res);
+  return (cachedServer as express.Express)(req as unknown as express.Request, res as unknown as express.Response);
 }
 
 // For local development

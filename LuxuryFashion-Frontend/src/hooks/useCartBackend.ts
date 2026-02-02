@@ -77,7 +77,8 @@ export interface BackendOrder {
     _id?: string;
     name?: string;
     email?: string;
-    phone?: string;
+    phoneNumber?: string;
+    phone?: string; // Legacy field for backward compatibility
   };
 }
 
@@ -86,7 +87,7 @@ interface GuestCartItem {
   dishId: string;
   quantity: number;
   isHalfPortion?: boolean;
-  dish?: any; // Populated from products
+  dish?: BackendCartItem['dish']; // Populated from products
 }
 
 const GUEST_CART_KEY = "rd_guest_cart";
@@ -147,7 +148,20 @@ export function useCartBackend() {
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [products, setProducts] = useState<any[]>([]);
+  // Product type from the dishes API
+  interface Product {
+    _id: string;
+    id?: string;
+    name: string;
+    price: number;
+    imageUrl?: string;
+    dishCategory?: string;
+    inStock?: boolean;
+    halfPortionPrice?: number;
+    isBuyOneGetOne?: boolean;
+  }
+
+  const [products, setProducts] = useState<Product[]>([]);
 
   // Refs to prevent duplicate API calls
   const isLoadingOrdersRef = useRef(false);
@@ -233,9 +247,9 @@ export function useCartBackend() {
       setCartCount(
         cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
       );
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error loading cart:", err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "Failed to load cart");
       setCartItems([]);
       setCartTotal(0);
       setCartCount(0);
@@ -278,7 +292,7 @@ export function useCartBackend() {
       const orderList = await fetchOrderHistory();
       setOrders(orderList || []);
       ordersLoadedRef.current = true;
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error loading orders:", err);
       setOrders([]);
     } finally {
@@ -364,9 +378,9 @@ export function useCartBackend() {
           setCartCount(
             cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
           );
-        } catch (err: any) {
+        } catch (err) {
           console.error("Error loading cart:", err);
-          setError(err.message);
+          setError(err instanceof Error ? err.message : "Failed to load cart");
         }
 
         // Don't load orders here - let the Orders page load them when visited
@@ -406,9 +420,9 @@ export function useCartBackend() {
           setCartCount(
             cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
           );
-        } catch (err: any) {
+        } catch (err) {
           console.error("Error adding to cart:", err);
-          setError(err.message);
+          setError(err instanceof Error ? err.message : "Failed to add to cart");
           throw err;
         }
       } else {
@@ -451,9 +465,9 @@ export function useCartBackend() {
           setCartCount(
             cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
           );
-        } catch (err: any) {
+        } catch (err) {
           console.error("Error updating cart:", err);
-          setError(err.message);
+          setError(err instanceof Error ? err.message : "Failed to update cart");
           throw err;
         }
       } else {
@@ -484,9 +498,9 @@ export function useCartBackend() {
           setCartCount(
             cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
           );
-        } catch (err: any) {
+        } catch (err) {
           console.error("Error removing from cart:", err);
-          setError(err.message);
+          setError(err instanceof Error ? err.message : "Failed to remove from cart");
           throw err;
         }
       } else {
@@ -508,9 +522,9 @@ export function useCartBackend() {
         setCartItems([]);
         setCartTotal(0);
         setCartCount(0);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error clearing cart:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : "Failed to clear cart");
         throw err;
       }
     } else {
@@ -521,9 +535,15 @@ export function useCartBackend() {
     }
   }, [isLoggedIn]);
 
+  // Free item type for coupon validation
+  interface FreeItemInput {
+    dish: { _id: string; name: string; price: number; imageUrl?: string };
+    quantity: number;
+  }
+
   // Add free items to cart
   const addFreeItems = useCallback(
-    async (freeItems: any[], couponCode: string) => {
+    async (freeItems: FreeItemInput[], couponCode: string) => {
       if (!isLoggedIn) return;
       
       try {
@@ -534,9 +554,9 @@ export function useCartBackend() {
         setCartCount(
           cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
         );
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error adding free items:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : "Failed to add free items");
         throw err;
       }
     },
@@ -556,9 +576,9 @@ export function useCartBackend() {
         setCartCount(
           cart.cartItems?.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0
         );
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error removing free items:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : "Failed to remove free items");
         throw err;
       }
     },
@@ -602,9 +622,9 @@ export function useCartBackend() {
         ordersLoadedRef.current = false;
         await loadOrders(true);
         return response.order?.id;
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error placing order:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : "Failed to place order");
         throw err;
       }
     },

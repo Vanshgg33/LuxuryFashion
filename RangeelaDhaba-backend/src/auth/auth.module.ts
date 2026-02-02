@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Provider } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -13,7 +13,7 @@ import { MailerModule } from '../mailer/mailer.module';
 
 // Conditionally include GoogleStrategy only if OAuth credentials are provided
 // This prevents the app from crashing if OAuth credentials are not set
-const providers: any[] = [AuthService, JwtStrategy, RefreshStrategy];
+const providers: Provider[] = [AuthService, JwtStrategy, RefreshStrategy];
 const hasGoogleCredentials = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
 if (hasGoogleCredentials) {
   providers.push(GoogleStrategy);

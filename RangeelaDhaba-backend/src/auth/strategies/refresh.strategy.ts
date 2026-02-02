@@ -12,7 +12,7 @@ export class RefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
     });
   }
 
-  validate(_req: Request, payload: any) {
+  validate(_req: Request, payload: { sub: string; email: string; role: string }) {
     return { userId: payload.sub, email: payload.email, role: payload.role };
   }
 }

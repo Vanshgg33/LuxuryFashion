@@ -4,7 +4,8 @@ export interface User {
   id?: string;
   name: string;
   email: string;
-  phone?: string;
+  phoneNumber?: string;
+  phone?: string; // Legacy field for backward compatibility
   role: "user" | "admin";
   address?: Address;
   createdAt?: string;
@@ -163,14 +164,14 @@ export interface Notification {
   message: string;
   type: "order" | "user" | "system" | "promotion";
   read: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   link?: string;
   timestamp?: string;
   createdAt?: string;
 }
 
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success?: boolean;
   data?: T;
   message?: string;
@@ -195,7 +196,7 @@ export interface RegisterForm {
   name: string;
   email: string;
   password: string;
-  phone?: string;
+  phoneNumber?: string;
 }
 
 export interface AddressForm {

@@ -3,7 +3,7 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentUser, JwtUserPayload } from '../common/decorators/current-user.decorator';
 
 @Controller('orders')
 export class OrdersController {
@@ -11,13 +11,13 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@CurrentUser() user: any, @Body() dto: CreateOrderDto) {
+  create(@CurrentUser() user: JwtUserPayload, @Body() dto: CreateOrderDto) {
     return this.ordersService.create(user.userId, dto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('my')
-  myOrders(@CurrentUser() user: any) {
+  myOrders(@CurrentUser() user: JwtUserPayload) {
     return this.ordersService.findUserOrders(user.userId);
   }
 
@@ -29,7 +29,7 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  findOne(@CurrentUser() user: JwtUserPayload, @Param('id') id: string) {
     return this.ordersService.findOne(id, user.userId);
   }
 
@@ -45,13 +45,13 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/cancel')
-  cancelOrder(@CurrentUser() user: any, @Param('id') id: string) {
+  cancelOrder(@CurrentUser() user: JwtUserPayload, @Param('id') id: string) {
     return this.ordersService.cancelOrder(id, user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':id/can-cancel')
-  canCancelOrder(@CurrentUser() user: any, @Param('id') id: string) {
+  canCancelOrder(@CurrentUser() user: JwtUserPayload, @Param('id') id: string) {
     return this.ordersService.canCancelOrder(id, user.userId);
   }
 }

@@ -15,13 +15,22 @@ export class User {
   password?: string;
 
   @Prop()
-  phone?: string;
+  phoneNumber?: string;
 
   @Prop()
   googleId?: string;
 
   @Prop({ type: Object })
-  address?: Record<string, any>;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+    phoneNumber?: string;
+    lat?: number;
+    lng?: number;
+  };
 
   @Prop({ default: 'user', enum: ['user', 'admin'] })
   role: string;

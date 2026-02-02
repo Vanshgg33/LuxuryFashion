@@ -20,6 +20,7 @@ import { Request } from 'express';
 import { DishesService } from './dishes.service';
 import { CreateDishDto } from './dto/create-dish.dto';
 import { UpdateDishDto } from './dto/update-dish.dto';
+import { DishDocument } from './schemas/dish.schema';
 import { DishCategory } from './enums/dish-category.enum';
 import { FoodCategory } from './enums/food-category.enum';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -30,7 +31,7 @@ import { SettingsService } from '../settings/settings.service';
 // Custom pipe that skips validation - bypasses ValidationPipe for this route
 @Injectable()
 class SkipValidationPipe implements PipeTransform {
-  transform(value: any, metadata: ArgumentMetadata) {
+  transform<T>(value: T, _metadata: ArgumentMetadata): T {
     // Always return value as-is, skip all validation
     return value;
   }
@@ -46,7 +47,7 @@ export class DishesController {
 
   @Get()
   async list(@Query('category') category?: string, @Query('inStock') inStock?: string) {
-    const filter: any = {};
+    const filter: Record<string, string | boolean> = {};
     
     // Sanitize category input to prevent NoSQL injection
     if (category && typeof category === 'string') {
@@ -65,7 +66,7 @@ export class DishesController {
     const categoryRestrictions = settings.categoryTimeRestrictions || {};
 
     // Transform to ensure _id is available and add availability info
-    return dishes.map((dish: any) => {
+    return dishes.map((dish: DishDocument) => {
       const dishObj = dish.toObject ? dish.toObject() : dish;
       const dishId = dishObj._id?.toString() || dishObj.id?.toString() || dishObj._id || dishObj.id;
 
@@ -141,7 +142,7 @@ export class DishesController {
     }
 
     // Create plain object with properly transformed values (avoid DTO validation)
-    const dishData: any = {
+    const dishData: Partial<CreateDishDto> = {
       name: body.name.trim(),
       price: price,
     };

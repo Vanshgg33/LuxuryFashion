@@ -41,9 +41,16 @@ interface FreeItemInfo {
   quantity: number;
 }
 
+interface CouponInfo {
+  id?: string;
+  code: string;
+  discountType: string;
+  discountValue: number;
+}
+
 interface CouponResult {
   valid: boolean;
-  coupon?: any;
+  coupon?: CouponInfo;
   discount?: number;
   discountFormatted?: string;
   finalAmount?: number;
@@ -251,13 +258,33 @@ const Cart = () => {
     const loadSavedAddress = async () => {
       if (!isLoggedIn) return;
 
-      let profile: any = null;
+      // Profile type from API
+      interface UserProfile {
+        _id?: string;
+        name?: string;
+        email?: string;
+        phoneNumber?: string;
+        phone?: string;
+        address?: {
+          street?: string;
+          city?: string;
+          state?: string;
+          zipCode?: string;
+          country?: string;
+          phoneNumber?: string;
+          lat?: number;
+          lng?: number;
+        };
+      }
+
+      let profile: UserProfile | null = null;
       let profilePhone = "";
 
       // Step 1: Get profile (for phone fallback and address fallback)
       try {
         profile = await fetchProfile();
-        profilePhone = profile?.phone || "";
+        // Handle both old 'phone' and new 'phoneNumber' field names
+        profilePhone = profile?.phoneNumber || profile?.phone || "";
       } catch (err) {
         console.error("Failed to fetch profile:", err);
       }
@@ -266,7 +293,21 @@ const Cart = () => {
       try {
         const savedAddresses = await getAddresses();
         if (savedAddresses && savedAddresses.length > 0) {
-          const defaultAddr = savedAddresses.find((addr: any) => addr.isDefault) || savedAddresses[0];
+          // Address type from API
+          interface SavedAddress {
+            _id?: string;
+            id?: string;
+            street?: string;
+            city?: string;
+            state?: string;
+            zipCode?: string;
+            country?: string;
+            phoneNumber?: string;
+            lat?: number;
+            lng?: number;
+            isDefault?: boolean;
+          }
+          const defaultAddr = savedAddresses.find((addr: SavedAddress) => addr.isDefault) || savedAddresses[0];
           setAddress({
             street: defaultAddr.street || "",
             city: defaultAddr.city || "",
@@ -310,7 +351,21 @@ const Cart = () => {
         const orders = await fetchOrderHistory();
         if (orders && orders.length > 0) {
           // Get the most recent order with an address
-          const recentOrder = orders.find((o: any) => o.address?.street);
+          // Order type from API
+          interface OrderWithAddress {
+            address?: {
+              street?: string;
+              city?: string;
+              state?: string;
+              zipCode?: string;
+              country?: string;
+              phoneNumber?: string;
+              lat?: number;
+              lng?: number;
+            };
+            phoneNumber?: string;
+          }
+          const recentOrder = orders.find((o: OrderWithAddress) => o.address?.street);
           if (recentOrder?.address) {
             const orderAddr = recentOrder.address;
             setAddress({
@@ -319,7 +374,7 @@ const Cart = () => {
               state: orderAddr.state || "",
               zipCode: orderAddr.zipCode || "",
               country: orderAddr.country || "India",
-              phoneNumber: orderAddr.phoneNumber || recentOrder.phone || profilePhone,
+              phoneNumber: orderAddr.phoneNumber || recentOrder.phoneNumber || profilePhone,
               lat: orderAddr.lat,
               lng: orderAddr.lng,
             });
@@ -388,9 +443,9 @@ const Cart = () => {
         console.error("Failed to reverse geocode:", err);
         toast.warning("Location set, but address details couldn't be fetched automatically");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Geolocation error:", err);
-      toast.error(err.message || "Unable to get your location. Please allow location access or select on map.");
+      toast.error(err instanceof Error ? err.message : "Unable to get your location. Please allow location access or select on map.");
     } finally {
       setIsGettingLocation(false);
     }
@@ -447,9 +502,9 @@ const Cart = () => {
         setAppliedCoupon(null);
         toast.error(result.message || "Invalid coupon code");
       }
-    } catch (error: any) {
+    } catch (error) {
       setAppliedCoupon(null);
-      const errorMsg = error.message || error.response?.data?.message || "Failed to apply coupon";
+      const errorMsg = error instanceof Error ? error.message : "Failed to apply coupon";
       toast.error(errorMsg);
       console.error("Failed to validate coupon:", error);
     } finally {
@@ -524,7 +579,7 @@ const Cart = () => {
           return;
         }
         finalCouponCode = couponCode.trim();
-      } catch (error: any) {
+      } catch (error) {
         // Coupon validation failed - remove it and notify user
         const currentCouponCode = couponCode.trim();
         setAppliedCoupon(null);
@@ -537,7 +592,7 @@ const Cart = () => {
             console.error('Failed to remove free items:', err);
           }
         }
-        const errorMsg = error.message || error.response?.data?.message || "Coupon validation failed. Please try again.";
+        const errorMsg = error instanceof Error ? error.message : "Coupon validation failed. Please try again.";
         toast.error(errorMsg);
         return;
       }
@@ -566,10 +621,23 @@ const Cart = () => {
           console.error("Failed to save address to profile:", err);
         }
 
-        // 2. Try to save to addresses collection
+        // 2. Try to save to addresses collection (always save if address doesn't already exist)
         try {
           const existingAddresses = await getAddresses();
-          if (!existingAddresses || existingAddresses.length === 0) {
+          // Check if this address already exists (match by street + city + zipCode)
+          interface ExistingAddress {
+            street?: string;
+            city?: string;
+            zipCode?: string;
+          }
+          const addressExists = existingAddresses?.some((addr: ExistingAddress) =>
+            addr.street?.toLowerCase().trim() === address.street?.toLowerCase().trim() &&
+            addr.city?.toLowerCase().trim() === address.city?.toLowerCase().trim() &&
+            addr.zipCode?.trim() === address.zipCode?.trim()
+          );
+
+          if (!addressExists) {
+            // Save new address and set as default
             await createAddress({
               label: "Delivery Address",
               street: address.street,
@@ -580,7 +648,7 @@ const Cart = () => {
               phoneNumber: address.phoneNumber,
               lat: address.lat,
               lng: address.lng,
-              isDefault: true,
+              isDefault: true, // New address used for order becomes default
             });
           }
         } catch (err) {
@@ -589,12 +657,12 @@ const Cart = () => {
 
         navigate("/order-confirmation", { state: { orderId, orderType, address } });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to place order:", error);
-      if (error.message === "LOGIN_REQUIRED") {
+      if (error instanceof Error && error.message === "LOGIN_REQUIRED") {
         setShowLoginPrompt(true);
       } else {
-        toast.error(error.message || "Failed to place order");
+        toast.error(error instanceof Error ? error.message : "Failed to place order");
       }
     } finally {
       isPlacingOrderRef.current = false;
@@ -605,7 +673,7 @@ const Cart = () => {
   const handleClearCart = async () => {
     try {
       await clearCart();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to clear cart:", error);
     }
   };

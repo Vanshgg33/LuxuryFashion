@@ -3,7 +3,7 @@ import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentUser, JwtUserPayload } from '../common/decorators/current-user.decorator';
 
 @Controller('reviews')
 export class ReviewsController {
@@ -28,19 +28,19 @@ export class ReviewsController {
   // User endpoints
   @UseGuards(JwtAuthGuard)
   @Post('dish/:dishId')
-  create(@CurrentUser() user: any, @Param('dishId') dishId: string, @Body() dto: CreateReviewDto) {
+  create(@CurrentUser() user: JwtUserPayload, @Param('dishId') dishId: string, @Body() dto: CreateReviewDto) {
     return this.reviewsService.create(user.userId, dishId, dto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('dish/:dishId')
-  update(@CurrentUser() user: any, @Param('dishId') dishId: string, @Body() dto: Partial<CreateReviewDto>) {
+  update(@CurrentUser() user: JwtUserPayload, @Param('dishId') dishId: string, @Body() dto: Partial<CreateReviewDto>) {
     return this.reviewsService.update(user.userId, dishId, dto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('dish/:dishId')
-  delete(@CurrentUser() user: any, @Param('dishId') dishId: string) {
+  delete(@CurrentUser() user: JwtUserPayload, @Param('dishId') dishId: string) {
     return this.reviewsService.delete(user.userId, dishId);
   }
 

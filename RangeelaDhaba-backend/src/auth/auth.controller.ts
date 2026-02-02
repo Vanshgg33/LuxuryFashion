@@ -15,9 +15,21 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { ForgotDto, ResetDto } from './dto/forgot.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentUser, JwtUserPayload } from '../common/decorators/current-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Response, Request } from 'express';
+
+// Address type for profile update
+interface AddressDto {
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  phoneNumber?: string;
+  lat?: number;
+  lng?: number;
+}
 
 @Controller('auth')
 export class AuthController {
@@ -50,14 +62,14 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@CurrentUser() user: any) {
+  me(@CurrentUser() user: JwtUserPayload) {
     // Fetch full user profile from database (includes address)
     return this.authService.getProfile(user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('me')
-  updateProfile(@CurrentUser() user: any, @Body() dto: { name?: string; phone?: string; address?: Record<string, any> }) {
+  updateProfile(@CurrentUser() user: JwtUserPayload, @Body() dto: { name?: string; phoneNumber?: string; address?: AddressDto }) {
     return this.authService.updateProfile(user.userId, dto);
   }
 
@@ -73,7 +85,12 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     // This will only work if GoogleStrategy is registered
-    const { user } = req as any;
+    interface GoogleUser {
+      googleId: string;
+      email: string;
+      name: string;
+    }
+    const user = (req as Request & { user?: GoogleUser }).user;
     if (!user) {
       throw new BadRequestException('Google authentication failed');
     }

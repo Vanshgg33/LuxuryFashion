@@ -1,8 +1,42 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Cart, CartDocument } from './schemas/cart.schema';
+import { Cart, CartDocument, CartItem } from './schemas/cart.schema';
 import { DishesService } from '../dishes/dishes.service';
+
+// Free item input type
+export interface FreeItemInput {
+  dish: { _id: string; name: string; price: number; imageUrl?: string };
+  quantity: number;
+}
+
+// Cart item with populated dish
+interface PopulatedCartItem {
+  _id?: Types.ObjectId;
+  dish: {
+    _id: Types.ObjectId;
+    name: string;
+    price: number;
+    imageUrl?: string;
+    halfPortionPrice?: number;
+    isBuyOneGetOne?: boolean;
+  };
+  quantity: number;
+  isHalfPortion?: boolean;
+  isFreeItem?: boolean;
+  couponCode?: string;
+}
+
+// Cart item from MongoDB subdocument (before population)
+interface CartItemSubdoc {
+  _id?: Types.ObjectId;
+  dish: Types.ObjectId | { _id?: Types.ObjectId };
+  quantity: number;
+  isHalfPortion?: boolean;
+  isFreeItem?: boolean;
+  couponCode?: string;
+  deleteOne?: () => void;
+}
 
 @Injectable()
 export class CartService {
@@ -30,10 +64,11 @@ export class CartService {
     // Deduplicate items by dish ID (merge quantities)
     const itemMap = new Map<string, { dish: Types.ObjectId; quantity: number }>();
     
-    cart.items.forEach((item: any) => {
-      const dishId = item.dish instanceof Types.ObjectId 
-        ? item.dish.toString() 
-        : (item.dish?._id ? item.dish._id.toString() : item.dish?.toString());
+    cart.items.forEach((item) => {
+      const cartItem = item as unknown as CartItemSubdoc;
+      const dishId = cartItem.dish instanceof Types.ObjectId
+        ? cartItem.dish.toString()
+        : ((cartItem.dish as { _id?: Types.ObjectId })?._id?.toString() || String(cartItem.dish));
       
       if (itemMap.has(dishId)) {
         // Merge with existing item
@@ -41,10 +76,10 @@ export class CartService {
         existing.quantity += item.quantity;
       } else {
         // Add new item
-        const dishObjId = item.dish instanceof Types.ObjectId 
-          ? item.dish 
+        const dishObjId = cartItem.dish instanceof Types.ObjectId
+          ? cartItem.dish
           : new Types.ObjectId(dishId);
-        itemMap.set(dishId, { dish: dishObjId, quantity: item.quantity });
+        itemMap.set(dishId, { dish: dishObjId, quantity: cartItem.quantity });
       }
     });
     
@@ -54,7 +89,7 @@ export class CartService {
       const deduplicatedItems = Array.from(itemMap.values());
 
       // Validate we're not losing items (total quantity should be preserved)
-      const originalTotalQty = cart.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+      const originalTotalQty = cart.items.reduce((sum: number, item) => sum + (item.quantity || 0), 0);
       const newTotalQty = deduplicatedItems.reduce((sum, item) => sum + item.quantity, 0);
 
       if (newTotalQty !== originalTotalQty) {
@@ -64,7 +99,7 @@ export class CartService {
       // Clear existing items and add deduplicated ones
       cart.items.splice(0, cart.items.length);
       deduplicatedItems.forEach(({ dish, quantity }) => {
-        cart.items.push({ dish, quantity } as any);
+        cart.items.push({ dish, quantity, isHalfPortion: false, isFreeItem: false } as CartItem);
       });
       await cart.save();
       this.logger.debug(`Deduplicated cart items: ${originalCount} -> ${itemMap.size}, total qty: ${newTotalQty}`);
@@ -105,10 +140,11 @@ export class CartService {
     const dishObjectId = new Types.ObjectId(normalizedDishId);
     
     // Find existing item by comparing dish IDs and portion type
-    const existing = cart.items.find((i: any) => {
-      const itemDishId = i.dish instanceof Types.ObjectId 
-        ? i.dish.toString() 
-        : (i.dish?._id ? i.dish._id.toString() : i.dish?.toString());
+    const existing = cart.items.find((i) => {
+      const itemDish = i.dish as Types.ObjectId | { _id?: Types.ObjectId };
+      const itemDishId = itemDish instanceof Types.ObjectId
+        ? itemDish.toString()
+        : (itemDish?._id ? itemDish._id.toString() : String(itemDish));
       return itemDishId === dishObjectId.toString() && i.isHalfPortion === isHalfPortion;
     });
     
@@ -116,7 +152,7 @@ export class CartService {
       existing.quantity += quantity;
       this.logger.debug(`Updated existing cart item quantity to ${existing.quantity}`);
     } else {
-      cart.items.push({ dish: dishObjectId, quantity, isHalfPortion });
+      cart.items.push({ dish: dishObjectId, quantity, isHalfPortion, isFreeItem: false });
       this.logger.debug(`Added new item to cart with quantity ${quantity}, isHalfPortion: ${isHalfPortion}`);
     }
     await cart.save();
@@ -126,10 +162,11 @@ export class CartService {
 
   async updateItem(userId: string, itemId: string, quantity: number) {
     const cart = await this.getOrCreate(userId, false);
-    const item = (cart.items as any).id ? (cart.items as any).id(itemId) : cart.items.find((i: any) => i._id?.toString() === itemId);
+    const itemsArray = cart.items as unknown as { id?: (id: string) => CartItemSubdoc | null };
+    const item = itemsArray.id ? itemsArray.id(itemId) : (cart.items as unknown as CartItemSubdoc[]).find((i) => i._id?.toString() === itemId);
     if (!item) throw new NotFoundException('Item not found');
     if (quantity <= 0) {
-      item.deleteOne();
+      if (item.deleteOne) item.deleteOne();
     } else {
       item.quantity = quantity;
     }
@@ -140,19 +177,20 @@ export class CartService {
 
   async removeItem(userId: string, itemId: string) {
     const cart = await this.getOrCreate(userId, false);
-    const item = (cart.items as any).id ? (cart.items as any).id(itemId) : cart.items.find((i: any) => i._id?.toString() === itemId);
+    const itemsArray = cart.items as unknown as { id?: (id: string) => CartItemSubdoc | null };
+    const item = itemsArray.id ? itemsArray.id(itemId) : (cart.items as unknown as CartItemSubdoc[]).find((i) => i._id?.toString() === itemId);
     if (!item) throw new NotFoundException('Item not found');
-    item.deleteOne();
+    if (item.deleteOne) item.deleteOne();
     await cart.save();
     await cart.populate('items.dish');
     return this.toResponse(cart);
   }
 
-  async addFreeItems(userId: string, freeItems: any[], couponCode: string) {
+  async addFreeItems(userId: string, freeItems: FreeItemInput[], couponCode: string) {
     const cart = await this.getOrCreate(userId, false);
-    
+
     // Remove existing free items from this coupon
-    cart.items = cart.items.filter((item: any) => 
+    cart.items = cart.items.filter((item) =>
       !(item.isFreeItem && item.couponCode === couponCode)
     );
     
@@ -179,12 +217,12 @@ export class CartService {
     
     if (couponCode) {
       // Remove free items from specific coupon
-      cart.items = cart.items.filter((item: any) => 
+      cart.items = cart.items.filter((item) =>
         !(item.isFreeItem && item.couponCode === couponCode)
       );
     } else {
       // Remove all free items
-      cart.items = cart.items.filter((item: any) => !item.isFreeItem);
+      cart.items = cart.items.filter((item) => !item.isFreeItem);
     }
     
     cart.appliedCoupon = undefined;
@@ -194,11 +232,12 @@ export class CartService {
   }
 
   toResponse(cart: CartDocument) {
-    const items = cart.items.map((i: any) => {
-      const dish = i.dish;
-      const quantity = i.quantity;
-      const isHalfPortion = i.isHalfPortion || false;
-      const isFreeItem = i.isFreeItem || false;
+    const items = cart.items.map((i) => {
+      const cartItem = i as unknown as PopulatedCartItem;
+      const dish = cartItem.dish;
+      const quantity = cartItem.quantity;
+      const isHalfPortion = cartItem.isHalfPortion || false;
+      const isFreeItem = cartItem.isFreeItem || false;
       const price = isFreeItem ? 0 : (isHalfPortion && dish?.halfPortionPrice ? dish.halfPortionPrice : (dish?.price || 0));
       
       // Handle Buy 1 Get 1 Free pricing
@@ -212,12 +251,12 @@ export class CartService {
       }
       
       return {
-        id: i._id,
+        id: cartItem._id,
         dish: dish,
         quantity: quantity,
         isHalfPortion: isHalfPortion,
         isFreeItem: isFreeItem,
-        couponCode: i.couponCode,
+        couponCode: cartItem.couponCode,
         price: price,
         itemTotal: itemTotal,
       };

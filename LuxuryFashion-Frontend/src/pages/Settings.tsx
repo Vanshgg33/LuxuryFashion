@@ -5,12 +5,13 @@ import { User, Mail, Phone, Save } from "lucide-react";
 
 export default function Settings() {
   const { user, setUser } = useAuth();
-  const [form, setForm] = useState({ name: "", phone: "" });
+  const [form, setForm] = useState({ name: "", phoneNumber: "" });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
-      setForm({ name: user.name || "", phone: user.phone || "" });
+      // Handle both old 'phone' and new 'phoneNumber' field names for backward compatibility
+      setForm({ name: user.name || "", phoneNumber: user.phoneNumber || user.phone || "" });
     }
   }, [user]);
 
@@ -67,8 +68,8 @@ export default function Settings() {
           </label>
           <input
             type="tel"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            value={form.phoneNumber}
+            onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
             className="input-styled w-full"
             placeholder="Your phone number"
           />

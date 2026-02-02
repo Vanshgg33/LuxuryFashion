@@ -7,6 +7,26 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { ForgotDto, ResetDto } from './dto/forgot.dto';
 import { MailerService } from '../mailer/mailer.service';
+import { UserDocument } from '../users/schemas/user.schema';
+
+// Address type for profile update
+interface AddressDto {
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  phoneNumber?: string;
+  lat?: number;
+  lng?: number;
+}
+
+// Google profile type
+interface GoogleProfile {
+  googleId: string;
+  email: string;
+  name: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -16,7 +36,7 @@ export class AuthService {
     private mailer: MailerService,
   ) {}
 
-  private signTokens(user: any) {
+  private signTokens(user: UserDocument) {
     const payload = { sub: user._id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET || 'supersecretjwt',
@@ -37,7 +57,7 @@ export class AuthService {
       name: dto.name,
       email: dto.email,
       password: hashed,
-      phone: dto.phone,
+      phoneNumber: dto.phoneNumber,
     });
     await this.mailer.sendWelcome(user.email, user.name);
     const tokens = this.signTokens(user);
@@ -70,7 +90,7 @@ export class AuthService {
     }
   }
 
-  async googleLogin(profile: any) {
+  async googleLogin(profile: GoogleProfile) {
     // First try to find by googleId (most reliable)
     let user = await this.usersService.findByGoogleId(profile.googleId);
 
@@ -81,7 +101,9 @@ export class AuthService {
       if (user) {
         // User exists but registered without Google - link their Google account
         await this.usersService.update(user.id, { googleId: profile.googleId });
-        user = await this.usersService.findById(user.id);
+        const updatedUser = await this.usersService.findById(user.id);
+        if (!updatedUser) throw new UnauthorizedException('User not found after update');
+        user = updatedUser;
       } else {
         // Completely new user - create account
         user = await this.usersService.create({
@@ -143,18 +165,29 @@ export class AuthService {
     return this.safeUser(user);
   }
 
-  async updateProfile(userId: string, dto: { name?: string; phone?: string; address?: Record<string, any> }) {
-    const updateData: any = {};
+  async updateProfile(userId: string, dto: { name?: string; phoneNumber?: string; address?: AddressDto }) {
+    const updateData: { name?: string; phoneNumber?: string; address?: AddressDto } = {};
     if (dto.name) updateData.name = dto.name;
-    if (dto.phone) updateData.phone = dto.phone;
+    if (dto.phoneNumber) {
+      // Sanitize phone number - remove spaces, dashes, country code prefix, and leading zeros
+      let sanitized = dto.phoneNumber.replace(/[^\d+]/g, '');
+      sanitized = sanitized.replace(/^(\+91|91)/, '');
+      sanitized = sanitized.replace(/^0+/, '');
+      updateData.phoneNumber = sanitized;
+    }
     if (dto.address) updateData.address = dto.address;
 
     const user = await this.usersService.update(userId, updateData);
+    if (!user) throw new UnauthorizedException('User not found');
     return this.safeUser(user);
   }
 
-  private safeUser(user: any) {
+  private safeUser(user: UserDocument) {
     const { password, otpCode, otpExpires, ...safe } = user.toObject ? user.toObject() : user;
+    // Normalize phone field: ensure phoneNumber is always set (handle old 'phone' field)
+    if (!safe.phoneNumber && safe.phone) {
+      safe.phoneNumber = safe.phone;
+    }
     return safe;
   }
 }

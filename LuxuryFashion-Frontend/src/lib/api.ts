@@ -96,16 +96,22 @@ export const clearTokens = () => {
   sessionStorage.removeItem("rd_use_session");
 };
 
+// Custom API error interface
+interface ApiError extends Error {
+  status?: number;
+  response?: { data: { message: string } };
+}
+
 async function request(path: string, options: RequestInit = {}) {
   if (!API_BASE) {
-    const error = new Error(
+    const error: ApiError = new Error(
       "API_BASE is not configured. Please set VITE_API_BASE environment variable in Vercel project settings."
-    ) as any;
+    );
     error.status = 500;
-    error.response = { 
-      data: { 
-        message: "Backend API URL is not configured. Please contact the administrator." 
-      } 
+    error.response = {
+      data: {
+        message: "Backend API URL is not configured. Please contact the administrator."
+      }
     };
     throw error;
   }
@@ -142,7 +148,7 @@ async function request(path: string, options: RequestInit = {}) {
         // Use default error message
       }
     }
-    const error: any = new Error(errorMessage);
+    const error: ApiError = new Error(errorMessage);
     error.status = res.status;
     error.response = { data: { message: errorMessage } };
     throw error;
@@ -151,13 +157,13 @@ async function request(path: string, options: RequestInit = {}) {
 }
 
 const apiGet = (path: string) => request(path, { method: "GET" });
-const apiPost = (path: string, body?: any) =>
+const apiPost = (path: string, body?: Record<string, unknown>) =>
   request(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
   });
-const apiPatch = (path: string, body?: any) =>
+const apiPatch = (path: string, body?: Record<string, unknown>) =>
   request(path, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -170,7 +176,7 @@ export { API_BASE, apiGet, apiPost, apiPatch, apiDelete };
 export const googleAuthUrl = `${API_BASE}/auth/google`;
 
 // Auth
-export const register = (body: { name: string; email: string; password: string; phone?: string }) =>
+export const register = (body: { name: string; email: string; password: string; phoneNumber?: string }) =>
   apiPost("/auth/register", body);
 export const login = (body: { email: string; password: string }) => apiPost("/auth/login", body);
 export const refresh = () => apiPost("/auth/refresh", { refreshToken: getRefresh() });
@@ -198,8 +204,13 @@ export const updateCartItem = (itemId: number | string, quantity: number) =>
   apiPatch(`/cart/items/${itemId}`, { quantity });
 export const removeFromCart = (itemId: number | string) => apiDelete(`/cart/items/${itemId}`);
 export const clearCart = () => apiDelete("/cart");
-export const addFreeItemsToCart = (freeItems: any[], couponCode: string) =>
-  apiPost("/cart/free-items", { freeItems, couponCode });
+interface FreeItemInput {
+  dish: { _id: string; name: string; price: number; imageUrl?: string };
+  quantity: number;
+}
+
+export const addFreeItemsToCart = (freeItems: FreeItemInput[], couponCode: string) =>
+  apiPost("/cart/free-items", { freeItems, couponCode } as Record<string, unknown>);
 export const removeFreeItemsFromCart = (couponCode?: string) => {
   const body = couponCode ? { couponCode } : {};
   return request("/cart/free-items", { 
@@ -209,8 +220,25 @@ export const removeFreeItemsFromCart = (couponCode?: string) => {
   });
 };
 
+// Order input type
+interface PlaceOrderInput {
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    phoneNumber?: string;
+    lat?: number;
+    lng?: number;
+  };
+  couponCode?: string;
+  orderType: "delivery" | "takeaway";
+  specialInstructions?: string;
+}
+
 // Orders
-export const placeOrder = (body: any) => apiPost("/orders", body);
+export const placeOrder = (body: PlaceOrderInput) => apiPost("/orders", body as Record<string, unknown>);
 export const fetchOrderHistory = () => apiGet("/orders/my");
 export const fetchAdminOrders = () => apiGet("/orders/admin");
 export const fetchAnalyticsSummary = () => apiGet("/analytics/summary");
@@ -221,16 +249,31 @@ export const updateOrderStatus = (id: string, status: string, reason?: string) =
   apiPatch(`/orders/${id}/status`, { status, ...(reason && { reason }) });
 export const fetchUsers = () => apiGet("/users");
 export const updateUserRole = (id: string, role: "user" | "admin") => apiPatch(`/users/${id}/role`, { role });
-export const updateProfile = (body: { name?: string; phone?: string; address?: Record<string, any> }) => apiPatch("/auth/me", body);
+export const updateProfile = (body: { name?: string; phoneNumber?: string; address?: Record<string, any> }) => apiPatch("/auth/me", body);
 
 // Coupons
 export const validateCoupon = (code: string, subtotal: number) =>
   apiPost("/coupons/validate", { code, subtotal });
 export const getCoupon = (code: string) => apiGet(`/coupons/${code}`);
 export const getActiveCoupons = () => apiGet("/coupons/active");
-export const createCoupon = (body: any) => apiPost("/coupons", body);
+// Coupon input types
+interface CouponInput {
+  code: string;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  isActive?: boolean;
+  validFrom?: string;
+  validUntil?: string;
+  usageLimit?: number;
+  description?: string;
+  freeItems?: Array<{ dish: string; quantity: number }>;
+}
+
+export const createCoupon = (body: CouponInput) => apiPost("/coupons", body as Record<string, unknown>);
 export const getAllCoupons = () => apiGet("/coupons");
-export const updateCoupon = (id: string, body: any) => apiPatch(`/coupons/${id}`, body);
+export const updateCoupon = (id: string, body: Partial<CouponInput>) => apiPatch(`/coupons/${id}`, body as Record<string, unknown>);
 export const deleteCoupon = (id: string) => apiDelete(`/coupons/${id}`);
 
 // Settings
@@ -337,10 +380,29 @@ export const updateCategoryStock = (category: string, inStock: boolean) =>
   apiPatch(`/dishes/category/${encodeURIComponent(category)}/stock`, { inStock });
 export const getCategoryStockStatus = () => apiGet("/dishes/category/stock-status");
 
+// Address input type
+interface AddressInput {
+  label: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  houseNumber?: string;
+  apartment?: string;
+  floor?: string;
+  area?: string;
+  landmark?: string;
+  phoneNumber?: string;
+  lat?: number;
+  lng?: number;
+  isDefault?: boolean;
+}
+
 // Addresses
 export const getAddresses = () => apiGet("/addresses");
-export const createAddress = (body: any) => apiPost("/addresses", body);
-export const updateAddress = (id: string, body: any) => apiPatch(`/addresses/${id}`, body);
+export const createAddress = (body: AddressInput) => apiPost("/addresses", body as Record<string, unknown>);
+export const updateAddress = (id: string, body: Partial<AddressInput>) => apiPatch(`/addresses/${id}`, body as Record<string, unknown>);
 export const deleteAddress = (id: string) => apiDelete(`/addresses/${id}`);
 export const setDefaultAddress = (id: string) => apiPatch(`/addresses/${id}/default`, {});
 

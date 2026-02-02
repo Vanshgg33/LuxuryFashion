@@ -88,7 +88,7 @@ export class BannersController {
     @Body('title') title?: string,
     @Body('isActive') isActive?: string,
   ) {
-    const updateData: any = {};
+    const updateData: { imageUrl?: string; title?: string; isActive?: boolean } = {};
 
     if (file) {
       const uploaded = await this.cloudinary.uploadBuffer(file, 'banners');

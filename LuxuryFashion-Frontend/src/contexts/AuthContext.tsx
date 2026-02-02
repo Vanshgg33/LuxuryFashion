@@ -8,13 +8,15 @@ export interface User {
   name: string;
   email: string;
   role?: string;
-  phone?: string;
+  phoneNumber?: string;
+  phone?: string; // Legacy field for backward compatibility
   address?: {
     street?: string;
     city?: string;
     state?: string;
     zipCode?: string;
     country?: string;
+    phoneNumber?: string;
     lat?: number;
     lng?: number;
   };

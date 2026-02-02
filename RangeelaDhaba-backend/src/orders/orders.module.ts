@@ -10,6 +10,7 @@ import { CouponsModule } from '../coupons/coupons.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { MailerModule } from '../mailer/mailer.module';
 import { UsersModule } from '../users/users.module';
+import { AddressesModule } from '../addresses/addresses.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UsersModule } from '../users/users.module';
     NotificationsModule,
     MailerModule,
     UsersModule,
+    AddressesModule,
   ],
   providers: [OrdersService],
   controllers: [OrdersController],

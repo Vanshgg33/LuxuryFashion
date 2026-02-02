@@ -1,7 +1,7 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentUser, JwtUserPayload } from '../common/decorators/current-user.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('payments')
@@ -9,7 +9,7 @@ export class PaymentsController {
   constructor(private paymentsService: PaymentsService) {}
 
   @Post('create-order')
-  createOrder(@CurrentUser() user: any, @Body() body: { amount: number; orderId: string }) {
+  createOrder(@CurrentUser() _user: JwtUserPayload, @Body() body: { amount: number; orderId: string }) {
     return this.paymentsService.createOrder(body.amount, 'INR', body.orderId);
   }
 

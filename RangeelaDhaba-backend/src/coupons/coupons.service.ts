@@ -1,10 +1,21 @@
 import { BadRequestException, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Coupon, CouponDocument } from './schemas/coupon.schema';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { ValidateCouponDto } from './dto/validate-coupon.dto';
 import { Dish, DishDocument } from '../dishes/schemas/dish.schema';
+
+// Free item type for validation response
+export interface FreeItemResult {
+  dish: {
+    _id: Types.ObjectId;
+    name: string;
+    price: number;
+    imageUrl: string | undefined;
+  };
+  quantity: number;
+}
 
 @Injectable()
 export class CouponsService {
@@ -39,7 +50,12 @@ export class CouponsService {
 
   async findActiveCoupons() {
     const now = new Date();
-    const query: any = {
+    const query: {
+      isActive: boolean;
+      $and?: Array<{
+        $or: Array<Record<string, unknown>>;
+      }>;
+    } = {
       isActive: true,
     };
 
@@ -140,7 +156,7 @@ export class CouponsService {
     this.logger.log(`Coupon validated successfully: ${normalizedCode} - Discount: ₹${finalDiscount}, Final: ₹${finalAmount}`);
 
     // Get free items with dish details and validate stock
-    let freeItems: any[] = [];
+    let freeItems: FreeItemResult[] = [];
     if (coupon.freeItems && coupon.freeItems.length > 0) {
       const dishIds = coupon.freeItems.map((item) => item.dish);
       const dishes = await this.dishModel
@@ -174,7 +190,7 @@ export class CouponsService {
             quantity: item.quantity,
           };
         })
-        .filter(Boolean);
+        .filter((item): item is FreeItemResult => item !== null);
 
       // Log warning if some free items are unavailable
       if (outOfStockItems.length > 0) {
