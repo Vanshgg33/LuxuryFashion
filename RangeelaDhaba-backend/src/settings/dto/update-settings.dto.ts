@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString, Allow } from 'class-validator';
 
 export class UpdateSettingsDto {
   @IsOptional()
@@ -42,6 +42,7 @@ export class UpdateSettingsDto {
   closureReason?: string;
 
   @IsOptional()
+  @Allow()
   categoryTimeRestrictions?: Record<string, { availableFrom: string; availableTo: string; isEnabled: boolean }>;
 }
 

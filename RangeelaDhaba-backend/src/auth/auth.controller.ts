@@ -14,22 +14,11 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { ForgotDto, ResetDto } from './dto/forgot.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtUserPayload } from '../common/decorators/current-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Response, Request } from 'express';
-
-// Address type for profile update
-interface AddressDto {
-  street?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  country?: string;
-  phoneNumber?: string;
-  lat?: number;
-  lng?: number;
-}
 
 @Controller('auth')
 export class AuthController {
@@ -69,7 +58,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('me')
-  updateProfile(@CurrentUser() user: JwtUserPayload, @Body() dto: { name?: string; phoneNumber?: string; address?: AddressDto }) {
+  updateProfile(@CurrentUser() user: JwtUserPayload, @Body() dto: UpdateProfileDto) {
     return this.authService.updateProfile(user.userId, dto);
   }
 

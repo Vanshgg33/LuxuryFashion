@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { CartService, FreeItemInput } from './cart.service';
+import { CartService } from './cart.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtUserPayload } from '../common/decorators/current-user.decorator';
+import { AddCartItemDto, UpdateCartItemDto, AddFreeItemsDto, RemoveFreeItemsDto } from './dto/cart.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('cart')
@@ -16,20 +17,18 @@ export class CartController {
   @Post('items')
   add(
     @CurrentUser() user: JwtUserPayload,
-    @Body() body: { dishId: string | number; quantity?: number; isHalfPortion?: boolean },
+    @Body() dto: AddCartItemDto,
   ) {
-    // Ensure dishId is a string (handle both string and number inputs)
-    const dishId = typeof body.dishId === 'number' ? String(body.dishId) : body.dishId;
-    return this.cartService.addItem(user.userId, dishId, body.quantity || 1, body.isHalfPortion || false);
+    return this.cartService.addItem(user.userId, dto.dishId, dto.quantity || 1, dto.isHalfPortion || false);
   }
 
   @Patch('items/:itemId')
   update(
     @CurrentUser() user: JwtUserPayload,
     @Param('itemId') itemId: string,
-    @Body() body: { quantity: number },
+    @Body() dto: UpdateCartItemDto,
   ) {
-    return this.cartService.updateItem(user.userId, itemId, body.quantity);
+    return this.cartService.updateItem(user.userId, itemId, dto.quantity);
   }
 
   @Delete('items/:itemId')
@@ -45,17 +44,17 @@ export class CartController {
   @Post('free-items')
   addFreeItems(
     @CurrentUser() user: JwtUserPayload,
-    @Body() body: { freeItems: FreeItemInput[]; couponCode: string }
+    @Body() dto: AddFreeItemsDto
   ) {
-    return this.cartService.addFreeItems(user.userId, body.freeItems, body.couponCode);
+    return this.cartService.addFreeItems(user.userId, dto.freeItems, dto.couponCode);
   }
 
   @Delete('free-items')
   removeFreeItems(
     @CurrentUser() user: JwtUserPayload,
-    @Body() body: { couponCode?: string }
+    @Body() dto: RemoveFreeItemsDto
   ) {
-    return this.cartService.removeFreeItems(user.userId, body.couponCode);
+    return this.cartService.removeFreeItems(user.userId, dto.couponCode);
   }
 }
 
