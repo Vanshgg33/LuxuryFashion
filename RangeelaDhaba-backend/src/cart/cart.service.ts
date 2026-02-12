@@ -60,29 +60,40 @@ export class CartService {
 
   async getCart(userId: string) {
     const cart = await this.getOrCreate(userId, false);
-    
-    // Deduplicate items by dish ID (merge quantities)
-    const itemMap = new Map<string, { dish: Types.ObjectId; quantity: number }>();
-    
+
+    // Deduplicate items by dish ID + isHalfPortion + isFreeItem (preserve portion types)
+    const itemMap = new Map<string, { dish: Types.ObjectId; quantity: number; isHalfPortion: boolean; isFreeItem: boolean; couponCode?: string }>();
+
     cart.items.forEach((item) => {
       const cartItem = item as unknown as CartItemSubdoc;
       const dishId = cartItem.dish instanceof Types.ObjectId
         ? cartItem.dish.toString()
         : ((cartItem.dish as { _id?: Types.ObjectId })?._id?.toString() || String(cartItem.dish));
-      
-      if (itemMap.has(dishId)) {
+
+      const isHalfPortion = cartItem.isHalfPortion || false;
+      const isFreeItem = cartItem.isFreeItem || false;
+      // Create unique key combining dishId, portion type, and free item status
+      const uniqueKey = `${dishId}-${isHalfPortion ? 'half' : 'full'}-${isFreeItem ? 'free' : 'paid'}`;
+
+      if (itemMap.has(uniqueKey)) {
         // Merge with existing item
-        const existing = itemMap.get(dishId)!;
+        const existing = itemMap.get(uniqueKey)!;
         existing.quantity += item.quantity;
       } else {
         // Add new item
         const dishObjId = cartItem.dish instanceof Types.ObjectId
           ? cartItem.dish
           : new Types.ObjectId(dishId);
-        itemMap.set(dishId, { dish: dishObjId, quantity: cartItem.quantity });
+        itemMap.set(uniqueKey, {
+          dish: dishObjId,
+          quantity: cartItem.quantity,
+          isHalfPortion,
+          isFreeItem,
+          couponCode: cartItem.couponCode
+        });
       }
     });
-    
+
     // Rebuild items array if deduplication occurred
     if (itemMap.size !== cart.items.length) {
       const originalCount = cart.items.length;
@@ -98,20 +109,23 @@ export class CartService {
 
       // Clear existing items and add deduplicated ones
       cart.items.splice(0, cart.items.length);
-      deduplicatedItems.forEach(({ dish, quantity }) => {
-        cart.items.push({ dish, quantity, isHalfPortion: false, isFreeItem: false } as CartItem);
+      deduplicatedItems.forEach(({ dish, quantity, isHalfPortion, isFreeItem, couponCode }) => {
+        cart.items.push({ dish, quantity, isHalfPortion, isFreeItem, couponCode } as CartItem);
       });
       await cart.save();
       this.logger.debug(`Deduplicated cart items: ${originalCount} -> ${itemMap.size}, total qty: ${newTotalQty}`);
     }
-    
+
     await cart.populate('items.dish');
     return this.toResponse(cart);
   }
 
   async addItem(userId: string, dishId: string, quantity = 1, isHalfPortion = false) {
     this.logger.debug(`Adding item to cart - userId: ${userId}, dishId: ${dishId} (type: ${typeof dishId}), quantity: ${quantity}, isHalfPortion: ${isHalfPortion}`);
-    
+
+    // Validate quantity is a positive integer
+    const validQuantity = Math.max(1, Math.floor(Number(quantity) || 1));
+
     // Normalize dishId - ensure it's a string and trim whitespace
     const normalizedDishId = String(dishId).trim();
     
@@ -149,11 +163,11 @@ export class CartService {
     });
     
     if (existing) {
-      existing.quantity += quantity;
+      existing.quantity += validQuantity;
       this.logger.debug(`Updated existing cart item quantity to ${existing.quantity}`);
     } else {
-      cart.items.push({ dish: dishObjectId, quantity, isHalfPortion, isFreeItem: false });
-      this.logger.debug(`Added new item to cart with quantity ${quantity}, isHalfPortion: ${isHalfPortion}`);
+      cart.items.push({ dish: dishObjectId, quantity: validQuantity, isHalfPortion, isFreeItem: false });
+      this.logger.debug(`Added new item to cart with quantity ${validQuantity}, isHalfPortion: ${isHalfPortion}`);
     }
     await cart.save();
     await cart.populate('items.dish');
@@ -165,10 +179,13 @@ export class CartService {
     const itemsArray = cart.items as unknown as { id?: (id: string) => CartItemSubdoc | null };
     const item = itemsArray.id ? itemsArray.id(itemId) : (cart.items as unknown as CartItemSubdoc[]).find((i) => i._id?.toString() === itemId);
     if (!item) throw new NotFoundException('Item not found');
-    if (quantity <= 0) {
+
+    // Validate quantity - must be positive integer, 0 or less removes item
+    const validQuantity = Math.floor(Number(quantity) || 0);
+    if (validQuantity <= 0) {
       if (item.deleteOne) item.deleteOne();
     } else {
-      item.quantity = quantity;
+      item.quantity = validQuantity;
     }
     await cart.save();
     await cart.populate('items.dish');

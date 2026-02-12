@@ -34,11 +34,14 @@ export function ProductCard({ item }: ProductCardProps) {
   // Get the cart item ID for updates (could be the cart item id or the dish id for guest cart)
   const cartItemId = cartItem?.id || cartItem?.dish?._id || cartItem?.dish?.id || String(item.id);
 
+  // Check if item is available (both in stock AND within time window)
+  const isItemAvailable = item.inStock !== false && item.isAvailableNow !== false;
+
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (item.inStock === false || !item.id) return;
+    if (!isItemAvailable || !item.id) return;
 
     setIsAdding(true);
     try {
@@ -147,12 +150,18 @@ export function ProductCard({ item }: ProductCardProps) {
             </div>
           )}
 
-          {/* Out of Stock Overlay */}
-          {item.inStock === false && (
+          {/* Unavailable Overlay (Out of Stock or Time Restricted) */}
+          {!isItemAvailable && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <span className="px-3 py-1.5 bg-white text-foreground text-sm font-medium rounded-full">
-                Unavailable
-              </span>
+              <div className="px-3 py-1.5 bg-white text-foreground text-sm font-medium rounded-full text-center">
+                {item.inStock === false ? (
+                  <span>Out of Stock</span>
+                ) : item.isAvailableNow === false && item.availabilityReason ? (
+                  <span className="text-xs">{item.availabilityReason}</span>
+                ) : (
+                  <span>Unavailable</span>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -225,7 +234,7 @@ export function ProductCard({ item }: ProductCardProps) {
               // Show Add button if not in cart
               <button
                 onClick={handleAddToCart}
-                disabled={item.inStock === false || isAdding}
+                disabled={!isItemAvailable || isAdding}
                 className={cn(
                   "inline-flex items-center gap-1 sm:gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5",
                   "bg-gradient-to-r from-primary to-accent text-foreground",
@@ -234,7 +243,7 @@ export function ProductCard({ item }: ProductCardProps) {
                   "transition-all duration-200",
                   "hover:shadow-lg hover:scale-[1.02]",
                   "active:scale-[0.98]",
-                  (item.inStock === false || isAdding) && "opacity-50 cursor-not-allowed"
+                  (!isItemAvailable || isAdding) && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <Plus className="w-3 h-3 sm:w-4 sm:h-4" />

@@ -14,12 +14,13 @@ import {
   Clock,
   LogIn,
   MessageSquare,
-  Gift
+  Gift,
+  AlertTriangle
 } from "lucide-react";
 import { CartItem } from "@/components/CartItem";
 import { useCartContext } from "@/contexts/CartContext";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen, fetchProfile, updateProfile, getAddresses, createAddress, fetchOrderHistory } from "@/lib/api";
+import { validateCoupon, fetchSettings, getActiveCoupons, checkRestaurantOpen, fetchProfile, updateProfile, getAddresses, createAddress, fetchOrderHistory, fetchProducts } from "@/lib/api";
 import { reverseGeocode } from "@/lib/geocode";
 import { getAccurateLocation } from "@/lib/geolocation";
 import { MapPicker } from "@/components/MapPicker";
@@ -155,6 +156,7 @@ const Cart = () => {
   const [restaurantStatus, setRestaurantStatus] = useState<{ isOpen: boolean; openingTime: string; closingTime: string; isManuallyClosed?: boolean; closureReason?: string } | null>(null);
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [userPreferredOrderType, setUserPreferredOrderType] = useState<"delivery" | "takeaway">("delivery");
+  const [unavailableItems, setUnavailableItems] = useState<Array<{ name: string; reason: string }>>([]);
 
   // Phone number validation helper
   const phoneValidation = useMemo(() => {
@@ -470,6 +472,55 @@ const Cart = () => {
     }
   }, [showCouponInput]);
 
+  // Check availability of cart items (time restrictions)
+  useEffect(() => {
+    const checkCartItemsAvailability = async () => {
+      if (uniqueCartItems.length === 0) {
+        setUnavailableItems([]);
+        return;
+      }
+
+      try {
+        const products = await fetchProducts();
+        const unavailable: Array<{ name: string; reason: string }> = [];
+
+        uniqueCartItems.forEach((cartItem) => {
+          // Skip free items from coupons
+          if (cartItem.isFreeItem) return;
+
+          const dishId = cartItem.dish?._id || cartItem.id;
+          const product = products.find((p: any) => p._id === dishId || p.id === dishId);
+
+          if (product) {
+            // Check if out of stock
+            if (product.inStock === false) {
+              unavailable.push({
+                name: product.name || cartItem.dish?.name || 'Item',
+                reason: 'Out of stock'
+              });
+            }
+            // Check if not available due to time restriction
+            else if (product.isAvailableNow === false) {
+              unavailable.push({
+                name: product.name || cartItem.dish?.name || 'Item',
+                reason: product.availabilityReason || 'Not available at this time'
+              });
+            }
+          }
+        });
+
+        setUnavailableItems(unavailable);
+      } catch (err) {
+        console.error('Failed to check cart items availability:', err);
+      }
+    };
+
+    checkCartItemsAvailability();
+    // Re-check every 60 seconds in case time window changes
+    const interval = setInterval(checkCartItemsAvailability, 60000);
+    return () => clearInterval(interval);
+  }, [uniqueCartItems]);
+
   const handleApplyCoupon = async (code?: string) => {
     const codeToApply = code || couponCode.trim();
     if (!codeToApply) return;
@@ -769,6 +820,28 @@ const Cart = () => {
               <h2 className="text-lg font-bold text-foreground mb-5">
                 Order Summary
               </h2>
+
+              {/* Unavailable Items Warning */}
+              {unavailableItems.length > 0 && (
+                <div className="mb-5 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-600" />
+                    <p className="text-sm font-medium text-orange-700">
+                      Some items are not available
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    {unavailableItems.map((item, idx) => (
+                      <p key={idx} className="text-xs text-orange-600">
+                        • <span className="font-medium">{item.name}</span>: {item.reason}
+                      </p>
+                    ))}
+                  </div>
+                  <p className="text-xs text-orange-700 mt-2 font-medium">
+                    Please remove these items to place your order.
+                  </p>
+                </div>
+              )}
 
               {/* Restaurant Closed Notice */}
               {restaurantStatus && !restaurantStatus.isOpen && (
@@ -1241,11 +1314,16 @@ const Cart = () => {
                     setShowAddressForm(true);
                   }
                 }}
-                disabled={isPlacingOrder || cartLoading || (restaurantStatus && !restaurantStatus.isOpen) || !isMinOrderMet}
+                disabled={isPlacingOrder || cartLoading || (restaurantStatus && !restaurantStatus.isOpen) || !isMinOrderMet || unavailableItems.length > 0}
                 className="w-full btn-primary justify-center mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPlacingOrder ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : unavailableItems.length > 0 ? (
+                  <>
+                    <AlertTriangle className="w-4 h-4" />
+                    Remove Unavailable Items
+                  </>
                 ) : restaurantStatus && !restaurantStatus.isOpen ? (
                   <>
                     <Clock className="w-4 h-4" />

@@ -219,12 +219,32 @@ export class CouponsService {
     // Normalize coupon code to uppercase
     const normalizedCode = code.toUpperCase().trim();
     this.logger.debug(`Applying coupon: ${normalizedCode}`);
-    
-    const coupon = await this.findByCode(normalizedCode);
-    if (!coupon) throw new NotFoundException('Coupon not found');
-    
-    coupon.usedCount += 1;
-    await coupon.save();
+
+    // Use atomic findOneAndUpdate to prevent race conditions
+    // Only increment if usage limit not reached (or no limit)
+    const coupon = await this.couponModel.findOneAndUpdate(
+      {
+        code: normalizedCode,
+        $or: [
+          { usageLimit: { $exists: false } },
+          { usageLimit: null },
+          { usageLimit: 0 },
+          { $expr: { $lt: ['$usedCount', '$usageLimit'] } }
+        ]
+      },
+      { $inc: { usedCount: 1 } },
+      { new: true }
+    );
+
+    if (!coupon) {
+      // Either coupon doesn't exist or usage limit reached
+      const existing = await this.findByCode(normalizedCode);
+      if (!existing) {
+        throw new NotFoundException('Coupon not found');
+      }
+      throw new BadRequestException('Coupon usage limit reached');
+    }
+
     this.logger.log(`Coupon applied: ${normalizedCode} - Usage count: ${coupon.usedCount}`);
     return coupon;
   }

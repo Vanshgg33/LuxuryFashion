@@ -96,15 +96,35 @@ export class OrdersService {
       throw new BadRequestException('Cart is empty');
     }
 
+    // Get category time restrictions for validation
+    const categoryRestrictions = settings.categoryTimeRestrictions || {};
+
     const items: Array<{ dish: Types.ObjectId; name: string; price: number; quantity: number; isFree?: boolean; isHalfPortion?: boolean; isBuyOneGetOne?: boolean }> = await Promise.all(
       sourceItems.map(async (i: SourceItem) => {
         const dishRef = i.dish;
-        const dishId = i.dishId || (typeof dishRef === 'object' && dishRef?._id ? String(dishRef._id) : dishRef);
+        const dishId = i.dishId || (typeof dishRef === 'object' && dishRef?._id ? String(dishRef._id) : String(dishRef));
         const qty = i.quantity;
         const isHalfPortion = i.isHalfPortion || false;
+        if (!dishId) throw new BadRequestException('Invalid dish reference in order');
         const dish = await this.dishesService.findOne(dishId);
         if (!dish) throw new NotFoundException('Dish not found');
-        if (!dish.inStock) throw new BadRequestException('Dish is out of stock');
+        if (!dish.inStock) throw new BadRequestException(`${dish.name} is out of stock`);
+
+        // Check dish/category timing restrictions
+        const availability = this.dishesService.isDishAvailableNow(
+          {
+            hasTimeRestriction: dish.hasTimeRestriction,
+            availableFrom: dish.availableFrom,
+            availableTo: dish.availableTo,
+            dishCategory: dish.dishCategory,
+          },
+          categoryRestrictions
+        );
+        if (!availability.isAvailable) {
+          throw new BadRequestException(
+            `${dish.name} is not available right now. ${availability.reason}`
+          );
+        }
 
         // Use half portion price if applicable
         const price = isHalfPortion && dish.hasHalfPortion && dish.halfPortionPrice
@@ -122,7 +142,7 @@ export class OrdersService {
       }),
     );
 
-    // Calculate subtotal with BOGO pricing
+    // Calculate subtotal with BOGO pricing (round to 2 decimal places for currency)
     let subtotal = items.reduce((sum, item) => {
       if (item.isBuyOneGetOne && item.quantity > 0) {
         // For BOGO: charge for half the quantity (rounded up)
@@ -131,6 +151,8 @@ export class OrdersService {
       }
       return sum + item.price * item.quantity;
     }, 0);
+    // Round to 2 decimal places to avoid floating point precision issues
+    subtotal = Math.round(subtotal * 100) / 100;
 
     // Check minimum order value
     const minOrderValue = settings.minOrderValue || 0;
@@ -181,7 +203,8 @@ export class OrdersService {
       }
     }
 
-    const totalAmount = subtotal - discountAmount;
+    // Round to 2 decimal places for currency precision
+    const totalAmount = Math.round((subtotal - discountAmount) * 100) / 100;
 
     // Distance check and delivery availability
     const lat = dto.address.lat ?? settings.lat;

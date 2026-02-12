@@ -260,8 +260,11 @@ const ProductDetails = () => {
     );
   }
 
+  // Check if item is available (both in stock AND within time window)
+  const isItemAvailable = item.inStock !== false && item.isAvailableNow !== false;
+
   const handleAddToCart = async () => {
-    if (item.inStock === false) return;
+    if (!isItemAvailable) return;
     setIsAdding(true);
     try {
       for (let i = 0; i < quantity; i++) {
@@ -346,12 +349,18 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* Out of Stock Overlay */}
-            {item.inStock === false && (
+            {/* Unavailable Overlay (Out of Stock or Time Restricted) */}
+            {!isItemAvailable && (
               <div className="absolute inset-0 bg-black/50 rounded-3xl flex items-center justify-center">
-                <span className="px-6 py-3 bg-white text-foreground font-semibold rounded-full shadow-large">
-                  Currently Unavailable
-                </span>
+                <div className="px-6 py-3 bg-white text-foreground font-semibold rounded-full shadow-large text-center">
+                  {item.inStock === false ? (
+                    <span>Currently Unavailable</span>
+                  ) : item.isAvailableNow === false && item.availabilityReason ? (
+                    <span>{item.availabilityReason}</span>
+                  ) : (
+                    <span>Currently Unavailable</span>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -381,7 +390,13 @@ const ProductDetails = () => {
               </div>
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Flame className="w-4 h-4" />
-                <span>{item.inStock === false ? "Out of Stock" : "Popular"}</span>
+                <span>
+                  {item.inStock === false
+                    ? "Out of Stock"
+                    : item.isAvailableNow === false
+                      ? "Not Available Now"
+                      : "Popular"}
+                </span>
               </div>
             </div>
 
@@ -446,7 +461,7 @@ const ProductDetails = () => {
               {/* Add to Cart Button */}
               <button
                 onClick={handleAddToCart}
-                disabled={item.inStock === false || isAdding}
+                disabled={!isItemAvailable || isAdding}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-2",
                   "py-4 px-8 rounded-full",
@@ -463,7 +478,9 @@ const ProductDetails = () => {
                 ) : (
                   <>
                     <ShoppingBag className="w-5 h-5" />
-                    {item.inStock === false ? "Out of Stock" : `Add to Cart · ₹${item.price * quantity}`}
+                    {!isItemAvailable
+                      ? (item.inStock === false ? "Out of Stock" : "Not Available Now")
+                      : `Add to Cart · ₹${item.price * quantity}`}
                   </>
                 )}
               </button>

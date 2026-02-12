@@ -27,11 +27,14 @@ export function DishCardZomato({ item, isBestseller = false }: DishCardZomatoPro
     }
   }, [user, item.id]);
 
+  // Check if item is available (both in stock AND within time window)
+  const isItemAvailable = item.inStock !== false && item.isAvailableNow !== false;
+
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (item.inStock === false) return;
+    if (!isItemAvailable) return;
 
     setIsAdding(true);
     try {
@@ -93,12 +96,16 @@ export function DishCardZomato({ item, isBestseller = false }: DishCardZomatoPro
                 </span>
               )}
 
-              {/* Out of Stock Badge */}
-              {item.inStock === false && (
+              {/* Out of Stock / Time Restricted Badge */}
+              {item.inStock === false ? (
                 <span className="inline-flex items-center px-2 py-0.5 bg-destructive/10 text-destructive text-xs font-semibold rounded-full">
                   Out of stock
                 </span>
-              )}
+              ) : item.isAvailableNow === false && item.availabilityReason ? (
+                <span className="inline-flex items-center px-2 py-0.5 bg-orange-500/10 text-orange-600 text-xs font-semibold rounded-full">
+                  {item.availabilityReason}
+                </span>
+              ) : null}
             </div>
 
             {/* Title */}
@@ -168,11 +175,11 @@ export function DishCardZomato({ item, isBestseller = false }: DishCardZomatoPro
           <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
             <button
               onClick={handleAddToCart}
-              disabled={item.inStock === false || isAdding}
+              disabled={!isItemAvailable || isAdding}
               className={cn(
                 "flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300",
                 "shadow-medium",
-                item.inStock === false
+                !isItemAvailable
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
                   : "bg-white text-green-600 border-2 border-green-600 hover:bg-green-600 hover:text-white"
               )}

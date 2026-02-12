@@ -51,10 +51,9 @@ export class SettingsService {
     const openingTime = settings.openingTime || '09:00';
     const closingTime = settings.closingTime || '22:00';
 
-    // Get current time in IST (Indian Standard Time)
+    // Get current time in IST (Indian Standard Time) - using toLocaleString for accuracy
     const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const istTime = new Date(now.getTime() + istOffset + now.getTimezoneOffset() * 60 * 1000);
+    const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
     const currentHours = istTime.getHours().toString().padStart(2, '0');
     const currentMinutes = istTime.getMinutes().toString().padStart(2, '0');
     const currentTime = `${currentHours}:${currentMinutes}`;

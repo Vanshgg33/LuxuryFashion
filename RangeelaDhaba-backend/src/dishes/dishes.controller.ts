@@ -54,7 +54,7 @@ export class DishesController {
       // Only allow alphanumeric characters, spaces, and hyphens
       const sanitizedCategory = category.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
       if (sanitizedCategory) {
-        filter.category = sanitizedCategory;
+        filter.dishCategory = sanitizedCategory;
       }
     }
     

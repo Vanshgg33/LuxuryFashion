@@ -27,6 +27,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAdmin: boolean;
   loginUser: (email: string, password: string, remember?: boolean) => Promise<void>;
   registerUser: (name: string, email: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => void;
@@ -78,8 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  // Compute isAdmin based on user role
+  const isAdmin = user?.role === 'admin';
+
   return (
-    <AuthContext.Provider value={{ user, loading, loginUser, registerUser, logout, setUser }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, loginUser, registerUser, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );

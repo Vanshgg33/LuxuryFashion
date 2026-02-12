@@ -167,6 +167,7 @@ export function useCartBackend() {
   const isLoadingOrdersRef = useRef(false);
   const ordersLoadedRef = useRef(false);
   const isInitializedRef = useRef(false);
+  const isSyncingGuestCartRef = useRef(false); // Prevent duplicate guest cart sync
 
   // Check if user is logged in
   const isLoggedIn = !!user;
@@ -301,12 +302,15 @@ export function useCartBackend() {
     }
   }, [isLoggedIn]);
 
-  // Sync guest cart to backend when user logs in
+  // Sync guest cart to backend when user logs in (with lock to prevent race condition)
   const syncGuestCartToBackend = useCallback(async () => {
+    // Prevent duplicate sync operations
+    if (isSyncingGuestCartRef.current) return;
+
     const guestCart = getGuestCart();
     if (guestCart.length === 0) return;
 
-    console.log("Syncing guest cart to backend...", guestCart);
+    isSyncingGuestCartRef.current = true;
 
     const failedItems: typeof guestCart = [];
 
@@ -335,6 +339,8 @@ export function useCartBackend() {
       await loadBackendCart();
     } catch (err) {
       console.error("Error syncing guest cart:", err);
+    } finally {
+      isSyncingGuestCartRef.current = false;
     }
   }, [loadBackendCart]);
 
@@ -357,18 +363,8 @@ export function useCartBackend() {
       }
 
       if (isLoggedIn) {
-        // Sync guest cart to backend
-        const guestCart = getGuestCart();
-        if (guestCart.length > 0) {
-          for (const item of guestCart) {
-            try {
-              await apiAddToCart(item.dishId, item.quantity, item.isHalfPortion || false);
-            } catch (err) {
-              console.error("Error syncing item:", item.dishId, err);
-            }
-          }
-          clearGuestCart();
-        }
+        // Sync guest cart to backend (uses lock to prevent race condition)
+        await syncGuestCartToBackend();
 
         // Load backend cart
         try {

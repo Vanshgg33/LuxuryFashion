@@ -30,9 +30,23 @@ export class DishesService {
   }
 
   /**
+   * Validate time format (HH:MM)
+   */
+  private isValidTimeFormat(time: string): boolean {
+    if (!time || typeof time !== 'string') return false;
+    const timeRegex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+    return timeRegex.test(time);
+  }
+
+  /**
    * Check if current time is within the specified time range
    */
   isTimeInRange(from: string, to: string): boolean {
+    // Validate time format
+    if (!this.isValidTimeFormat(from) || !this.isValidTimeFormat(to)) {
+      return true; // If invalid format, assume available to prevent blocking
+    }
+
     const current = this.getCurrentTimeIST();
     const [currHour, currMin] = current.split(':').map(Number);
     const [fromHour, fromMin] = from.split(':').map(Number);
@@ -109,9 +123,6 @@ export class DishesService {
   }
 
   async update(id: string, dto: UpdateDishDto) {
-    console.log('💾 Updating dish:', id);
-    console.log('💾 DTO received:', JSON.stringify(dto, null, 2));
-
     // Build the update operation
     const updateOp: { $set: Record<string, unknown>; $unset?: Record<string, number> } = { $set: {} };
 
@@ -127,11 +138,8 @@ export class DishesService {
       updateOp.$unset = { halfPortionPrice: 1 };
     }
 
-    console.log('💾 Update operation:', JSON.stringify(updateOp, null, 2));
-
     const dish = await this.dishModel.findByIdAndUpdate(id, updateOp, { new: true });
     if (!dish) throw new NotFoundException('Dish not found');
-    console.log('💾 Dish after update:', { hasHalfPortion: dish.hasHalfPortion, isBuyOneGetOne: dish.isBuyOneGetOne, halfPortionPrice: dish.halfPortionPrice });
     return dish;
   }
 
