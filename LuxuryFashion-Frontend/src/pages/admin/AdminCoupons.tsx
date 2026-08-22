@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getAllCoupons, createCoupon, updateCoupon, deleteCoupon, fetchProducts } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, Check, X, Gift, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -34,9 +35,7 @@ interface Coupon {
 }
 
 export default function AdminCoupons() {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Coupon | null>(null);
   const [form, setForm] = useState<Partial<Coupon>>({
@@ -55,33 +54,23 @@ export default function AdminCoupons() {
   const [selectedDish, setSelectedDish] = useState<string>("");
   const [freeItemQty, setFreeItemQty] = useState<number>(1);
 
-  useEffect(() => {
-    loadCoupons();
-    loadDishes();
-  }, []);
-
-  const loadCoupons = async () => {
-    try {
-      setLoading(true);
+  const { data: coupons = [], isLoading: loading } = useQuery({
+    queryKey: ['adminCoupons'],
+    queryFn: async () => {
       const data = await getAllCoupons();
-      setCoupons(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      console.error("Failed to load coupons", err);
-      setCoupons([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 60_000,
+  });
 
-  const loadDishes = async () => {
-    try {
+  const { data: dishes = [] } = useQuery({
+    queryKey: ['dishes'],
+    queryFn: async () => {
       const data = await fetchProducts();
-      setDishes(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      console.error("Failed to load dishes", err);
-      setDishes([]);
-    }
-  };
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 120_000,
+  });
 
   const addFreeItem = () => {
     if (!selectedDish) return;
@@ -148,7 +137,7 @@ export default function AdminCoupons() {
       setDialogOpen(false);
       setEditing(null);
       resetForm();
-      await loadCoupons();
+      queryClient.invalidateQueries({ queryKey: ['adminCoupons'] });
     } catch (err: any) {
       console.error("Failed to save coupon:", err);
       alert(err.message || "Failed to save coupon");
@@ -177,7 +166,7 @@ export default function AdminCoupons() {
     if (!confirm("Delete this coupon?")) return;
     try {
       await deleteCoupon(id);
-      await loadCoupons();
+      queryClient.invalidateQueries({ queryKey: ['adminCoupons'] });
     } catch (err: any) {
       console.error("Failed to delete coupon:", err);
       alert(err.message || "Failed to delete coupon");

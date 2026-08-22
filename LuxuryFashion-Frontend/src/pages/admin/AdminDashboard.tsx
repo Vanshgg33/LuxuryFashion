@@ -27,6 +27,7 @@ import {
 } from "@/lib/api";
 import { MapPicker } from "@/components/MapPicker";
 import { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
 import { compressImageForUpload } from "@/lib/imageUtils";
 import {
@@ -80,11 +81,68 @@ const AdminDashboard = () => {
   }
 
   // Desktop layout below
-  const [orders, setOrders] = useState<any[]>([]);
-  const [summary, setSummary] = useState<any>({});
-  const [statusData, setStatusData] = useState<any[]>([]);
-  const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [bestSellers, setBestSellers] = useState<any[]>([]);
+  const queryClient = useQueryClient();
+  const { data: orders = [] } = useQuery({
+    queryKey: ['adminOrders'],
+    queryFn: async () => { const r = await fetchAdminOrders(); return Array.isArray(r) ? r : []; },
+    staleTime: 30_000,
+  });
+
+  const { data: summary = {} } = useQuery({
+    queryKey: ['analyticsSummary'],
+    queryFn: async () => (await fetchAnalyticsSummary()) || {},
+    staleTime: 30_000,
+  });
+
+  const { data: statusData = [] } = useQuery({
+    queryKey: ['analyticsStatus'],
+    queryFn: fetchAnalyticsStatus,
+    select: (res) => (res || []).map((s: any) => ({
+      name: s.status || "unknown",
+      value: s.count,
+      fill: s.status === "delivered" ? "hsl(142, 25%, 35%)" : s.status === "preparing" ? "hsl(45, 80%, 55%)" : "hsl(15, 60%, 55%)",
+    })),
+    staleTime: 30_000,
+  });
+
+  const { data: revenueData = [] } = useQuery({
+    queryKey: ['analyticsRevenue'],
+    queryFn: fetchAnalyticsRevenue,
+    select: (res) => (res || []).map((r: any) => ({ month: r._id, revenue: r.revenue })),
+    staleTime: 30_000,
+  });
+
+  const { data: bestSellers = [] } = useQuery({
+    queryKey: ['analyticsBestSellers'],
+    queryFn: fetchAnalyticsBestSellers,
+    select: (res) => (res || []).map((b: any) => ({ name: b._id || b.name, orders: b.orders, revenue: b.revenue })),
+    staleTime: 30_000,
+  });
+
+  const { data: dishes = [] } = useQuery({
+    queryKey: ['dishes'],
+    queryFn: async () => { const r = await fetchProducts(); return Array.isArray(r) ? r : []; },
+    staleTime: 60_000,
+  });
+
+  const { data: banners = [] } = useQuery({
+    queryKey: ['adminBanners'],
+    queryFn: async () => { const r = await fetchAdminBanners(); return Array.isArray(r) ? r : []; },
+    staleTime: 60_000,
+  });
+
+  const { data: bannerLimit = null } = useQuery({
+    queryKey: ['bannerLimit'],
+    queryFn: () => fetchBannerLimit().catch(() => ({ current: 0, max: 4, canAdd: true })),
+    staleTime: 60_000,
+  });
+
+  const { data: settingsData } = useQuery({
+    queryKey: ['adminSettings'],
+    queryFn: fetchSettings,
+    staleTime: Infinity,
+  });
+
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerTitle, setBannerTitle] = useState("");
   const [dishForm, setDishForm] = useState({
@@ -116,9 +174,6 @@ const AdminDashboard = () => {
   const [uploadingDish, setUploadingDish] = useState(false);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [dishPreview, setDishPreview] = useState<string | null>(null);
-  const [banners, setBanners] = useState<any[]>([]);
-  const [bannerLimit, setBannerLimit] = useState<{ current: number; max: number; canAdd: boolean } | null>(null);
-  const [dishes, setDishes] = useState<any[]>([]);
   const [dishSearchQuery, setDishSearchQuery] = useState('');
   const [editingDish, setEditingDish] = useState<any | null>(null);
   const [editDishForm, setEditDishForm] = useState<{
@@ -153,65 +208,24 @@ const AdminDashboard = () => {
     );
   }, [dishes, dishSearchQuery]);
 
-  const loadData = useMemo(() => async () => {
-    try {
-      const [ordersRes, summaryRes, statusRes, revenueRes, bestRes, settingsRes, bannersRes, limitRes, dishesRes] = await Promise.all([
-        fetchAdminOrders(),
-        fetchAnalyticsSummary(),
-        fetchAnalyticsStatus(),
-        fetchAnalyticsRevenue(),
-        fetchAnalyticsBestSellers(),
-        fetchSettings(),
-        fetchAdminBanners().catch(() => []),
-        fetchBannerLimit().catch(() => ({ current: 0, max: 4, canAdd: true })),
-        fetchProducts().catch(() => []),
-      ]);
-      setOrders(Array.isArray(ordersRes) ? ordersRes : []);
-      setSummary(summaryRes || {});
-      setStatusData(
-        (statusRes || []).map((s: any) => ({
-          name: s.status || "unknown",
-          value: s.count,
-          fill: s.status === "delivered" ? "hsl(142, 25%, 35%)" : s.status === "preparing" ? "hsl(45, 80%, 55%)" : "hsl(15, 60%, 55%)",
-        }))
-      );
-      setRevenueData(
-        (revenueRes || []).map((r: any) => ({
-          month: r._id,
-          revenue: r.revenue,
-        }))
-      );
-      setBestSellers(
-        (bestRes || []).map((b: any) => ({
-          name: b._id || b.name,
-          orders: b.orders,
-          revenue: b.revenue,
-        }))
-      );
-      setSettingsForm({
-        lat: settingsRes?.lat,
-        lng: settingsRes?.lng,
-        address: settingsRes?.address,
-        isDeliveryEnabled: settingsRes?.isDeliveryEnabled ?? true,
-        deliveryFee: settingsRes?.deliveryFee ?? 40,
-        minOrderValue: settingsRes?.minOrderValue ?? 0,
-        openingTime: settingsRes?.openingTime ?? '09:00',
-        closingTime: settingsRes?.closingTime ?? '22:00',
-        isOpen: settingsRes?.isOpen ?? true,
-        closureReason: settingsRes?.closureReason ?? '',
-      });
-      setCategoryRestrictions(settingsRes?.categoryTimeRestrictions || {});
-      setBanners(Array.isArray(bannersRes) ? bannersRes : []);
-      setBannerLimit(limitRes);
-      setDishes(Array.isArray(dishesRes) ? dishesRes : []);
-    } catch (err) {
-      console.error("Failed to fetch analytics:", err);
-    }
-  }, []);
-
+  // Initialize settings form from query (only on first load — staleTime: Infinity prevents auto-refetch)
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!settingsData) return;
+    const s = settingsData;
+    setSettingsForm({
+      lat: s.lat,
+      lng: s.lng,
+      address: s.address,
+      isDeliveryEnabled: s.isDeliveryEnabled ?? true,
+      deliveryFee: s.deliveryFee ?? 40,
+      minOrderValue: s.minOrderValue ?? 0,
+      openingTime: s.openingTime ?? '09:00',
+      closingTime: s.closingTime ?? '22:00',
+      isOpen: s.isOpen ?? true,
+      closureReason: s.closureReason ?? '',
+    });
+    setCategoryRestrictions(s.categoryTimeRestrictions || {});
+  }, [settingsData]);
 
   const totalUsers = summary.totalUsers ?? new Set(orders.map((o) => o.user?.id || o.userId)).size;
   const totalOrders = summary.totalOrders ?? orders.length;
@@ -241,7 +255,8 @@ const AdminDashboard = () => {
       setBannerFile(null);
       setBannerTitle("");
       setBannerPreview(null);
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
+      queryClient.invalidateQueries({ queryKey: ['bannerLimit'] });
     } catch (err: any) {
       console.error("Upload failed:", err);
     } finally {
@@ -252,9 +267,7 @@ const AdminDashboard = () => {
   const handleToggleBanner = async (id: string) => {
     try {
       await toggleBannerActive(id);
-      setBanners((prev) =>
-        prev.map((b) => (b._id === id ? { ...b, isActive: !b.isActive } : b))
-      );
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
     } catch (err: any) {
       console.error("Failed to update:", err);
     }
@@ -264,8 +277,8 @@ const AdminDashboard = () => {
     if (!confirm("Delete this banner?")) return;
     try {
       await deleteBanner(id);
-      setBanners((prev) => prev.filter((b) => b._id !== id));
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
+      queryClient.invalidateQueries({ queryKey: ['bannerLimit'] });
     } catch (err: any) {
       console.error("Failed to delete:", err);
     }
@@ -293,7 +306,7 @@ const AdminDashboard = () => {
       setDishForm({ name: "", price: "", foodCategory: "", dishCategory: "", description: "", inStock: true, image: null, hasTimeRestriction: false, availableFrom: "", availableTo: "", hasHalfPortion: false, halfPortionPrice: "", isBuyOneGetOne: false });
       setDishPreview(null);
       setShowAddDish(false);
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ['dishes'] });
     } catch (err: any) {
       console.error("Failed to create dish:", err);
     } finally {
@@ -304,7 +317,7 @@ const AdminDashboard = () => {
   const handleToggleDishStock = async (dish: any) => {
     try {
       await updateDish(dish._id, { inStock: !dish.inStock });
-      setDishes((prev) =>
+      queryClient.setQueryData(['dishes'], (prev: any[] = []) =>
         prev.map((d) => (d._id === dish._id ? { ...d, inStock: !d.inStock } : d))
       );
     } catch (err: any) {
@@ -362,7 +375,7 @@ const AdminDashboard = () => {
       const result = await updateDish(editingDish._id, updateData);
       console.log('📥 Update result:', result);
       handleCloseEditDish();
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ['dishes'] });
     } catch (err: any) {
       console.error("Failed to update dish:", err);
     } finally {
@@ -374,7 +387,7 @@ const AdminDashboard = () => {
     if (!confirm("Delete this dish?")) return;
     try {
       await deleteDish(id);
-      setDishes((prev) => prev.filter((d) => d._id !== id));
+      queryClient.setQueryData(['dishes'], (prev: any[] = []) => prev.filter((d) => d._id !== id));
     } catch (err: any) {
       console.error("Failed to delete:", err);
     }
@@ -407,11 +420,8 @@ const AdminDashboard = () => {
     try {
       const newStockStatus = !currentlyInStock;
       await updateCategoryStock(category, newStockStatus);
-      // Update local dishes state
-      setDishes((prev) =>
-        prev.map((d) =>
-          d.dishCategory === category ? { ...d, inStock: newStockStatus } : d
-        )
+      queryClient.setQueryData(['dishes'], (prev: any[] = []) =>
+        prev.map((d) => d.dishCategory === category ? { ...d, inStock: newStockStatus } : d)
       );
       toast.success(`${category}: All items ${newStockStatus ? 'in stock' : 'out of stock'}`);
     } catch (err: any) {
@@ -434,6 +444,7 @@ const AdminDashboard = () => {
         lng: settingsForm.lng,
         address: settingsForm.address,
       });
+      queryClient.invalidateQueries({ queryKey: ['adminSettings'] });
       toast.success("Restaurant location updated successfully");
     } catch (err: any) {
       console.error("Failed to save settings:", err);
@@ -447,6 +458,7 @@ const AdminDashboard = () => {
       const newValue = !settingsForm.isDeliveryEnabled;
       await toggleDelivery(newValue);
       setSettingsForm({ ...settingsForm, isDeliveryEnabled: newValue });
+      queryClient.invalidateQueries({ queryKey: ['adminSettings'] });
       toast.success(newValue ? "Delivery enabled" : "Delivery disabled - only takeaway orders will be accepted");
     } catch (err: any) {
       console.error("Failed to toggle delivery:", err);
@@ -464,6 +476,7 @@ const AdminDashboard = () => {
     setIsSavingDeliveryFee(true);
     try {
       await updateDeliveryFee(settingsForm.deliveryFee);
+      queryClient.invalidateQueries({ queryKey: ['adminSettings'] });
       toast.success(`Delivery fee updated to ₹${settingsForm.deliveryFee}`);
     } catch (err: any) {
       console.error("Failed to update delivery fee:", err);
@@ -481,6 +494,7 @@ const AdminDashboard = () => {
     setIsSavingMinOrder(true);
     try {
       await updateMinOrderValue(settingsForm.minOrderValue);
+      queryClient.invalidateQueries({ queryKey: ['adminSettings'] });
       toast.success(settingsForm.minOrderValue > 0
         ? `Minimum order value set to ₹${settingsForm.minOrderValue}`
         : "Minimum order value removed");
@@ -500,6 +514,7 @@ const AdminDashboard = () => {
     setIsSavingHours(true);
     try {
       await updateOperatingHours(settingsForm.openingTime, settingsForm.closingTime);
+      queryClient.invalidateQueries({ queryKey: ['adminSettings'] });
       toast.success(`Operating hours updated: ${settingsForm.openingTime} - ${settingsForm.closingTime}`);
     } catch (err: any) {
       console.error("Failed to update operating hours:", err);
@@ -520,6 +535,7 @@ const AdminDashboard = () => {
     try {
       await toggleRestaurantOpen(turnOn, turnOn ? '' : tempClosureReason);
       setSettingsForm({ ...settingsForm, isOpen: turnOn, closureReason: turnOn ? '' : tempClosureReason });
+      queryClient.invalidateQueries({ queryKey: ['adminSettings'] });
       setShowClosureReason(false);
       setTempClosureReason('');
       toast.success(turnOn ? "Restaurant is now OPEN for orders!" : "Restaurant is now CLOSED. No orders will be accepted.");
@@ -536,7 +552,7 @@ const AdminDashboard = () => {
     try {
       await updateCategoryTimeRestrictions(categoryRestrictions);
       toast.success("Category time restrictions saved");
-      await loadData(); // Reload dishes with updated availability
+      queryClient.invalidateQueries({ queryKey: ['dishes'] });
     } catch (err: any) {
       console.error("Failed to save category restrictions:", err);
       toast.error(err.message || "Failed to save category restrictions");

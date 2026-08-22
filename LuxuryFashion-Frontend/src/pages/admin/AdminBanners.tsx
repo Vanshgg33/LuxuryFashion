@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Image,
   Plus,
@@ -46,9 +47,7 @@ interface BannerLimit {
 }
 
 const AdminBanners = () => {
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [limitInfo, setLimitInfo] = useState<BannerLimit | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [compressingImage, setCompressingImage] = useState(false);
@@ -62,25 +61,20 @@ const AdminBanners = () => {
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const loadData = async () => {
-    try {
-      const [bannersRes, limitRes] = await Promise.all([
-        fetchAdminBanners(),
-        fetchBannerLimit(),
-      ]);
-      setBanners(Array.isArray(bannersRes) ? bannersRes : []);
-      setLimitInfo(limitRes);
-    } catch (err) {
-      console.error("Failed to fetch banners:", err);
-      
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: banners = [], isLoading: loading } = useQuery({
+    queryKey: ['adminBanners'],
+    queryFn: async () => {
+      const res = await fetchAdminBanners();
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const { data: limitInfo = null } = useQuery({
+    queryKey: ['bannerLimit'],
+    queryFn: () => fetchBannerLimit(),
+    staleTime: 60_000,
+  });
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,12 +114,12 @@ const AdminBanners = () => {
     try {
       await uploadBanner(uploadFile, uploadTitle);
       setUploadProgress(100);
-      
       setShowUploadDialog(false);
       setUploadFile(null);
       setUploadTitle("");
       setUploadPreview(null);
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
+      queryClient.invalidateQueries({ queryKey: ['bannerLimit'] });
     } catch (err: any) {
       
     } finally {
@@ -137,28 +131,21 @@ const AdminBanners = () => {
   const handleToggleActive = async (id: string) => {
     try {
       await toggleBannerActive(id);
-      setBanners((prev) =>
-        prev.map((b) => (b._id === id ? { ...b, isActive: !b.isActive } : b))
-      );
-      // Refresh to ensure sync with backend
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
     } catch (err: any) {
       console.error("Failed to toggle banner:", err);
-      // Refresh to restore correct state on error
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteBanner(id);
-      setBanners((prev) => prev.filter((b) => b._id !== id));
       setDeleteConfirm(null);
-      await loadData(); // Refresh limit info and banner list
+      queryClient.invalidateQueries({ queryKey: ['adminBanners'] });
+      queryClient.invalidateQueries({ queryKey: ['bannerLimit'] });
     } catch (err: any) {
       console.error("Failed to delete banner:", err);
-      // Refresh to restore correct state on error
-      await loadData();
     }
   };
 

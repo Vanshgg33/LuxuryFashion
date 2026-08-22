@@ -1,32 +1,27 @@
 import { Search, Mail, ShoppingBag } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { fetchUsers } from "@/lib/api";
 import { updateUserRole } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 const AdminUsers = () => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRole, setPendingRole] = useState<{ id: string; role: "user" | "admin" } | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await fetchUsers();
-        setUsers(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to fetch users", err);
-        setUsers([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const { data: users = [], isLoading: loading } = useQuery({
+    queryKey: ['adminUsers'],
+    queryFn: async () => {
+      const data = await fetchUsers();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 60_000,
+  });
 
   const filteredUsers = users.filter(
     (user) =>
@@ -170,9 +165,7 @@ const AdminUsers = () => {
                 if (!pendingRole) return;
                 try {
                   await updateUserRole(pendingRole.id, pendingRole.role);
-                  // Refresh users list to ensure sync with backend
-                  const data = await fetchUsers();
-                  setUsers(Array.isArray(data) ? data : []);
+                  queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
                 } catch (err: any) {
                   console.error("Failed to update role:", err);
                 } finally {

@@ -1,39 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { getAdminReviews, toggleReviewVisibility, adminDeleteReview } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Star, Eye, EyeOff, Trash2, Search, X, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function AdminReviews() {
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVisibility, setFilterVisibility] = useState<"all" | "visible" | "hidden">("all");
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadReviews();
-  }, []);
-
-  const loadReviews = async () => {
-    try {
-      setLoading(true);
+  const { data: reviews = [], isLoading: loading } = useQuery({
+    queryKey: ['adminReviews'],
+    queryFn: async () => {
       const data = await getAdminReviews();
-      setReviews(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      console.error("Failed to load reviews:", err);
-      toast.error("Failed to load reviews");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 60_000,
+  });
 
   const handleToggleVisibility = async (reviewId: string) => {
     setTogglingId(reviewId);
     try {
       const updated = await toggleReviewVisibility(reviewId);
-      setReviews((prev) =>
+      queryClient.setQueryData(['adminReviews'], (prev: any[] = []) =>
         prev.map((r) => (r._id === reviewId ? { ...r, isVisible: updated.isVisible } : r))
       );
       toast.success(updated.isVisible ? "Review is now visible" : "Review is now hidden");
@@ -51,7 +43,9 @@ export default function AdminReviews() {
     setDeletingId(reviewId);
     try {
       await adminDeleteReview(reviewId);
-      setReviews((prev) => prev.filter((r) => r._id !== reviewId));
+      queryClient.setQueryData(['adminReviews'], (prev: any[] = []) =>
+        prev.filter((r) => r._id !== reviewId)
+      );
       toast.success("Review deleted successfully");
     } catch (err: any) {
       console.error("Failed to delete review:", err);
@@ -111,7 +105,7 @@ export default function AdminReviews() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Review Moderation</h1>
         <button
-          onClick={loadReviews}
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['adminReviews'] })}
           className="px-4 py-2 text-sm bg-secondary rounded-lg hover:bg-secondary/80 transition-colors"
         >
           Refresh

@@ -1,6 +1,7 @@
 import { Search, Filter, CheckCircle, Clock, Truck, ArrowUpDown, Package, XCircle, Loader2, Printer, Bell, Volume2, VolumeX, MapPin, Phone, Copy, ExternalLink } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { fetchAdminOrders, updateOrderStatus } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,10 +31,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const AdminOrders = () => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | "All">("All");
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
   const previousOrderIdsRef = useRef<Set<string>>(new Set());
   const [newOrderPopupOpen, setNewOrderPopupOpen] = useState(false);
@@ -42,51 +42,35 @@ const AdminOrders = () => {
   const receiptRef = useRef<HTMLDivElement>(null);
   const { refreshOrders, clearNewOrdersIndicator, newOrders, dismissNewOrders, toggleSound, isSoundEnabled } = useAdminOrderNotifications();
 
-  const loadOrders = async () => {
-    try {
+  const { data: orders = [], isLoading: loading } = useQuery({
+    queryKey: ['adminOrders'],
+    queryFn: async () => {
       const res = await fetchAdminOrders();
-      const ordersArray = Array.isArray(res) ? res : [];
-      
-      // Detect new orders
-      const currentOrderIds = new Set(
-        ordersArray.map((o: any) => (o._id || o.id)?.toString()).filter(Boolean)
-      );
-      
-      // Find newly added orders
-      const newlyAdded = Array.from(currentOrderIds).filter(
-        (id) => !previousOrderIdsRef.current.has(id)
-      );
-      
-      if (newlyAdded.length > 0 && previousOrderIdsRef.current.size > 0) {
-        setNewOrderIds(new Set(newlyAdded));
-        // Clear the "new" indicator after 5 seconds
-        setTimeout(() => {
-          setNewOrderIds(new Set());
-        }, 5000);
-      }
-      
-      previousOrderIdsRef.current = currentOrderIds;
-      setOrders(ordersArray);
-    } catch (err) {
-      console.error("Failed to fetch admin orders:", err);
-      setOrders([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(res) ? res : [];
+    },
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
+  });
 
+  // Clear notification indicator on mount
   useEffect(() => {
-    loadOrders();
-    // Clear notification indicator when page loads
     clearNewOrdersIndicator();
-
-    // Refresh orders every 5 seconds
-    const interval = setInterval(() => {
-      loadOrders();
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, []);
+
+  // Detect new orders whenever the query data updates
+  useEffect(() => {
+    const currentOrderIds = new Set(
+      orders.map((o: any) => (o._id || o.id)?.toString()).filter(Boolean)
+    );
+    const newlyAdded = Array.from(currentOrderIds).filter(
+      (id) => !previousOrderIdsRef.current.has(id)
+    );
+    if (newlyAdded.length > 0 && previousOrderIdsRef.current.size > 0) {
+      setNewOrderIds(new Set(newlyAdded));
+      setTimeout(() => setNewOrderIds(new Set()), 5000);
+    }
+    previousOrderIdsRef.current = currentOrderIds;
+  }, [orders]);
 
   // Show popup when new orders arrive
   useEffect(() => {
@@ -261,7 +245,9 @@ const AdminOrders = () => {
     setIsUpdatingStatus(true);
     try {
       await updateOrderStatus(id, status, status === "cancelled" ? cancelReason : undefined);
-      setOrders((prev) => prev.map((o) => (o._id === id || o.id === id ? { ...o, status } : o)));
+      queryClient.setQueryData(['adminOrders'], (prev: any[] = []) =>
+        prev.map((o) => (o._id === id || o.id === id ? { ...o, status } : o))
+      );
       setConfirmOpen(false);
       setPendingChange(null);
       setCancelReason("");
